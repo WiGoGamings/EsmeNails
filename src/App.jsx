@@ -3130,7 +3130,7 @@ function App() {
           return;
         }
 
-        try {
+        if (isLocalAdminCredentials(authForm.email, authForm.password)) {
           await loginAsAdminWithCredentials({
             email: authForm.email,
             password: authForm.password,
@@ -3138,8 +3138,6 @@ function App() {
           });
           setAuthForm(defaultAuth);
           return;
-        } catch {
-          // If credentials are not local admin, continue with local client login.
         }
 
         const users = getLocalAuthUsers();

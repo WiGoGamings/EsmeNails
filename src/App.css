@@ -1158,6 +1158,31 @@ select {
 	gap: 0.45rem;
 }
 
+.points-game-riddle-card {
+	border: 1px dashed var(--border-main);
+	border-radius: 10px;
+	padding: 0.5rem;
+	background: linear-gradient(130deg, var(--surface-1) 0%, var(--surface-2) 100%);
+	display: grid;
+	gap: 0.2rem;
+}
+
+.points-game-riddle-card small,
+.points-game-riddle-card p,
+.points-game-riddle-card span {
+	margin: 0;
+}
+
+.points-game-riddle-card p {
+	font-size: 0.92rem;
+	font-weight: 700;
+}
+
+.points-game-riddle-card span {
+	font-size: 0.8rem;
+	color: var(--text-soft);
+}
+
 .points-game-choice-active {
 	border-color: var(--accent-main) !important;
 	box-shadow: 0 8px 18px rgba(154, 43, 102, 0.16);
@@ -2870,6 +2895,16 @@ body.theme-dark .dashboard-kicker {
 body.theme-dark .points-game-hand {
 	background: linear-gradient(130deg, #3d2445 0%, #512d5a 100%);
 	border-color: #8b5a99;
+}
+
+body.theme-dark .points-game-riddle-card {
+	background: linear-gradient(130deg, #3d2445 0%, #512d5a 100%);
+	border-color: #8b5a99;
+}
+
+body.theme-dark .points-game-riddle-card span,
+body.theme-dark .points-game-riddle-card small {
+	color: #ffd8ec;
 }
 
 body.theme-dark .points-game-hand small {

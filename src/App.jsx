@@ -218,11 +218,52 @@ const daySlots = ["8:00", "9:00", "10:00", "11:00", "12:00", "13:00", "14:00"];
 
 const cardPalette = ["pink", "rose", "red", "coral", "orange", "sand", "salmon"];
 
-const pointsGameOptions = [
-  { id: "piedra", label: "Piedra" },
-  { id: "papel", label: "Papel" },
-  { id: "tijera", label: "Tijera" }
+const pointsRiddles = [
+  {
+    id: "riddle-1",
+    question: "Tengo agujas pero no coso. Tengo numeros pero no sumo. Que soy?",
+    hint: "Lo miras para saber la hora.",
+    options: ["Un reloj", "Un peine", "Un pincel"],
+    answerIndex: 0
+  },
+  {
+    id: "riddle-2",
+    question: "Cuanto mas me quitas, mas grande soy. Que soy?",
+    hint: "Se forma en la tierra.",
+    options: ["Una montana", "Un hueco", "Una sombra"],
+    answerIndex: 1
+  },
+  {
+    id: "riddle-3",
+    question: "Vuelo sin alas, lloro sin ojos. Que soy?",
+    hint: "Aparezco en el cielo y en tormentas.",
+    options: ["El viento", "La nube", "La lluvia"],
+    answerIndex: 2
+  },
+  {
+    id: "riddle-4",
+    question: "Tiene dientes pero no muerde. Que es?",
+    hint: "Se usa para el cabello.",
+    options: ["Una lima", "Un peine", "Una tijera"],
+    answerIndex: 1
+  },
+  {
+    id: "riddle-5",
+    question: "Blanca por dentro, verde por fuera. Si quieres que te lo diga, espera.",
+    hint: "Es una fruta.",
+    options: ["Pera", "Manzana", "Sandia"],
+    answerIndex: 0
+  }
 ];
+
+const pickNextRiddleIndex = (currentIndex) => {
+  if (pointsRiddles.length <= 1) return 0;
+  let nextIndex = currentIndex;
+  while (nextIndex === currentIndex) {
+    nextIndex = Math.floor(Math.random() * pointsRiddles.length);
+  }
+  return nextIndex;
+};
 const POINTS_GAME_COOLDOWN_MS = 10000;
 
 const normalizePointsValue = (value) => {
@@ -788,7 +829,8 @@ function App() {
   const [profileForm, setProfileForm] = useState(defaultProfileForm);
   const [profileBusy, setProfileBusy] = useState(false);
   const [pointsGameOpen, setPointsGameOpen] = useState(false);
-  const [pointsGameRound, setPointsGameRound] = useState({ playerChoice: "", cpuChoice: "", result: "" });
+  const [pointsGameRiddleIndex, setPointsGameRiddleIndex] = useState(0);
+  const [pointsGameRound, setPointsGameRound] = useState({ selectedOption: -1, correctOption: -1, result: "" });
   const [pointsGameWins, setPointsGameWins] = useState(0);
   const [pointsGameAnimating, setPointsGameAnimating] = useState(false);
   const [pointsGameCooldownUntil, setPointsGameCooldownUntil] = useState(0);
@@ -3063,8 +3105,13 @@ function App() {
     });
   }, []);
 
-  const playPointsGameRound = useCallback((playerChoice) => {
-    if (!playerChoice) return;
+  const nextPointsRiddle = useCallback(() => {
+    setPointsGameRiddleIndex((prev) => pickNextRiddleIndex(prev));
+    setPointsGameRound({ selectedOption: -1, correctOption: -1, result: "" });
+  }, []);
+
+  const playPointsGameRound = useCallback((selectedOption) => {
+    if (!Number.isInteger(selectedOption) || selectedOption < 0) return;
 
     if (pointsGameAnimating) {
       setFeedback({ type: "info", text: "Resolviendo la ronda actual, espera un momento." });
@@ -3076,47 +3123,36 @@ function App() {
       return;
     }
 
+    const currentRiddle = pointsRiddles[pointsGameRiddleIndex];
+    if (!currentRiddle) return;
+
     setPointsGameAnimating(true);
-    setPointsGameRound({ playerChoice, cpuChoice: "", result: "pending" });
+    setPointsGameRound({ selectedOption, correctOption: -1, result: "pending" });
 
     if (pointsGameResolveTimeoutRef.current) {
       window.clearTimeout(pointsGameResolveTimeoutRef.current);
     }
 
     pointsGameResolveTimeoutRef.current = window.setTimeout(() => {
-      const randomIndex = Math.floor(Math.random() * pointsGameOptions.length);
-      const cpuChoice = pointsGameOptions[randomIndex]?.id || "piedra";
+      const isCorrect = selectedOption === currentRiddle.answerIndex;
+      const result = isCorrect ? "win" : "lose";
 
-      let result = "draw";
-      if (playerChoice !== cpuChoice) {
-        const playerWins =
-          (playerChoice === "piedra" && cpuChoice === "tijera")
-          || (playerChoice === "papel" && cpuChoice === "piedra")
-          || (playerChoice === "tijera" && cpuChoice === "papel");
-        result = playerWins ? "win" : "lose";
-      }
-
-      setPointsGameRound({ playerChoice, cpuChoice, result });
+      setPointsGameRound({ selectedOption, correctOption: currentRiddle.answerIndex, result });
       setPointsGameAnimating(false);
       setPointsGameNow(Date.now());
       setPointsGameCooldownUntil(Date.now() + POINTS_GAME_COOLDOWN_MS);
 
-      if (result === "win") {
+      if (isCorrect) {
         setPointsGameWins((prev) => prev + 1);
         creditPointsFromGame(0.1);
-        setFeedback({ type: "success", text: "Ganaste la ronda. +0.1 puntos agregados." });
-        return;
-      }
-
-      if (result === "draw") {
-        setFeedback({ type: "info", text: "Empate. Intenta otra ronda para sumar puntos." });
+        setFeedback({ type: "success", text: "Respuesta correcta. +0.1 puntos agregados." });
         return;
       }
 
       creditPointsFromGame(-0.001);
-      setFeedback({ type: "info", text: "Esta ronda se perdio. -0.001 puntos aplicados." });
+      setFeedback({ type: "info", text: "Respuesta incorrecta. -0.001 puntos aplicados." });
     }, 900);
-  }, [creditPointsFromGame, pointsGameAnimating, pointsGameCooldownLeftMs, pointsGameCooldownSeconds]);
+  }, [creditPointsFromGame, pointsGameAnimating, pointsGameCooldownLeftMs, pointsGameCooldownSeconds, pointsGameRiddleIndex]);
 
   const historyAppointments = historyData?.appointments || [];
   const historyOrders = historyData?.orders || [];
@@ -4056,46 +4092,58 @@ function App() {
                   <div className="points-game-head">
                     <div>
                       <small>Mini juego</small>
-                      <h3>Jugar para ganar puntos</h3>
-                      <p>Cada victoria suma +0.1 puntos. Juega Piedra, Papel o Tijera.</p>
+                      <h3>Adivinanzas para ganar puntos</h3>
+                      <p>Cada respuesta correcta suma +0.1 puntos. Si fallas, se descuenta -0.001.</p>
                     </div>
                     <button
                       type="button"
                       className={pointsGameOpen ? "secondary" : "primary"}
                       onClick={() => setPointsGameOpen((prev) => !prev)}
                     >
-                      {pointsGameOpen ? "Cerrar juego" : "Jugar para ganar puntos"}
+                      {pointsGameOpen ? "Cerrar adivinanzas" : "Jugar adivinanzas"}
                     </button>
                   </div>
 
                   {pointsGameOpen && (
                     <>
+                      <div className="points-game-riddle-card">
+                        <small>Adivinanza actual</small>
+                        <p>{pointsRiddles[pointsGameRiddleIndex]?.question || "Sin adivinanza disponible."}</p>
+                        <span>Pista: {pointsRiddles[pointsGameRiddleIndex]?.hint || "-"}</span>
+                      </div>
+
                       <div className="points-game-options">
-                        {pointsGameOptions.map((option) => (
+                        {(pointsRiddles[pointsGameRiddleIndex]?.options || []).map((option, optionIndex) => (
                           <button
-                            key={option.id}
+                            key={`${pointsRiddles[pointsGameRiddleIndex]?.id || "riddle"}-${optionIndex}`}
                             type="button"
-                            className={`secondary ${pointsGameRound.playerChoice === option.id ? "points-game-choice-active" : ""}`}
+                            className={`secondary ${pointsGameRound.selectedOption === optionIndex ? "points-game-choice-active" : ""}`}
                             disabled={pointsGameCooldownLeftMs > 0 || pointsGameAnimating}
-                            onClick={() => playPointsGameRound(option.id)}
+                            onClick={() => playPointsGameRound(optionIndex)}
                           >
-                            {option.label}
+                            {option}
                           </button>
                         ))}
                       </div>
 
                       <div className={`points-game-duel ${pointsGameAnimating ? "rolling" : ""} ${pointsGameRound.result ? `is-${pointsGameRound.result}` : ""}`}>
                         <div className="points-game-hand player">
-                          <small>Tu jugada</small>
-                          <strong>{pointsGameOptions.find((item) => item.id === pointsGameRound.playerChoice)?.label || "-"}</strong>
+                          <small>Tu respuesta</small>
+                          <strong>
+                            {pointsGameRound.selectedOption >= 0
+                              ? (pointsRiddles[pointsGameRiddleIndex]?.options || [])[pointsGameRound.selectedOption] || "-"
+                              : "-"}
+                          </strong>
                         </div>
-                        <div className="points-game-vs">{pointsGameAnimating ? "..." : "VS"}</div>
+                        <div className="points-game-vs">{pointsGameAnimating ? "..." : "="}</div>
                         <div className="points-game-hand system">
-                          <small>Sistema</small>
+                          <small>Respuesta correcta</small>
                           <strong>
                             {pointsGameAnimating
                               ? "Pensando..."
-                              : pointsGameOptions.find((item) => item.id === pointsGameRound.cpuChoice)?.label || "-"}
+                              : pointsGameRound.correctOption >= 0
+                                ? (pointsRiddles[pointsGameRiddleIndex]?.options || [])[pointsGameRound.correctOption] || "-"
+                                : "-"}
                           </strong>
                         </div>
                       </div>
@@ -4113,12 +4161,20 @@ function App() {
                         </small>
                         {pointsGameRound.result && pointsGameRound.result !== "pending" && (
                           <p>
-                            Tu jugada: <strong>{pointsGameOptions.find((item) => item.id === pointsGameRound.playerChoice)?.label || "-"}</strong>
+                            Tu respuesta: <strong>
+                              {pointsGameRound.selectedOption >= 0
+                                ? (pointsRiddles[pointsGameRiddleIndex]?.options || [])[pointsGameRound.selectedOption] || "-"
+                                : "-"}
+                            </strong>
                             {" | "}
-                            Sistema: <strong>{pointsGameOptions.find((item) => item.id === pointsGameRound.cpuChoice)?.label || "-"}</strong>
+                            Correcta: <strong>
+                              {pointsGameRound.correctOption >= 0
+                                ? (pointsRiddles[pointsGameRiddleIndex]?.options || [])[pointsGameRound.correctOption] || "-"
+                                : "-"}
+                            </strong>
                             {" | "}
                             Resultado: <strong>
-                              {pointsGameRound.result === "win" ? "Ganaste" : pointsGameRound.result === "lose" ? "Perdiste" : "Empate"}
+                              {pointsGameRound.result === "win" ? "Acertaste" : "Fallaste"}
                             </strong>
                           </p>
                         )}
@@ -4126,11 +4182,17 @@ function App() {
                           <span className={`points-game-result-pill ${pointsGameRound.result}`}>
                             {pointsGameRound.result === "win"
                               ? "Victoria: +0.1 pts"
-                              : pointsGameRound.result === "lose"
-                                ? "Derrota: -0.001 pts"
-                                : "Empate: vuelve a intentar"}
+                              : "Derrota: -0.001 pts"}
                           </span>
                         )}
+                        <button
+                          type="button"
+                          className="secondary"
+                          onClick={nextPointsRiddle}
+                          disabled={pointsGameAnimating}
+                        >
+                          Cambiar adivinanza
+                        </button>
                       </div>
                     </>
                   )}

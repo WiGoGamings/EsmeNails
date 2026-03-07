@@ -65,6 +65,8 @@ const LOCAL_AUTH_USERS_KEY = "esme_local_auth_users";
 const LOCAL_AUTH_PASSWORD_SALT = "esme-local-auth-v1";
 const LOCAL_ADMIN_EMAIL = "admin.esme@esmenails.com";
 const LOCAL_ADMIN_PASSWORD_HASH = "53ac1385fa6a18d0e617c52423c17abd61ab1f39b2093f0fb4e37a1bd14736f3";
+const API_POINTS_LEDGER_KEY = "esme_points_ledger_v1";
+const POINTS_GAME_STATS_LEDGER_KEY = "esme_points_game_stats_v1";
 
 const getAssistantHistoryStorageKey = (isAuthenticated, sessionUser) => {
   const identity = isAuthenticated ? (sessionUser?.email || "authenticated-user") : "guest";
@@ -218,43 +220,70 @@ const daySlots = ["8:00", "9:00", "10:00", "11:00", "12:00", "13:00", "14:00"];
 
 const cardPalette = ["pink", "rose", "red", "coral", "orange", "sand", "salmon"];
 
-const pointsRiddles = [
-  {
-    id: "riddle-1",
-    question: "Tengo agujas pero no coso. Tengo numeros pero no sumo. Que soy?",
-    hint: "Lo miras para saber la hora.",
-    options: ["Un reloj", "Un peine", "Un pincel"],
-    answerIndex: 0
-  },
-  {
-    id: "riddle-2",
-    question: "Cuanto mas me quitas, mas grande soy. Que soy?",
-    hint: "Se forma en la tierra.",
-    options: ["Una montana", "Un hueco", "Una sombra"],
-    answerIndex: 1
-  },
-  {
-    id: "riddle-3",
-    question: "Vuelo sin alas, lloro sin ojos. Que soy?",
-    hint: "Aparezco en el cielo y en tormentas.",
-    options: ["El viento", "La nube", "La lluvia"],
-    answerIndex: 2
-  },
-  {
-    id: "riddle-4",
-    question: "Tiene dientes pero no muerde. Que es?",
-    hint: "Se usa para el cabello.",
-    options: ["Una lima", "Un peine", "Una tijera"],
-    answerIndex: 1
-  },
-  {
-    id: "riddle-5",
-    question: "Blanca por dentro, verde por fuera. Si quieres que te lo diga, espera.",
-    hint: "Es una fruta.",
-    options: ["Pera", "Manzana", "Sandia"],
-    answerIndex: 0
-  }
+const hardRiddleContexts = [
+  "En una evaluacion avanzada de salon premium,",
+  "Durante una capacitacion para nail artists senior,",
+  "En un protocolo de bioseguridad y belleza integral,",
+  "En una clienta con historial de sensibilidad cosmetica,",
+  "Dentro de un servicio editorial de alto impacto,",
+  "En una asesoria de imagen femenina profesional,",
+  "Durante una correccion tecnica de una aplicacion previa,",
+  "En una planificacion de mantenimiento de larga duracion,"
 ];
+
+const hardRiddleConcepts = [
+  { id: "nail-01", question: "que producto mejora la adhesion del color y reduce lifting temprano?", hint: "Es la primera capa tecnica.", correct: "Base coat", wrong: ["Top coat", "Cuticle oil"] },
+  { id: "nail-02", question: "que forma de uña tiende a alargar visualmente dedos cortos en manos pequeñas?", hint: "Silueta afinada en punta suave.", correct: "Almond", wrong: ["Square", "Flat"] },
+  { id: "nail-03", question: "que sistema suele aportar mayor rigidez estructural en extensiones?", hint: "Polvo + monomero.", correct: "Acrilico", wrong: ["Esmalte regular", "Gloss hidratante"] },
+  { id: "nail-04", question: "que paso tecnico no debe omitirse en gel para evitar desprendimiento?", hint: "Lampara entre capas.", correct: "Curar cada capa", wrong: ["Secado al aire", "Aplicar agua termal"] },
+  { id: "nail-05", question: "ante onicolisis, cual decision es profesional y segura?", hint: "Primero salud, luego estetica.", correct: "Suspender servicio y recomendar revision", wrong: ["Cubrir con capas gruesas", "Limar profundamente"] },
+  { id: "nail-06", question: "que tecnica minimiza grosor excesivo al sellar punta libre?", hint: "Control de material en borde.", correct: "Encapsulado fino con limado de precision", wrong: ["Doble capa sin limar", "Pulido sin estructura"] },
+  { id: "nail-07", question: "que indicador suele señalar sobrecurado de gel en cabina?", hint: "Sensacion termica abrupta.", correct: "Pico de calor intenso", wrong: ["Brillo uniforme", "Textura tersa"] },
+  { id: "nail-08", question: "que factor aumenta mas el riesgo de lifting en cuticula?", hint: "Preparacion de placa.", correct: "Dejar humedad o grasa en la placa", wrong: ["Usar primer correcto", "Limado equilibrado"] },
+  { id: "nail-09", question: "que practica mejora retencion en clientas con manos hiperhidroticas?", hint: "Control previo de humedad.", correct: "Deshidratador y primer adecuados", wrong: ["Mas aceite final", "Menos curado"] },
+  { id: "nail-10", question: "en soft gel tips, que variable impacta mas la duracion?", hint: "Compatibilidad de curvatura.", correct: "Ajuste exacto de tip a lateral", wrong: ["Color de la tip", "Longitud del nombre"] },
+  { id: "beauty-11", question: "que activo cosmetico se asocia con regulacion de sebo y poro visible?", hint: "Vitamina B3.", correct: "Niacinamida", wrong: ["Parafina", "Aceite mineral"] },
+  { id: "beauty-12", question: "que proteccion es clave para prevenir fotoenvejecimiento en manos?", hint: "SPF alto y reaplicacion.", correct: "Protector solar", wrong: ["Solo crema humectante", "Solo agua fria"] },
+  { id: "beauty-13", question: "que orden de maquillaje suele mejorar durabilidad en piel mixta?", hint: "Preparar, fijar y sellar.", correct: "Primer, base, sellado", wrong: ["Sellado, base, primer", "Base, aceite, agua"] },
+  { id: "beauty-14", question: "que variable define mejor una higiene correcta de brochas?", hint: "Frecuencia + secado.", correct: "Limpieza regular y secado completo", wrong: ["Solo enjuagar rapido", "Perfumar cerdas"] },
+  { id: "beauty-15", question: "para maquillaje de larga jornada, que decision reduce quiebre de base?", hint: "Capas delgadas.", correct: "Construccion en capas finas", wrong: ["Una capa gruesa", "No hidratar nada"] },
+  { id: "style-16", question: "que paleta suele verse mas sofisticada en entorno corporativo?", hint: "Neutros controlados.", correct: "Nude, mauve y vino suave", wrong: ["Neon saturado", "Multicolor fluo"] },
+  { id: "style-17", question: "que contraste tiende a estilizar manos en fotografia editorial?", hint: "Base limpia + acento puntual.", correct: "Tono limpio con detalle focal", wrong: ["Patron saturado total", "Glitter en cada dedo"] },
+  { id: "style-18", question: "que forma y largo favorecen elegancia diaria sin comprometer funcionalidad?", hint: "Intermedio y balanceado.", correct: "Almond corto-medio", wrong: ["Stiletto extremo", "Square XXL"] },
+  { id: "nail-19", question: "en recubrimiento natural, que error acelera quiebres por tension?", hint: "Arquitectura incorrecta.", correct: "Apex mal ubicado", wrong: ["Sellado correcto", "Retiro de polvo"] },
+  { id: "nail-20", question: "que criterio define una buena nivelacion de gel constructor?", hint: "Reflejo continuo.", correct: "Linea de luz uniforme", wrong: ["Burbuja central", "Borde ondulado"] },
+  { id: "nail-21", question: "que accion reduce riesgo de infeccion cruzada en herramientas metalicas?", hint: "No solo alcohol.", correct: "Esterilizacion y empaque limpio", wrong: ["Limpieza visual rapida", "Compartir entre clientas"] },
+  { id: "nail-22", question: "que decision es correcta ante alergia sospechada a acrilatos?", hint: "Detener exposicion.", correct: "Suspender producto y derivar", wrong: ["Aumentar cantidad", "Cambiar color solamente"] },
+  { id: "nail-23", question: "que aspecto del limado final mejora sellado y retencion?", hint: "Direccion y presion.", correct: "Limado controlado sin sobrecalentar", wrong: ["Presion maxima continua", "Movimiento aleatorio"] },
+  { id: "nail-24", question: "que senal suele anticipar fractura por punto de estres?", hint: "Transicion apex-zona libre.", correct: "Linea fina blanquecina de tension", wrong: ["Brillo alto", "Cuticula hidratada"] },
+  { id: "beauty-25", question: "para piel sensible, que enfoque minimiza irritacion acumulada?", hint: "Menos activos simultaneos.", correct: "Rutina simple con activos graduales", wrong: ["Exfoliar diario fuerte", "Probar todo a la vez"] },
+  { id: "beauty-26", question: "que practica mejora estabilidad de color en labial larga duracion?", hint: "Base labial previa.", correct: "Perfilar y sellar en capas", wrong: ["Aplicar aceite encima", "No preparar labios"] },
+  { id: "style-27", question: "en look bridal elegante, que diseno de uñas suele ser mas atemporal?", hint: "Limpio y luminoso.", correct: "Francesa fina o baby boomer", wrong: ["Neon abstracto", "Animal print full"] },
+  { id: "style-28", question: "que combinacion cromatica genera mayor sensacion de lujo discreto?", hint: "Contraste bajo.", correct: "Nude rosado con acento dorado fino", wrong: ["Verde neon con azul electrico", "Rojo, morado y lima juntos"] },
+  { id: "nail-29", question: "en mantenimiento de extensiones, que intervalo suele mantener estructura saludable?", hint: "No esperar ruptura.", correct: "Retoque cada 2-3 semanas", wrong: ["Cada 8-10 semanas", "Solo cuando se caigan"] },
+  { id: "nail-30", question: "que valida mejor una desinfeccion de superficie de mesa efectiva?", hint: "Tiempo de contacto.", correct: "Respetar dilucion y tiempo indicado", wrong: ["Secar de inmediato", "Aplicar sin limpiar polvo"] }
+];
+
+const buildRiddleOptions = (correct, wrongOptions, seed) => {
+  const choices = [...wrongOptions.slice(0, 2)];
+  const answerIndex = seed % 3;
+  choices.splice(answerIndex, 0, correct);
+  return { options: choices, answerIndex };
+};
+
+const pointsRiddles = hardRiddleConcepts.flatMap((concept, conceptIndex) =>
+  hardRiddleContexts.map((context, contextIndex) => {
+    const seed = (conceptIndex * hardRiddleContexts.length) + contextIndex;
+    const built = buildRiddleOptions(concept.correct, concept.wrong, seed);
+    return {
+      id: `riddle-${concept.id}-${contextIndex + 1}`,
+      question: `${context} ${concept.question}`,
+      hint: concept.hint,
+      options: built.options,
+      answerIndex: built.answerIndex
+    };
+  })
+);
 
 const pickNextRiddleIndex = (currentIndex) => {
   if (pointsRiddles.length <= 1) return 0;
@@ -275,6 +304,107 @@ const normalizePointsValue = (value) => {
 const formatPointsValue = (value) => {
   const normalized = normalizePointsValue(value);
   return normalized.toFixed(3).replace(/\.?(0+)$/, "");
+};
+
+const getApiPointsLedger = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(API_POINTS_LEDGER_KEY) || "{}");
+    return stored && typeof stored === "object" ? stored : {};
+  } catch {
+    return {};
+  }
+};
+
+const setApiPointsLedger = (ledger) => {
+  try {
+    localStorage.setItem(API_POINTS_LEDGER_KEY, JSON.stringify(ledger));
+  } catch {
+    // Ignore storage write failures.
+  }
+};
+
+const resolvePointsLedgerIdentity = (userLike) => {
+  const normalizedEmail = normalizeAuthEmail(userLike?.email);
+  if (normalizedEmail) return `email:${normalizedEmail}`;
+  const id = String(userLike?.id || "").trim();
+  if (id) return `id:${id}`;
+  return "";
+};
+
+const defaultPointsGameStats = {
+  roundsPlayed: 0,
+  winsTotal: 0,
+  totalPlaySeconds: 0,
+  achievementPoints: 0,
+  unlockedAchievementIds: []
+};
+
+const sanitizePointsGameStats = (rawStats) => {
+  const source = rawStats && typeof rawStats === "object" ? rawStats : {};
+  return {
+    roundsPlayed: Math.max(0, Number(source.roundsPlayed) || 0),
+    winsTotal: Math.max(0, Number(source.winsTotal) || 0),
+    totalPlaySeconds: Math.max(0, Math.floor(Number(source.totalPlaySeconds) || 0)),
+    achievementPoints: normalizePointsValue(Math.max(0, Number(source.achievementPoints) || 0)),
+    unlockedAchievementIds: Array.isArray(source.unlockedAchievementIds)
+      ? source.unlockedAchievementIds.filter((id) => typeof id === "string" && id.trim())
+      : []
+  };
+};
+
+const getPointsGameStatsLedger = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(POINTS_GAME_STATS_LEDGER_KEY) || "{}");
+    return stored && typeof stored === "object" ? stored : {};
+  } catch {
+    return {};
+  }
+};
+
+const setPointsGameStatsLedger = (ledger) => {
+  try {
+    localStorage.setItem(POINTS_GAME_STATS_LEDGER_KEY, JSON.stringify(ledger));
+  } catch {
+    // Ignore storage write failures.
+  }
+};
+
+const getStoredPointsGameStatsForUser = (userLike) => {
+  const identity = resolvePointsLedgerIdentity(userLike);
+  if (!identity) return defaultPointsGameStats;
+  const ledger = getPointsGameStatsLedger();
+  return sanitizePointsGameStats(ledger[identity]);
+};
+
+const setStoredPointsGameStatsForUser = (userLike, stats) => {
+  const identity = resolvePointsLedgerIdentity(userLike);
+  if (!identity) return;
+  const ledger = getPointsGameStatsLedger();
+  ledger[identity] = sanitizePointsGameStats(stats);
+  setPointsGameStatsLedger(ledger);
+};
+
+const getStoredPointsBonusForUser = (userLike) => {
+  const identity = resolvePointsLedgerIdentity(userLike);
+  if (!identity) return 0;
+  const ledger = getApiPointsLedger();
+  return normalizePointsValue(ledger[identity] || 0);
+};
+
+const addStoredPointsBonusForUser = (userLike, delta) => {
+  const identity = resolvePointsLedgerIdentity(userLike);
+  if (!identity) return 0;
+  const ledger = getApiPointsLedger();
+  const nextBonus = normalizePointsValue((Number(ledger[identity]) || 0) + Number(delta || 0));
+  ledger[identity] = nextBonus;
+  setApiPointsLedger(ledger);
+  return nextBonus;
+};
+
+const applyStoredPointsBonus = (basePoints, userLike) => {
+  const base = Number(basePoints) || 0;
+  const bonus = getStoredPointsBonusForUser(userLike);
+  return normalizePointsValue(Math.max(0, base + bonus));
 };
 
 const startHour = 8;
@@ -835,6 +965,7 @@ function App() {
   const [pointsGameAnimating, setPointsGameAnimating] = useState(false);
   const [pointsGameCooldownUntil, setPointsGameCooldownUntil] = useState(0);
   const [pointsGameNow, setPointsGameNow] = useState(() => Date.now());
+  const [pointsGameStats, setPointsGameStats] = useState(defaultPointsGameStats);
   const [contactForm, setContactForm] = useState({
     subject: "",
     message: "",
@@ -1805,26 +1936,33 @@ function App() {
 
     try {
       const response = await apiRequest("/users/me", { token });
+      const apiProfile = response.profile || {};
+      const profilePointsWithBonus = applyStoredPointsBonus(Number(apiProfile.points) || 0, {
+        id: apiProfile.id || sessionUser?.id || "",
+        email: apiProfile.email || sessionUser?.email || ""
+      });
+
       setProfileForm((prev) => ({
         ...prev,
-        name: response.profile.name || "",
-        birthDate: response.profile.birthDate || "",
-        email: response.profile.email || "",
-        phone: response.profile.phone || "",
-        description: response.profile.description || "",
-        profileImageUrl: response.profile.profileImageUrl || "",
-        emailVerified: Boolean(response.profile.emailVerified),
-        phoneVerified: Boolean(response.profile.phoneVerified),
-        points: Number(response.profile.points) || 0,
-        ordersCount: Number(response.profile.ordersCount) || 0,
-        appointmentsCount: Number(response.profile.appointmentsCount) || 0
+        name: apiProfile.name || "",
+        birthDate: apiProfile.birthDate || "",
+        email: apiProfile.email || "",
+        phone: apiProfile.phone || "",
+        description: apiProfile.description || "",
+        profileImageUrl: apiProfile.profileImageUrl || "",
+        emailVerified: Boolean(apiProfile.emailVerified),
+        phoneVerified: Boolean(apiProfile.phoneVerified),
+        points: profilePointsWithBonus,
+        ordersCount: Number(apiProfile.ordersCount) || 0,
+        appointmentsCount: Number(apiProfile.appointmentsCount) || 0
       }));
       setSessionUser((prev) => {
         const next = {
           ...(prev || {}),
-          name: response.profile.name || prev?.name || "",
-          email: response.profile.email || prev?.email || "",
-          points: Number(response.profile.points) || 0
+          id: apiProfile.id || prev?.id || "",
+          name: apiProfile.name || prev?.name || "",
+          email: apiProfile.email || prev?.email || "",
+          points: profilePointsWithBonus
         };
         localStorage.setItem("esme_user", JSON.stringify(next));
         return next;
@@ -1958,6 +2096,11 @@ function App() {
       });
 
       const nextProfile = response.profile || {};
+      const nextProfilePointsWithBonus = applyStoredPointsBonus(Number(nextProfile.points) || 0, {
+        id: nextProfile.id || sessionUser?.id || "",
+        email: nextProfile.email || profileForm.email || sessionUser?.email || ""
+      });
+
       setProfileForm((prev) => ({
         ...prev,
         name: nextProfile.name || "",
@@ -1968,7 +2111,7 @@ function App() {
         profileImageUrl: nextProfile.profileImageUrl || "",
         emailVerified: Boolean(nextProfile.emailVerified),
         phoneVerified: Boolean(nextProfile.phoneVerified),
-        points: Number(nextProfile.points) || prev.points || 0,
+        points: nextProfilePointsWithBonus,
         ordersCount: Number(nextProfile.ordersCount) || prev.ordersCount || 0,
         appointmentsCount: Number(nextProfile.appointmentsCount) || prev.appointmentsCount || 0
       }));
@@ -1978,9 +2121,10 @@ function App() {
 
       const nextSessionUser = {
         ...(sessionUser || {}),
+        id: nextProfile.id || sessionUser?.id || "",
         name: nextProfile.name || profileForm.name,
         email: nextProfile.email || profileForm.email,
-        points: Number(nextProfile.points) || sessionUser?.points || 0
+        points: nextProfilePointsWithBonus
       };
       setSessionUser(nextSessionUser);
       localStorage.setItem("esme_user", JSON.stringify(nextSessionUser));
@@ -2028,6 +2172,11 @@ function App() {
       });
 
       const syncedProfile = syncResponse.profile || {};
+      const syncedProfilePointsWithBonus = applyStoredPointsBonus(Number(syncedProfile.points) || 0, {
+        id: syncedProfile.id || sessionUser?.id || "",
+        email: syncedProfile.email || profileForm.email || sessionUser?.email || ""
+      });
+
       setProfileForm((prev) => ({
         ...prev,
         name: syncedProfile.name || prev.name,
@@ -2038,16 +2187,17 @@ function App() {
         profileImageUrl: syncedProfile.profileImageUrl || prev.profileImageUrl,
         emailVerified: Boolean(syncedProfile.emailVerified),
         phoneVerified: Boolean(syncedProfile.phoneVerified),
-        points: Number(syncedProfile.points) || prev.points || 0,
+        points: syncedProfilePointsWithBonus,
         ordersCount: Number(syncedProfile.ordersCount) || prev.ordersCount || 0,
         appointmentsCount: Number(syncedProfile.appointmentsCount) || prev.appointmentsCount || 0
       }));
 
       const nextSessionUser = {
         ...(sessionUser || {}),
+        id: syncedProfile.id || sessionUser?.id || "",
         name: syncedProfile.name || profileForm.name,
         email: syncedProfile.email || profileForm.email,
-        points: Number(syncedProfile.points) || sessionUser?.points || 0
+        points: syncedProfilePointsWithBonus
       };
       setSessionUser(nextSessionUser);
       localStorage.setItem("esme_user", JSON.stringify(nextSessionUser));
@@ -3066,6 +3216,110 @@ function App() {
     }
   }, []);
 
+  const updatePointsGameStats = useCallback((updater) => {
+    setPointsGameStats((prev) => {
+      const base = sanitizePointsGameStats(prev);
+      const nextRaw = typeof updater === "function" ? updater(base) : { ...base, ...(updater || {}) };
+      const next = sanitizePointsGameStats(nextRaw);
+      setStoredPointsGameStatsForUser(sessionUser, next);
+      return next;
+    });
+  }, [sessionUser]);
+
+  const pointsGameAchievements = useMemo(() => ([
+    {
+      id: "play-180",
+      title: "Maraton Beauty I",
+      description: "Juega 3 minutos acumulados en adivinanzas.",
+      rewardPoints: 0.3,
+      unlockedWhen: (metrics) => metrics.totalPlaySeconds >= 180
+    },
+    {
+      id: "play-600",
+      title: "Maraton Beauty II",
+      description: "Juega 10 minutos acumulados.",
+      rewardPoints: 0.8,
+      unlockedWhen: (metrics) => metrics.totalPlaySeconds >= 600
+    },
+    {
+      id: "rounds-40",
+      title: "Constancia de Salon",
+      description: "Completa 40 rondas de adivinanzas.",
+      rewardPoints: 0.6,
+      unlockedWhen: (metrics) => metrics.roundsPlayed >= 40
+    },
+    {
+      id: "wins-25",
+      title: "Mente Tecnica",
+      description: "Acumula 25 respuestas correctas.",
+      rewardPoints: 1.2,
+      unlockedWhen: (metrics) => metrics.winsTotal >= 25
+    },
+    {
+      id: "points-25",
+      title: "Coleccionista Glow",
+      description: "Alcanza 25 puntos acumulados.",
+      rewardPoints: 1.5,
+      unlockedWhen: (metrics) => metrics.pointsBalance >= 25
+    },
+    {
+      id: "points-60",
+      title: "Elite Pink Club",
+      description: "Alcanza 60 puntos acumulados.",
+      rewardPoints: 2.5,
+      unlockedWhen: (metrics) => metrics.pointsBalance >= 60
+    },
+    {
+      id: "points-120",
+      title: "Diamante Beauty",
+      description: "Alcanza 120 puntos acumulados.",
+      rewardPoints: 4,
+      unlockedWhen: (metrics) => metrics.pointsBalance >= 120
+    }
+  ]), []);
+
+  const unlockedAchievementIdsSet = useMemo(
+    () => new Set(pointsGameStats.unlockedAchievementIds || []),
+    [pointsGameStats.unlockedAchievementIds]
+  );
+
+  const unlockedAchievements = useMemo(
+    () => pointsGameAchievements.filter((achievement) => unlockedAchievementIdsSet.has(achievement.id)),
+    [pointsGameAchievements, unlockedAchievementIdsSet]
+  );
+
+  const pointsGamePlayTimeLabel = useMemo(() => {
+    const totalSeconds = Math.max(0, Math.floor(pointsGameStats.totalPlaySeconds || 0));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+  }, [pointsGameStats.totalPlaySeconds]);
+
+  useEffect(() => {
+    if (!isAuthenticated || adminToken) return;
+    const storedStats = getStoredPointsGameStatsForUser({
+      id: sessionUser?.id || "",
+      email: sessionUser?.email || ""
+    });
+    setPointsGameStats(storedStats);
+    setPointsGameWins(storedStats.winsTotal || 0);
+  }, [isAuthenticated, adminToken, sessionUser?.id, sessionUser?.email]);
+
+  useEffect(() => {
+    const shouldTrack = pointsGameOpen && activeSection === "Mis puntos" && isAuthenticated && !adminToken;
+    if (!shouldTrack) return undefined;
+
+    const startedAt = Date.now();
+    return () => {
+      const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+      if (elapsedSeconds <= 0) return;
+      updatePointsGameStats((prev) => ({
+        ...prev,
+        totalPlaySeconds: prev.totalPlaySeconds + elapsedSeconds
+      }));
+    };
+  }, [pointsGameOpen, activeSection, isAuthenticated, adminToken, updatePointsGameStats]);
+
   const creditPointsFromGame = useCallback((deltaPoints) => {
     const increment = normalizePointsValue(deltaPoints);
     if (increment === 0) return;
@@ -3099,6 +3353,8 @@ function App() {
           };
         });
         setLocalAuthUsers(nextUsers);
+      } else {
+        addStoredPointsBonusForUser(nextUser, increment);
       }
 
       return nextUser;
@@ -3141,6 +3397,11 @@ function App() {
       setPointsGameAnimating(false);
       setPointsGameNow(Date.now());
       setPointsGameCooldownUntil(Date.now() + POINTS_GAME_COOLDOWN_MS);
+      updatePointsGameStats((prev) => ({
+        ...prev,
+        roundsPlayed: prev.roundsPlayed + 1,
+        winsTotal: prev.winsTotal + (isCorrect ? 1 : 0)
+      }));
 
       if (isCorrect) {
         setPointsGameWins((prev) => prev + 1);
@@ -3152,7 +3413,53 @@ function App() {
       creditPointsFromGame(-0.001);
       setFeedback({ type: "info", text: "Respuesta incorrecta. -0.001 puntos aplicados." });
     }, 900);
-  }, [creditPointsFromGame, pointsGameAnimating, pointsGameCooldownLeftMs, pointsGameCooldownSeconds, pointsGameRiddleIndex]);
+  }, [creditPointsFromGame, pointsGameAnimating, pointsGameCooldownLeftMs, pointsGameCooldownSeconds, pointsGameRiddleIndex, updatePointsGameStats]);
+
+  useEffect(() => {
+    if (!isAuthenticated || adminToken) return;
+
+    const metrics = {
+      roundsPlayed: pointsGameStats.roundsPlayed,
+      winsTotal: pointsGameStats.winsTotal,
+      totalPlaySeconds: pointsGameStats.totalPlaySeconds,
+      pointsBalance
+    };
+
+    const newAchievements = pointsGameAchievements.filter((achievement) => {
+      if (unlockedAchievementIdsSet.has(achievement.id)) return false;
+      return achievement.unlockedWhen(metrics);
+    });
+
+    if (newAchievements.length === 0) return;
+
+    const rewardTotal = normalizePointsValue(
+      newAchievements.reduce((acc, achievement) => acc + Number(achievement.rewardPoints || 0), 0)
+    );
+
+    updatePointsGameStats((prev) => ({
+      ...prev,
+      achievementPoints: normalizePointsValue(prev.achievementPoints + rewardTotal),
+      unlockedAchievementIds: [...new Set([...(prev.unlockedAchievementIds || []), ...newAchievements.map((item) => item.id)])]
+    }));
+
+    if (rewardTotal > 0) {
+      creditPointsFromGame(rewardTotal);
+    }
+
+    const names = newAchievements.map((item) => item.title).join(", ");
+    setFeedback({ type: "success", text: `Logro desbloqueado: ${names}. +${formatPointsValue(rewardTotal)} puntos.` });
+  }, [
+    isAuthenticated,
+    adminToken,
+    pointsBalance,
+    pointsGameStats.roundsPlayed,
+    pointsGameStats.winsTotal,
+    pointsGameStats.totalPlaySeconds,
+    pointsGameAchievements,
+    unlockedAchievementIdsSet,
+    updatePointsGameStats,
+    creditPointsFromGame
+  ]);
 
   const historyAppointments = historyData?.appointments || [];
   const historyOrders = historyData?.orders || [];
@@ -3539,17 +3846,22 @@ function App() {
         }
       });
 
+      const loginUserWithBonus = {
+        ...(loginResponse.user || {}),
+        points: applyStoredPointsBonus(Number(loginResponse.user?.points) || 0, loginResponse.user || {})
+      };
+
       localStorage.setItem("esme_token", loginResponse.token);
-      localStorage.setItem("esme_user", JSON.stringify(loginResponse.user));
+      localStorage.setItem("esme_user", JSON.stringify(loginUserWithBonus));
       localStorage.removeItem("esme_admin_token");
       setAdminToken("");
-      setSessionUser(loginResponse.user);
+      setSessionUser(loginUserWithBonus);
       setIsAuthenticated(true);
       setActiveSection("Agendar cita");
       redirectTo("/nails-app");
       setFeedback({
         type: "success",
-        text: `Bienvenida ${loginResponse.user.name}. Inicio de sesion exitoso.`
+        text: `Bienvenida ${loginUserWithBonus.name}. Inicio de sesion exitoso.`
       });
     } catch (error) {
       setFeedback({ type: "error", text: error.message || "No fue posible procesar la solicitud" });
@@ -4093,7 +4405,7 @@ function App() {
                     <div>
                       <small>Mini juego</small>
                       <h3>Adivinanzas para ganar puntos</h3>
-                      <p>Cada respuesta correcta suma +0.1 puntos. Si fallas, se descuenta -0.001.</p>
+                      <p>Banco experto con mas de 200 preguntas dificiles de uñas, estilo y belleza. Acierto: +0.1 | Error: -0.001.</p>
                     </div>
                     <button
                       type="button"
@@ -4110,6 +4422,7 @@ function App() {
                         <small>Adivinanza actual</small>
                         <p>{pointsRiddles[pointsGameRiddleIndex]?.question || "Sin adivinanza disponible."}</p>
                         <span>Pista: {pointsRiddles[pointsGameRiddleIndex]?.hint || "-"}</span>
+                        <span>Banco dificil disponible: {pointsRiddles.length} preguntas</span>
                       </div>
 
                       <div className="points-game-options">
@@ -4150,7 +4463,7 @@ function App() {
 
                       <div className="points-game-status">
                         <small>
-                          Victorias acumuladas: <strong>{pointsGameWins}</strong>
+                          Victorias acumuladas: <strong>{pointsGameWins}</strong> | Rondas: <strong>{pointsGameStats.roundsPlayed}</strong>
                         </small>
                         <small>
                           {pointsGameAnimating
@@ -4196,6 +4509,51 @@ function App() {
                       </div>
                     </>
                   )}
+                </article>
+
+                <article className="points-achievements-card">
+                  <div className="points-achievements-head">
+                    <div>
+                      <small>Logros y progreso</small>
+                      <h3>Mis logros del juego</h3>
+                    </div>
+                    <strong>{unlockedAchievements.length}/{pointsGameAchievements.length} desbloqueados</strong>
+                  </div>
+
+                  <div className="points-achievements-kpis">
+                    <article>
+                      <small>Tiempo jugado</small>
+                      <strong>{pointsGamePlayTimeLabel}</strong>
+                    </article>
+                    <article>
+                      <small>Rondas totales</small>
+                      <strong>{pointsGameStats.roundsPlayed}</strong>
+                    </article>
+                    <article>
+                      <small>Victorias totales</small>
+                      <strong>{pointsGameStats.winsTotal}</strong>
+                    </article>
+                    <article>
+                      <small>Puntos por logros</small>
+                      <strong>{formatPointsValue(pointsGameStats.achievementPoints)} pts</strong>
+                    </article>
+                  </div>
+
+                  <div className="points-achievements-grid">
+                    {pointsGameAchievements.map((achievement) => {
+                      const unlocked = unlockedAchievementIdsSet.has(achievement.id);
+                      return (
+                        <article key={achievement.id} className={`points-achievement-item ${unlocked ? "unlocked" : "locked"}`}>
+                          <header>
+                            <strong>{achievement.title}</strong>
+                            <span>{formatPointsValue(achievement.rewardPoints)} pts</span>
+                          </header>
+                          <p>{achievement.description}</p>
+                          <small>{unlocked ? "Logro desbloqueado" : "Logro pendiente"}</small>
+                        </article>
+                      );
+                    })}
+                  </div>
                 </article>
 
                 <div className="points-kpi-grid">

@@ -1299,6 +1299,113 @@ select {
 	color: #815012;
 }
 
+.points-achievements-card {
+	border: 1px solid var(--border-main);
+	background: var(--surface-1);
+	border-radius: 12px;
+	padding: 0.65rem;
+	display: grid;
+	gap: 0.55rem;
+}
+
+.points-achievements-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.points-achievements-head h3,
+.points-achievements-head small,
+.points-achievements-head strong {
+	margin: 0;
+}
+
+.points-achievements-head small {
+	color: var(--text-soft);
+	font-weight: 700;
+}
+
+.points-achievements-kpis {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.45rem;
+}
+
+.points-achievements-kpis article {
+	border: 1px solid var(--border-main);
+	border-radius: 10px;
+	padding: 0.45rem;
+	background: linear-gradient(130deg, var(--surface-1) 0%, var(--surface-2) 100%);
+	display: grid;
+	gap: 0.1rem;
+}
+
+.points-achievements-kpis small,
+.points-achievements-kpis strong {
+	margin: 0;
+}
+
+.points-achievements-kpis small {
+	color: var(--text-soft);
+	font-size: 0.78rem;
+	font-weight: 700;
+}
+
+.points-achievements-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.45rem;
+}
+
+.points-achievement-item {
+	border: 1px solid var(--border-main);
+	border-radius: 10px;
+	padding: 0.5rem;
+	background: var(--surface-1);
+	display: grid;
+	gap: 0.2rem;
+}
+
+.points-achievement-item header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.points-achievement-item header strong,
+.points-achievement-item p,
+.points-achievement-item small,
+.points-achievement-item span {
+	margin: 0;
+}
+
+.points-achievement-item p,
+.points-achievement-item small {
+	font-size: 0.8rem;
+	color: var(--text-soft);
+}
+
+.points-achievement-item header span {
+	padding: 0.12rem 0.42rem;
+	border-radius: 999px;
+	font-size: 0.74rem;
+	font-weight: 800;
+	border: 1px solid var(--border-main);
+	background: var(--surface-3);
+}
+
+.points-achievement-item.unlocked {
+	border-color: #74c8a1;
+	background: linear-gradient(130deg, #ecfaf3 0%, #def6ea 100%);
+}
+
+.points-achievement-item.locked {
+	opacity: 0.92;
+}
+
 @keyframes pointsGamePulse {
 	0%,
 	100% {
@@ -2907,6 +3014,24 @@ body.theme-dark .points-game-riddle-card small {
 	color: #ffd8ec;
 }
 
+body.theme-dark .points-achievements-kpis article,
+body.theme-dark .points-achievement-item {
+	background: linear-gradient(130deg, #3d2445 0%, #512d5a 100%);
+	border-color: #8b5a99;
+}
+
+body.theme-dark .points-achievement-item.unlocked {
+	background: linear-gradient(130deg, #1f4938 0%, #2a614a 100%);
+	border-color: #53a77f;
+}
+
+body.theme-dark .points-achievements-head small,
+body.theme-dark .points-achievement-item p,
+body.theme-dark .points-achievement-item small,
+body.theme-dark .points-achievements-kpis small {
+	color: #ffd8ec;
+}
+
 body.theme-dark .points-game-hand small {
 	color: #ffd8ec;
 }
@@ -3345,6 +3470,8 @@ body.theme-dark .profile-dropdown .nav-icon svg {
 	.home-panels,
 	.prices-grid,
 	.points-game-options,
+	.points-achievements-kpis,
+	.points-achievements-grid,
 	.points-kpi-grid,
 	.points-rewards-grid,
 	.history-kpi-grid-client,

@@ -252,6 +252,31 @@ const defaultOwnerContact = {
   homeImageFour: "/menu/manicure.svg"
 };
 
+const normalizeAppPath = (rawPath) => {
+  if (typeof rawPath !== "string" || !rawPath.trim()) return "/";
+  const withLeadingSlash = rawPath.startsWith("/") ? rawPath : `/${rawPath}`;
+  if (withLeadingSlash.length > 1 && withLeadingSlash.endsWith("/")) {
+    return withLeadingSlash.slice(0, -1);
+  }
+  return withLeadingSlash;
+};
+
+const getCurrentAppPath = () => {
+  const hashPath = window.location.hash.startsWith("#/") ? window.location.hash.slice(1) : "";
+  if (hashPath) return normalizeAppPath(hashPath);
+
+  const baseUrl = import.meta.env.BASE_URL || "/";
+  const normalizedBase = baseUrl === "./" ? "/" : (baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`);
+  const pathname = window.location.pathname || "/";
+
+  if (normalizedBase !== "/" && pathname.startsWith(normalizedBase)) {
+    const trimmed = pathname.slice(normalizedBase.length - 1);
+    return normalizeAppPath(trimmed || "/");
+  }
+
+  return normalizeAppPath(pathname || "/");
+};
+
 const resolveImageUrl = (rawUrl) => {
   if (typeof rawUrl !== "string") return "";
 
@@ -555,7 +580,11 @@ function App() {
   );
 
   const redirectTo = (path) => {
-    window.history.pushState({}, "", path);
+    const targetPath = normalizeAppPath(path);
+    const targetHash = `#${targetPath}`;
+    if (window.location.hash !== targetHash) {
+      window.location.hash = targetPath;
+    }
   };
 
   const openMenuCategory = (category) => {
@@ -1611,11 +1640,13 @@ function App() {
   }, [loadOwnerContact]);
 
   useEffect(() => {
-    if (window.location.pathname === "/nails-app" && !isAuthenticated) {
+    const currentPath = getCurrentAppPath();
+
+    if (currentPath.startsWith("/nails-app") && !isAuthenticated) {
       redirectTo("/");
     }
-    if (window.location.pathname !== "/nails-app" && isAuthenticated) {
-      const match = window.location.pathname.match(/^\/nails-app\/menu\/([a-z0-9-]+)$/i);
+    if (currentPath !== "/nails-app" && isAuthenticated) {
+      const match = currentPath.match(/^\/nails-app\/menu\/([a-z0-9-]+)$/i);
 
       if (match?.[1]) {
         const found = findCategoryById(match[1]);

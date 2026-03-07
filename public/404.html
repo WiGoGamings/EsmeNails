@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redirecting...</title>
+    <script>
+      (function () {
+        var repoBase = "/EsmeNails";
+        var path = window.location.pathname || "/";
+        var suffix = path.indexOf(repoBase) === 0 ? path.slice(repoBase.length) : path;
+        var normalizedSuffix = suffix && suffix !== "/" ? suffix.replace(/\/$/, "") : "/";
+        var nextHash = "#" + normalizedSuffix + window.location.search;
+        window.location.replace(repoBase + "/" + nextHash);
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

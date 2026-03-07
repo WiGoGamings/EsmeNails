@@ -57,6 +57,29 @@ const localMenuImages = {
   artist: realNailImages.artist
 };
 
+const legacyMenuToRealImage = {
+  "/menu/acrigel.svg": realNailImages.acrigel,
+  "menu/acrigel.svg": realNailImages.acrigel,
+  "/menu/polygel.svg": realNailImages.polygel,
+  "menu/polygel.svg": realNailImages.polygel,
+  "/menu/gelx.svg": realNailImages.gelx,
+  "menu/gelx.svg": realNailImages.gelx,
+  "/menu/manicure.svg": realNailImages.manicure,
+  "menu/manicure.svg": realNailImages.manicure,
+  "/menu/encapsulado.svg": realNailImages.encapsulado,
+  "menu/encapsulado.svg": realNailImages.encapsulado,
+  "/menu/presson.svg": realNailImages.presson,
+  "menu/presson.svg": realNailImages.presson,
+  "/menu/lashes.svg": realNailImages.lashes,
+  "menu/lashes.svg": realNailImages.lashes
+};
+
+const normalizeRealImageUrl = (rawUrl) => {
+  const normalized = String(rawUrl || "").trim();
+  if (!normalized) return "";
+  return legacyMenuToRealImage[normalized] || normalized;
+};
+
 const menuCategories = [
   {
     id: "acrigel",
@@ -1419,6 +1442,37 @@ function App() {
     });
   };
 
+  const applySuggestedServiceImage = (service) => {
+    updateAdminSettingField("services", service.id, "imageUrl", inferServiceImageUrl(service));
+  };
+
+  const applySuggestedProductImage = (product) => {
+    updateAdminSettingField("products", product.id, "imageUrl", inferProductImageUrl(product));
+  };
+
+  const applySuggestedPromotionImage = (promotion) => {
+    updateAdminSettingField("promotions", promotion.id, "imageUrl", inferPromotionImageUrl(promotion));
+  };
+
+  const applySuggestedOwnerCarouselImages = () => {
+    const nextOwnerContact = {
+      ...(adminSettings?.ownerContact || defaultOwnerContact),
+      homeImageMain: realNailImages.encapsulado,
+      homeImageOne: realNailImages.gelx,
+      homeImageTwo: realNailImages.acrigel,
+      homeImageThree: realNailImages.polygel,
+      homeImageFour: realNailImages.manicure
+    };
+
+    setAdminSettings((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        ownerContact: nextOwnerContact
+      };
+    });
+  };
+
   const saveOwnerContact = async () => {
     if (!adminSettings?.ownerContact) return;
 
@@ -1722,15 +1776,15 @@ function App() {
 
       const services = (catalogResponse.services || []).map((service) => ({
         ...service,
-        imageUrl: (service.imageUrl || "").trim() || inferServiceImageUrl(service)
+        imageUrl: normalizeRealImageUrl((service.imageUrl || "").trim()) || inferServiceImageUrl(service)
       }));
       const products = (catalogResponse.products || []).map((product) => ({
         ...product,
-        imageUrl: (product.imageUrl || "").trim() || inferProductImageUrl(product)
+        imageUrl: normalizeRealImageUrl((product.imageUrl || "").trim()) || inferProductImageUrl(product)
       }));
       const promotions = (catalogResponse.promotions || []).map((promotion) => ({
         ...promotion,
-        imageUrl: (promotion.imageUrl || "").trim() || inferPromotionImageUrl(promotion)
+        imageUrl: normalizeRealImageUrl((promotion.imageUrl || "").trim()) || inferPromotionImageUrl(promotion)
       }));
       const employees = catalogResponse.employees || [];
       const minutesMap = {};
@@ -2014,7 +2068,7 @@ function App() {
         id: `owner-home-${index}`,
         title: index === 0 ? "EsmeNails Destacado" : `Promo visual ${index}`,
         subtitle: "Imagen configurable desde Panel admin",
-        imageUrl,
+        imageUrl: normalizeRealImageUrl(imageUrl),
         kicker: "Home"
       }));
 
@@ -3344,6 +3398,126 @@ function App() {
                                 <strong>{adminSettings.pointsProgram?.rewards?.length || 0}</strong>
                               </article>
                             </div>
+
+                            <article className="admin-editor-card">
+                              <h4>Editor rapido de imagenes</h4>
+                              <p>Edita fotos de elementos ya creados sin buscar en todas las tablas.</p>
+
+                              <h5 className="admin-subtitle">Carrusel Home</h5>
+                              <div className="admin-image-editor-list">
+                                <div className="admin-image-editor-item">
+                                  <SmartImage
+                                    src={adminSettings.ownerContact?.homeImageMain}
+                                    alt="Carrusel principal"
+                                    className="admin-thumb"
+                                    fallbackSrc={localMenuImages.encapsulado}
+                                  />
+                                  <div className="admin-image-editor-fields">
+                                    <strong>Imagen principal</strong>
+                                    <input
+                                      value={adminSettings.ownerContact?.homeImageMain || ""}
+                                      onChange={(event) => updateOwnerContactField("homeImageMain", event.target.value)}
+                                      placeholder="URL imagen principal"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="admin-image-editor-item">
+                                  <SmartImage src={adminSettings.ownerContact?.homeImageOne} alt="Carrusel 1" className="admin-thumb" fallbackSrc={localMenuImages.gelx} />
+                                  <div className="admin-image-editor-fields">
+                                    <strong>Imagen 1</strong>
+                                    <input value={adminSettings.ownerContact?.homeImageOne || ""} onChange={(event) => updateOwnerContactField("homeImageOne", event.target.value)} placeholder="URL imagen 1" />
+                                  </div>
+                                </div>
+                                <div className="admin-image-editor-item">
+                                  <SmartImage src={adminSettings.ownerContact?.homeImageTwo} alt="Carrusel 2" className="admin-thumb" fallbackSrc={localMenuImages.acrigel} />
+                                  <div className="admin-image-editor-fields">
+                                    <strong>Imagen 2</strong>
+                                    <input value={adminSettings.ownerContact?.homeImageTwo || ""} onChange={(event) => updateOwnerContactField("homeImageTwo", event.target.value)} placeholder="URL imagen 2" />
+                                  </div>
+                                </div>
+                                <div className="admin-image-editor-item">
+                                  <SmartImage src={adminSettings.ownerContact?.homeImageThree} alt="Carrusel 3" className="admin-thumb" fallbackSrc={localMenuImages.polygel} />
+                                  <div className="admin-image-editor-fields">
+                                    <strong>Imagen 3</strong>
+                                    <input value={adminSettings.ownerContact?.homeImageThree || ""} onChange={(event) => updateOwnerContactField("homeImageThree", event.target.value)} placeholder="URL imagen 3" />
+                                  </div>
+                                </div>
+                                <div className="admin-image-editor-item">
+                                  <SmartImage src={adminSettings.ownerContact?.homeImageFour} alt="Carrusel 4" className="admin-thumb" fallbackSrc={localMenuImages.manicure} />
+                                  <div className="admin-image-editor-fields">
+                                    <strong>Imagen 4</strong>
+                                    <input value={adminSettings.ownerContact?.homeImageFour || ""} onChange={(event) => updateOwnerContactField("homeImageFour", event.target.value)} placeholder="URL imagen 4" />
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="admin-actions-row">
+                                <button type="button" className="secondary" onClick={applySuggestedOwnerCarouselImages}>Usar pack real sugerido</button>
+                                <button type="button" className="primary" onClick={saveOwnerContact}>Guardar carrusel</button>
+                              </div>
+
+                              <h5 className="admin-subtitle">Servicios creados</h5>
+                              <div className="admin-image-editor-list">
+                                {adminSettings.services.map((service) => (
+                                  <div key={`quick-service-${service.id}`} className="admin-image-editor-item">
+                                    <SmartImage src={service.imageUrl} alt={service.name} className="admin-thumb" fallbackSrc={localMenuImages.acrigel} />
+                                    <div className="admin-image-editor-fields">
+                                      <strong>{service.name}</strong>
+                                      <input
+                                        value={service.imageUrl || ""}
+                                        onChange={(event) => updateAdminSettingField("services", service.id, "imageUrl", event.target.value)}
+                                        placeholder="URL imagen servicio"
+                                      />
+                                      <div className="admin-actions-row">
+                                        <button type="button" className="secondary" onClick={() => applySuggestedServiceImage(service)}>Foto real sugerida</button>
+                                        <button type="button" className="primary" onClick={() => saveService(service)}>Guardar</button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <h5 className="admin-subtitle">Productos creados</h5>
+                              <div className="admin-image-editor-list">
+                                {adminSettings.products.map((product) => (
+                                  <div key={`quick-product-${product.id}`} className="admin-image-editor-item">
+                                    <SmartImage src={product.imageUrl} alt={product.name} className="admin-thumb" fallbackSrc={localMenuImages.presson} />
+                                    <div className="admin-image-editor-fields">
+                                      <strong>{product.name}</strong>
+                                      <input
+                                        value={product.imageUrl || ""}
+                                        onChange={(event) => updateAdminSettingField("products", product.id, "imageUrl", event.target.value)}
+                                        placeholder="URL imagen producto"
+                                      />
+                                      <div className="admin-actions-row">
+                                        <button type="button" className="secondary" onClick={() => applySuggestedProductImage(product)}>Foto real sugerida</button>
+                                        <button type="button" className="primary" onClick={() => saveProduct(product)}>Guardar</button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <h5 className="admin-subtitle">Promociones creadas</h5>
+                              <div className="admin-image-editor-list">
+                                {adminSettings.promotions.map((promo) => (
+                                  <div key={`quick-promo-${promo.id}`} className="admin-image-editor-item">
+                                    <SmartImage src={promo.imageUrl} alt={promo.title} className="admin-thumb" fallbackSrc={localMenuImages.encapsulado} />
+                                    <div className="admin-image-editor-fields">
+                                      <strong>{promo.title}</strong>
+                                      <input
+                                        value={promo.imageUrl || ""}
+                                        onChange={(event) => updateAdminSettingField("promotions", promo.id, "imageUrl", event.target.value)}
+                                        placeholder="URL imagen promocion"
+                                      />
+                                      <div className="admin-actions-row">
+                                        <button type="button" className="secondary" onClick={() => applySuggestedPromotionImage(promo)}>Foto real sugerida</button>
+                                        <button type="button" className="primary" onClick={() => savePromotion(promo)}>Guardar</button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </article>
 
                             <div className="admin-editor-grid">
                               <article className="admin-editor-card">

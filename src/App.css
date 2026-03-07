@@ -2235,6 +2235,38 @@ select {
 	margin: 0;
 }
 
+.admin-subtitle {
+	margin: 0.25rem 0 0;
+	font-size: 0.9rem;
+	color: #6a2b19;
+}
+
+.admin-image-editor-list {
+	display: grid;
+	gap: 0.45rem;
+}
+
+.admin-image-editor-item {
+	display: grid;
+	grid-template-columns: 72px 1fr;
+	gap: 0.5rem;
+	align-items: start;
+	border: 1px solid #f0d1c2;
+	border-radius: 10px;
+	padding: 0.45rem;
+	background: #fffdfb;
+}
+
+.admin-image-editor-fields {
+	display: grid;
+	gap: 0.35rem;
+}
+
+.admin-image-editor-fields strong {
+	font-size: 0.86rem;
+	color: #5f2515;
+}
+
 .inline-form-grid {
 	display: grid;
 	grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -2375,6 +2407,16 @@ body.theme-dark .admin-table th {
 body.theme-dark .admin-table td,
 body.theme-dark .admin-table th,
 body.theme-dark .admin-table tr {
+	border-color: var(--border-main);
+}
+
+body.theme-dark .admin-subtitle,
+body.theme-dark .admin-image-editor-fields strong {
+	color: var(--text-main);
+}
+
+body.theme-dark .admin-image-editor-item {
+	background: var(--surface-2);
 	border-color: var(--border-main);
 }
 

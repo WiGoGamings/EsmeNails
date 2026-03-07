@@ -864,15 +864,6 @@ function App() {
     clientHistory: []
   }), []);
 
-  const getRuntimeSettingsSnapshot = useCallback(() => ({
-    services: Array.isArray(catalogServices) ? [...catalogServices] : [],
-    products: Array.isArray(catalogProducts) ? [...catalogProducts] : [],
-    promotions: Array.isArray(catalogPromotions) ? [...catalogPromotions] : [],
-    employees: Array.isArray(catalogEmployees) ? [...catalogEmployees] : [],
-    ownerContact: mergeOwnerContactDefaults(ownerContact),
-    pointsProgram: catalogPointsProgram || defaultPointsProgram
-  }), [catalogEmployees, catalogPointsProgram, catalogProducts, catalogPromotions, catalogServices, ownerContact]);
-
   const persistLocalAdminSettings = useCallback((settings) => {
     try {
       localStorage.setItem(ADMIN_LOCAL_SETTINGS_KEY, JSON.stringify(settings));
@@ -898,8 +889,15 @@ function App() {
       // Fall back to runtime values.
     }
 
-    return getRuntimeSettingsSnapshot();
-  }, [getRuntimeSettingsSnapshot]);
+    return {
+      services: [],
+      products: [],
+      promotions: [],
+      employees: [],
+      ownerContact: mergeOwnerContactDefaults(defaultOwnerContact),
+      pointsProgram: defaultPointsProgram
+    };
+  }, []);
 
   const applyAdminSettingsToRuntime = useCallback((nextSettings) => {
     const services = Array.isArray(nextSettings?.services)

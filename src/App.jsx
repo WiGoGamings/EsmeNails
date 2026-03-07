@@ -59,6 +59,8 @@ const localMenuImages = {
 
 const ADMIN_LOCAL_SETTINGS_KEY = "esme_admin_settings_local";
 
+const createLocalEntityId = (prefix) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
 const legacyMenuToRealImage = {
   "/menu/acrigel.svg": realNailImages.acrigel,
   "menu/acrigel.svg": realNailImages.acrigel,
@@ -1141,13 +1143,91 @@ function App() {
     }
   };
 
+  const deleteService = async (service) => {
+    if (!window.confirm(`Eliminar servicio "${service.name}"?`)) return;
+
+    if (!API_BASE) {
+      const base = getLocalAdminSettingsSnapshot();
+      applyAdminSettingsToRuntime({
+        ...base,
+        services: (base.services || []).filter((entry) => entry.id !== service.id)
+      });
+      setFeedback({ type: "success", text: `Servicio ${service.name} eliminado.` });
+      return;
+    }
+
+    try {
+      await apiRequest(`/admin/settings/services/${service.id}`, {
+        method: "DELETE",
+        token: adminToken
+      });
+      await refreshAdminPanels();
+      await refreshAgendaData();
+      setFeedback({ type: "success", text: `Servicio ${service.name} eliminado.` });
+    } catch (error) {
+      setFeedback({ type: "error", text: error.message || "No se pudo eliminar servicio." });
+    }
+  };
+
+  const deleteProduct = async (product) => {
+    if (!window.confirm(`Eliminar producto "${product.name}"?`)) return;
+
+    if (!API_BASE) {
+      const base = getLocalAdminSettingsSnapshot();
+      applyAdminSettingsToRuntime({
+        ...base,
+        products: (base.products || []).filter((entry) => entry.id !== product.id)
+      });
+      setFeedback({ type: "success", text: `Producto ${product.name} eliminado.` });
+      return;
+    }
+
+    try {
+      await apiRequest(`/admin/settings/products/${product.id}`, {
+        method: "DELETE",
+        token: adminToken
+      });
+      await refreshAdminPanels();
+      await refreshAgendaData();
+      setFeedback({ type: "success", text: `Producto ${product.name} eliminado.` });
+    } catch (error) {
+      setFeedback({ type: "error", text: error.message || "No se pudo eliminar producto." });
+    }
+  };
+
+  const deletePromotion = async (promotion) => {
+    if (!window.confirm(`Eliminar promocion "${promotion.title}"?`)) return;
+
+    if (!API_BASE) {
+      const base = getLocalAdminSettingsSnapshot();
+      applyAdminSettingsToRuntime({
+        ...base,
+        promotions: (base.promotions || []).filter((entry) => entry.id !== promotion.id)
+      });
+      setFeedback({ type: "success", text: `Promocion ${promotion.title} eliminada.` });
+      return;
+    }
+
+    try {
+      await apiRequest(`/admin/settings/promotions/${promotion.id}`, {
+        method: "DELETE",
+        token: adminToken
+      });
+      await refreshAdminPanels();
+      await refreshAgendaData();
+      setFeedback({ type: "success", text: `Promocion ${promotion.title} eliminada.` });
+    } catch (error) {
+      setFeedback({ type: "error", text: error.message || "No se pudo eliminar promocion." });
+    }
+  };
+
   const createService = async (event) => {
     event.preventDefault();
 
     if (!API_BASE) {
       const base = getLocalAdminSettingsSnapshot();
       const createdService = {
-        id: `srv-${Date.now().toString(36)}`,
+        id: createLocalEntityId("srv"),
         name: adminServiceForm.name,
         description: adminServiceForm.description || "",
         style: adminServiceForm.style,
@@ -1193,7 +1273,7 @@ function App() {
     if (!API_BASE) {
       const base = getLocalAdminSettingsSnapshot();
       const createdProduct = {
-        id: `prd-${Date.now().toString(36)}`,
+        id: createLocalEntityId("prd"),
         name: adminProductForm.name,
         description: adminProductForm.description || "",
         price: Number(adminProductForm.price),
@@ -1237,7 +1317,7 @@ function App() {
     if (!API_BASE) {
       const base = getLocalAdminSettingsSnapshot();
       const createdPromotion = {
-        id: `promo-${Date.now().toString(36)}`,
+        id: createLocalEntityId("promo"),
         title: adminPromotionForm.title,
         description: adminPromotionForm.description || "",
         discountType: adminPromotionForm.discountType,
@@ -1309,6 +1389,32 @@ function App() {
       setFeedback({ type: "success", text: `Empleada ${employee.name} actualizada.` });
     } catch (error) {
       setFeedback({ type: "error", text: error.message || "No se pudo guardar empleada." });
+    }
+  };
+
+  const deleteEmployee = async (employee) => {
+    if (!window.confirm(`Eliminar empleada "${employee.name}"?`)) return;
+
+    if (!API_BASE) {
+      const base = getLocalAdminSettingsSnapshot();
+      applyAdminSettingsToRuntime({
+        ...base,
+        employees: (base.employees || []).filter((entry) => entry.id !== employee.id)
+      });
+      setFeedback({ type: "success", text: `Empleada ${employee.name} eliminada.` });
+      return;
+    }
+
+    try {
+      await apiRequest(`/admin/settings/employees/${employee.id}`, {
+        method: "DELETE",
+        token: adminToken
+      });
+      await refreshAdminPanels();
+      await refreshAgendaData();
+      setFeedback({ type: "success", text: `Empleada ${employee.name} eliminada.` });
+    } catch (error) {
+      setFeedback({ type: "error", text: error.message || "No se pudo eliminar empleada." });
     }
   };
 
@@ -1621,7 +1727,7 @@ function App() {
     if (!API_BASE) {
       const base = getLocalAdminSettingsSnapshot();
       const createdEmployee = {
-        id: `emp-${Date.now().toString(36)}`,
+        id: createLocalEntityId("emp"),
         name: adminEmployeeForm.name,
         role: adminEmployeeForm.role,
         active: Boolean(adminEmployeeForm.active),
@@ -3800,7 +3906,8 @@ function App() {
                                       />
                                       <div className="admin-actions-row">
                                         <button type="button" className="secondary" onClick={() => applySuggestedServiceImage(service)}>Foto real sugerida</button>
-                                        <button type="button" className="primary" onClick={() => saveService(service)}>Guardar</button>
+                                        <button type="button" className="primary" onClick={() => saveService(service)}>Editar</button>
+                                        <button type="button" className="secondary danger-button" onClick={() => deleteService(service)}>Eliminar</button>
                                         {adminSavedMap[`service-${service.id}`] && <span className="saved-pill">Guardado</span>}
                                       </div>
                                     </div>
@@ -3822,7 +3929,8 @@ function App() {
                                       />
                                       <div className="admin-actions-row">
                                         <button type="button" className="secondary" onClick={() => applySuggestedProductImage(product)}>Foto real sugerida</button>
-                                        <button type="button" className="primary" onClick={() => saveProduct(product)}>Guardar</button>
+                                        <button type="button" className="primary" onClick={() => saveProduct(product)}>Editar</button>
+                                        <button type="button" className="secondary danger-button" onClick={() => deleteProduct(product)}>Eliminar</button>
                                         {adminSavedMap[`product-${product.id}`] && <span className="saved-pill">Guardado</span>}
                                       </div>
                                     </div>
@@ -3844,7 +3952,8 @@ function App() {
                                       />
                                       <div className="admin-actions-row">
                                         <button type="button" className="secondary" onClick={() => applySuggestedPromotionImage(promo)}>Foto real sugerida</button>
-                                        <button type="button" className="primary" onClick={() => savePromotion(promo)}>Guardar</button>
+                                        <button type="button" className="primary" onClick={() => savePromotion(promo)}>Editar</button>
+                                        <button type="button" className="secondary danger-button" onClick={() => deletePromotion(promo)}>Eliminar</button>
                                         {adminSavedMap[`promotion-${promo.id}`] && <span className="saved-pill">Guardado</span>}
                                       </div>
                                     </div>
@@ -3957,7 +4066,10 @@ function App() {
                                             <input type="number" min="0" step="0.01" value={service.price} onChange={(event) => updateAdminSettingField("services", service.id, "price", event.target.value)} />
                                           </td>
                                           <td>
-                                            <button type="button" className="secondary" onClick={() => saveService(service)}>Guardar</button>
+                                            <div className="admin-actions-row compact">
+                                              <button type="button" className="secondary" onClick={() => saveService(service)}>Editar</button>
+                                              <button type="button" className="secondary danger-button" onClick={() => deleteService(service)}>Eliminar</button>
+                                            </div>
                                             {adminSavedMap[`service-${service.id}`] && <span className="saved-pill">Guardado</span>}
                                           </td>
                                         </tr>
@@ -4050,7 +4162,10 @@ function App() {
                                             <input type="number" min="0" value={product.stock} onChange={(event) => updateAdminSettingField("products", product.id, "stock", event.target.value)} />
                                           </td>
                                           <td>
-                                            <button type="button" className="secondary" onClick={() => saveProduct(product)}>Guardar</button>
+                                            <div className="admin-actions-row compact">
+                                              <button type="button" className="secondary" onClick={() => saveProduct(product)}>Editar</button>
+                                              <button type="button" className="secondary danger-button" onClick={() => deleteProduct(product)}>Eliminar</button>
+                                            </div>
                                             {adminSavedMap[`product-${product.id}`] && <span className="saved-pill">Guardado</span>}
                                           </td>
                                         </tr>
@@ -4134,7 +4249,10 @@ function App() {
                                             <input type="checkbox" checked={Boolean(employee.active)} onChange={(event) => updateAdminSettingField("employees", employee.id, "active", event.target.checked)} />
                                           </td>
                                           <td>
-                                            <button type="button" className="secondary" onClick={() => saveEmployee(employee)}>Guardar</button>
+                                            <div className="admin-actions-row compact">
+                                              <button type="button" className="secondary" onClick={() => saveEmployee(employee)}>Editar</button>
+                                              <button type="button" className="secondary danger-button" onClick={() => deleteEmployee(employee)}>Eliminar</button>
+                                            </div>
                                             {adminSavedMap[`employee-${employee.id}`] && <span className="saved-pill">Guardado</span>}
                                           </td>
                                         </tr>
@@ -4414,7 +4532,10 @@ function App() {
                                             <input type="checkbox" checked={Boolean(promo.active)} onChange={(event) => updateAdminSettingField("promotions", promo.id, "active", event.target.checked)} />
                                           </td>
                                           <td>
-                                            <button type="button" className="secondary" onClick={() => savePromotion(promo)}>Guardar</button>
+                                            <div className="admin-actions-row compact">
+                                              <button type="button" className="secondary" onClick={() => savePromotion(promo)}>Editar</button>
+                                              <button type="button" className="secondary danger-button" onClick={() => deletePromotion(promo)}>Eliminar</button>
+                                            </div>
                                             {adminSavedMap[`promotion-${promo.id}`] && <span className="saved-pill">Guardado</span>}
                                           </td>
                                         </tr>

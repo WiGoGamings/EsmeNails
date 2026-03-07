@@ -586,6 +586,18 @@ export const updateAdminService = async (req, res) => {
   return res.status(200).json({ message: "Servicio actualizado", service });
 };
 
+export const deleteAdminService = async (req, res) => {
+  const service = db.data.services.find((item) => item.id === req.params.id);
+  if (!service) {
+    return res.status(404).json({ error: "Servicio no encontrado" });
+  }
+
+  db.data.services = db.data.services.filter((item) => item.id !== req.params.id);
+  await persist();
+
+  return res.status(200).json({ message: "Servicio eliminado" });
+};
+
 export const createAdminProduct = async (req, res) => {
   const parsed = adminProductSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -620,6 +632,18 @@ export const updateAdminProduct = async (req, res) => {
   return res.status(200).json({ message: "Producto actualizado", product });
 };
 
+export const deleteAdminProduct = async (req, res) => {
+  const product = db.data.products.find((item) => item.id === req.params.id);
+  if (!product) {
+    return res.status(404).json({ error: "Producto no encontrado" });
+  }
+
+  db.data.products = db.data.products.filter((item) => item.id !== req.params.id);
+  await persist();
+
+  return res.status(200).json({ message: "Producto eliminado" });
+};
+
 export const createAdminPromotion = async (req, res) => {
   const parsed = adminPromotionSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -652,6 +676,38 @@ export const updateAdminPromotion = async (req, res) => {
   await persist();
 
   return res.status(200).json({ message: "Promocion actualizada", promotion });
+};
+
+export const deleteAdminPromotion = async (req, res) => {
+  const promotion = db.data.promotions.find((item) => item.id === req.params.id);
+  if (!promotion) {
+    return res.status(404).json({ error: "Promocion no encontrada" });
+  }
+
+  db.data.promotions = db.data.promotions.filter((item) => item.id !== req.params.id);
+  await persist();
+
+  return res.status(200).json({ message: "Promocion eliminada" });
+};
+
+export const deleteAdminEmployee = async (req, res) => {
+  const employee = db.data.employees.find((item) => item.id === req.params.id);
+  if (!employee) {
+    return res.status(404).json({ error: "Empleada no encontrada" });
+  }
+
+  const hasLinkedAppointments = db.data.appointments.some(
+    (appointment) => appointment.employeeId === req.params.id && ["scheduled", "confirmed"].includes(appointment.status || "scheduled")
+  );
+
+  if (hasLinkedAppointments) {
+    return res.status(409).json({ error: "No se puede eliminar porque tiene citas activas" });
+  }
+
+  db.data.employees = db.data.employees.filter((item) => item.id !== req.params.id);
+  await persist();
+
+  return res.status(200).json({ message: "Empleada eliminada" });
 };
 
 export const exportAdminCsv = (req, res) => {

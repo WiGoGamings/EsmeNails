@@ -226,6 +226,12 @@ select {
 	color: var(--text-main);
 }
 
+.danger-button {
+	background: #ffe8ee;
+	color: #7a1f44;
+	border: 1px solid #f2a9c3;
+}
+
 .primary:disabled,
 .full-width:disabled {
 	opacity: 0.6;
@@ -2510,6 +2516,12 @@ body.theme-dark .primary {
 body.theme-dark .secondary {
 	background: var(--accent-soft);
 	color: #ffe8f5;
+}
+
+body.theme-dark .danger-button {
+	background: #5a2637;
+	color: #ffe0ea;
+	border-color: #9d4d69;
 }
 
 body.theme-dark a {

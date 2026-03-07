@@ -2069,28 +2069,31 @@ function App() {
   }, [isAuthenticated]);
 
   const refreshAgendaData = useCallback(async () => {
-    if (!isAuthenticated) {
-      setAppointments([]);
-      setCatalogServices([]);
-      setCatalogProducts([]);
-      setCatalogPromotions([]);
-      setCatalogEmployees([]);
-      setCatalogPointsProgram(defaultPointsProgram);
-      setHistoryData({ appointments: [], orders: [], summary: null });
-      setServiceMinutesById({});
-      return;
-    }
-
     const token = localStorage.getItem("esme_token");
 
     setAgendaLoading(true);
     setHistoryLoading(true);
     try {
+      if (!API_BASE) {
+        const localSettings = getLocalAdminSettingsSnapshot();
+        const normalizedSettings = applyAdminSettingsToRuntime(localSettings);
+        const minutesMap = {};
+
+        for (const service of normalizedSettings.services || []) {
+          minutesMap[service.id] = Number(service.timeMinutes) || 60;
+        }
+
+        setAppointments([]);
+        setHistoryData({ appointments: [], orders: [], summary: null });
+        setServiceMinutesById(minutesMap);
+        return;
+      }
+
       const catalogPromise = apiRequest("/catalog");
 
       let appointmentsPromise = Promise.resolve({ appointments: [] });
       let historyPromise = Promise.resolve({ history: { appointments: [], orders: [], summary: null } });
-      if (token) {
+      if (isAuthenticated && token) {
         appointmentsPromise = apiRequest("/appointments/my", { token });
         historyPromise = apiRequest("/users/me/history", { token });
       }
@@ -2133,7 +2136,7 @@ function App() {
       setAgendaLoading(false);
       setHistoryLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [applyAdminSettingsToRuntime, getLocalAdminSettingsSnapshot, isAuthenticated]);
 
   useEffect(() => {
     refreshAgendaData();
@@ -4482,51 +4485,98 @@ function App() {
                 })()
               ) : (
                 <>
-                  <p>Selecciona un estilo de unas para abrir su pagina.</p>
-                  <div className="menu-grid">
-                    {menuCategories.map((category) => {
-                      const suggestedServiceId = findSuggestedServiceId(category, catalogServices);
-                      const matchedService = catalogServices.find((service) => service.id === suggestedServiceId);
-                      const matchedPrice = Number(matchedService?.price);
-                      const hasMatchedPrice = Number.isFinite(matchedPrice) && matchedPrice > 0;
+                  {catalogServices.length > 0 ? (
+                    <>
+                      <p>Servicios publicados desde Panel admin. Los mismos precios tambien aparecen en la seccion Precios.</p>
+                      <div className="menu-grid">
+                        {catalogServices.map((service) => {
+                          const servicePrice = Number(service.price);
+                          const hasServicePrice = Number.isFinite(servicePrice) && servicePrice > 0;
 
-                      return (
-                        <article key={category.id} className="menu-card">
-                          <SmartImage src={category.image} alt={category.title} fallbackSrc={localMenuImages.manicure} />
-                          <div className="menu-card-text">
-                            <strong>{category.title}</strong>
-                            <small>{category.subtitle}</small>
-                            <p className="menu-card-price">{hasMatchedPrice ? `Desde $${matchedPrice}` : "Precio en seccion Precios"}</p>
-                            <p className="menu-card-description">
-                              {matchedService?.description || "Descripcion editable desde panel admin."}
-                            </p>
-                          </div>
-                          <div className="menu-card-actions">
-                            <button type="button" className="secondary" onClick={() => openMenuCategory(category)}>Ver detalle</button>
-                            <button
-                              type="button"
-                              className={`primary ${menuCtaPulse ? "menu-cta-highlight" : ""}`}
-                              onClick={() => {
-                                openAppointmentModal({ serviceId: suggestedServiceId });
-                                setFeedback({ type: "info", text: `Agenda tu cita para ${category.title}.` });
-                              }}
-                            >
-                              Agendar cita
-                            </button>
-                            <button
-                              type="button"
-                              className="secondary"
-                              onClick={() => {
-                                triggerMenuCta(matchedService?.name || category.title, "tarjeta de menu");
-                              }}
-                            >
-                              Quiero este producto
-                            </button>
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
+                          return (
+                            <article key={service.id} className="menu-card">
+                              <SmartImage src={service.imageUrl} alt={service.name} fallbackSrc={localMenuImages.acrigel} />
+                              <div className="menu-card-text">
+                                <strong>{service.name}</strong>
+                                <small>{`${service.style || "Estilo"} - ${service.model || "Modelo"}`}</small>
+                                <p className="menu-card-price">{hasServicePrice ? `$${servicePrice}` : "Precio no definido"}</p>
+                                <p className="menu-card-description">{service.description || "Descripcion editable desde panel admin."}</p>
+                              </div>
+                              <div className="menu-card-actions">
+                                <button
+                                  type="button"
+                                  className={`primary ${menuCtaPulse ? "menu-cta-highlight" : ""}`}
+                                  onClick={() => {
+                                    openAppointmentModal({ serviceId: service.id });
+                                    setFeedback({ type: "info", text: `Agenda tu cita para ${service.name}.` });
+                                  }}
+                                >
+                                  Agendar cita
+                                </button>
+                                <button
+                                  type="button"
+                                  className="secondary"
+                                  onClick={() => {
+                                    triggerMenuCta(service.name, "tarjeta de menu");
+                                  }}
+                                >
+                                  Quiero este producto
+                                </button>
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p>Selecciona un estilo de unas para abrir su pagina.</p>
+                      <div className="menu-grid">
+                        {menuCategories.map((category) => {
+                          const suggestedServiceId = findSuggestedServiceId(category, catalogServices);
+                          const matchedService = catalogServices.find((service) => service.id === suggestedServiceId);
+                          const matchedPrice = Number(matchedService?.price);
+                          const hasMatchedPrice = Number.isFinite(matchedPrice) && matchedPrice > 0;
+
+                          return (
+                            <article key={category.id} className="menu-card">
+                              <SmartImage src={category.image} alt={category.title} fallbackSrc={localMenuImages.manicure} />
+                              <div className="menu-card-text">
+                                <strong>{category.title}</strong>
+                                <small>{category.subtitle}</small>
+                                <p className="menu-card-price">{hasMatchedPrice ? `Desde $${matchedPrice}` : "Precio en seccion Precios"}</p>
+                                <p className="menu-card-description">
+                                  {matchedService?.description || "Descripcion editable desde panel admin."}
+                                </p>
+                              </div>
+                              <div className="menu-card-actions">
+                                <button type="button" className="secondary" onClick={() => openMenuCategory(category)}>Ver detalle</button>
+                                <button
+                                  type="button"
+                                  className={`primary ${menuCtaPulse ? "menu-cta-highlight" : ""}`}
+                                  onClick={() => {
+                                    openAppointmentModal({ serviceId: suggestedServiceId });
+                                    setFeedback({ type: "info", text: `Agenda tu cita para ${category.title}.` });
+                                  }}
+                                >
+                                  Agendar cita
+                                </button>
+                                <button
+                                  type="button"
+                                  className="secondary"
+                                  onClick={() => {
+                                    triggerMenuCta(matchedService?.name || category.title, "tarjeta de menu");
+                                  }}
+                                >
+                                  Quiero este producto
+                                </button>
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
                 </>
               )
             ) : activeSection === "Precios" ? (

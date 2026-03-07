@@ -62,8 +62,9 @@ const ADMIN_LOCAL_SETTINGS_KEY = "esme_admin_settings_local";
 const MENU_CART_STORAGE_KEY = "esme_menu_cart";
 const ASSISTANT_HISTORY_STORAGE_PREFIX = "esme_assistant_history";
 const LOCAL_AUTH_USERS_KEY = "esme_local_auth_users";
+const LOCAL_AUTH_PASSWORD_SALT = "esme-local-auth-v1";
 const LOCAL_ADMIN_EMAIL = "admin.esme@esmenails.com";
-const LOCAL_ADMIN_PASSWORD = "EsmeNails2026";
+const LOCAL_ADMIN_PASSWORD_HASH = "53ac1385fa6a18d0e617c52423c17abd61ab1f39b2093f0fb4e37a1bd14736f3";
 
 const getAssistantHistoryStorageKey = (isAuthenticated, sessionUser) => {
   const identity = isAuthenticated ? (sessionUser?.email || "authenticated-user") : "guest";
@@ -74,9 +75,57 @@ const createLocalEntityId = (prefix) => `${prefix}-${Date.now().toString(36)}-${
 
 const normalizeAuthEmail = (value) => String(value || "").trim().toLowerCase();
 
-const isLocalAdminCredentials = (email, password) => (
-  normalizeAuthEmail(email) === LOCAL_ADMIN_EMAIL && String(password || "") === LOCAL_ADMIN_PASSWORD
-);
+const createLocalPasswordHash = async (rawPassword) => {
+  const normalized = `${LOCAL_AUTH_PASSWORD_SALT}:${String(rawPassword || "")}`;
+
+  if (typeof window !== "undefined" && window.crypto?.subtle && typeof TextEncoder !== "undefined") {
+    const bytes = new TextEncoder().encode(normalized);
+    const digest = await window.crypto.subtle.digest("SHA-256", bytes);
+    const hex = Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");
+    return hex;
+  }
+
+  // Non-crypto fallback for environments without SubtleCrypto.
+  let hash = 0;
+  for (let index = 0; index < normalized.length; index += 1) {
+    hash = ((hash << 5) - hash) + normalized.charCodeAt(index);
+    hash |= 0;
+  }
+  return `fallback-${Math.abs(hash).toString(16)}`;
+};
+
+const isLocalAdminCredentials = async (email, password) => {
+  if (normalizeAuthEmail(email) !== LOCAL_ADMIN_EMAIL) return false;
+  const passwordHash = await createLocalPasswordHash(password);
+  return passwordHash === LOCAL_ADMIN_PASSWORD_HASH;
+};
+
+const verifyLocalUserPassword = async (entry, rawPassword) => {
+  const input = String(rawPassword || "");
+  if (!input) return { matches: false, migrated: false, user: entry };
+
+  const computedHash = await createLocalPasswordHash(input);
+  if (typeof entry?.passwordHash === "string" && entry.passwordHash.trim()) {
+    return {
+      matches: entry.passwordHash === computedHash,
+      migrated: false,
+      user: entry
+    };
+  }
+
+  const legacyPassword = String(entry?.password || "");
+  if (legacyPassword && legacyPassword === input) {
+    const migratedUser = { ...entry, passwordHash: computedHash };
+    delete migratedUser.password;
+    return {
+      matches: true,
+      migrated: true,
+      user: migratedUser
+    };
+  }
+
+  return { matches: false, migrated: false, user: entry };
+};
 
 const getLocalAuthUsers = () => {
   try {
@@ -1038,8 +1087,8 @@ function App() {
 
   const loginAsAdminWithCredentials = async ({ email, password, fromMainLogin = false }) => {
     if (!API_BASE) {
-      if (!isLocalAdminCredentials(email, password)) {
-        throw new Error(`Modo local admin: usa ${LOCAL_ADMIN_EMAIL} / ${LOCAL_ADMIN_PASSWORD}`);
+      if (!await isLocalAdminCredentials(email, password)) {
+        throw new Error("Credenciales admin locales invalidas.");
       }
 
       const localToken = `local-admin-${Date.now().toString(36)}`;
@@ -3106,6 +3155,12 @@ function App() {
             throw new Error("Escribe tu nombre para registrarte.");
           }
 
+          if (normalizedEmail === LOCAL_ADMIN_EMAIL) {
+            throw new Error("Ese correo esta reservado para administracion.");
+          }
+
+          const passwordHash = await createLocalPasswordHash(authForm.password);
+
           const users = getLocalAuthUsers();
           if (users.some((entry) => normalizeAuthEmail(entry?.email) === normalizedEmail)) {
             throw new Error("Ese correo ya esta registrado en este dispositivo.");
@@ -3115,7 +3170,7 @@ function App() {
             id: createLocalEntityId("local-user"),
             name: authForm.name.trim(),
             email: normalizedEmail,
-            password: authForm.password,
+            passwordHash,
             points: 0,
             createdAt: new Date().toISOString()
           };
@@ -3130,7 +3185,7 @@ function App() {
           return;
         }
 
-        if (isLocalAdminCredentials(authForm.email, authForm.password)) {
+        if (await isLocalAdminCredentials(authForm.email, authForm.password)) {
           await loginAsAdminWithCredentials({
             email: authForm.email,
             password: authForm.password,
@@ -3141,13 +3196,34 @@ function App() {
         }
 
         const users = getLocalAuthUsers();
-        const localUser = users.find((entry) =>
-          normalizeAuthEmail(entry?.email) === normalizedEmail
-          && String(entry?.password || "") === authForm.password
-        );
+        let localUser = null;
+        let migratedUsers = null;
+
+        for (let index = 0; index < users.length; index += 1) {
+          const entry = users[index];
+          if (normalizeAuthEmail(entry?.email) !== normalizedEmail) {
+            continue;
+          }
+
+          const verification = await verifyLocalUserPassword(entry, authForm.password);
+          if (!verification.matches) {
+            continue;
+          }
+
+          localUser = verification.user;
+          if (verification.migrated) {
+            migratedUsers = [...users];
+            migratedUsers[index] = verification.user;
+          }
+          break;
+        }
 
         if (!localUser) {
           throw new Error("Credenciales invalidas en modo local. Registrate primero en este dispositivo.");
+        }
+
+        if (migratedUsers) {
+          setLocalAuthUsers(migratedUsers);
         }
 
         const sessionLocalUser = {

@@ -1158,6 +1158,81 @@ select {
 	gap: 0.45rem;
 }
 
+.points-game-choice-active {
+	border-color: var(--accent-main) !important;
+	box-shadow: 0 8px 18px rgba(154, 43, 102, 0.16);
+	transform: translateY(-1px);
+}
+
+.points-game-duel {
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
+	align-items: stretch;
+	gap: 0.45rem;
+}
+
+.points-game-hand {
+	border: 1px solid var(--border-main);
+	border-radius: 10px;
+	padding: 0.45rem;
+	background: linear-gradient(130deg, var(--surface-1) 0%, var(--surface-2) 100%);
+	display: grid;
+	gap: 0.1rem;
+	text-align: center;
+}
+
+.points-game-hand small,
+.points-game-hand strong {
+	margin: 0;
+}
+
+.points-game-hand small {
+	color: var(--text-soft);
+	font-size: 0.76rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.points-game-hand strong {
+	font-size: 1rem;
+}
+
+.points-game-vs {
+	display: grid;
+	place-items: center;
+	min-width: 38px;
+	padding: 0 0.35rem;
+	border-radius: 999px;
+	border: 1px solid var(--border-main);
+	background: var(--surface-3);
+	font-weight: 800;
+	letter-spacing: 0.04em;
+}
+
+.points-game-duel.rolling .points-game-vs {
+	animation: pointsGamePulse 0.62s ease-in-out infinite;
+}
+
+.points-game-duel.rolling .points-game-hand.system strong {
+	animation: pointsGameThinking 0.8s linear infinite;
+}
+
+.points-game-duel.is-win .points-game-hand.player {
+	border-color: #67bf96;
+	background: linear-gradient(130deg, #eefaf4 0%, #dff6eb 100%);
+}
+
+.points-game-duel.is-lose .points-game-hand.system {
+	border-color: #67bf96;
+	background: linear-gradient(130deg, #eefaf4 0%, #dff6eb 100%);
+}
+
+.points-game-duel.is-draw .points-game-hand {
+	border-color: #d4b36a;
+	background: linear-gradient(130deg, #fff8e8 0%, #fff1d0 100%);
+}
+
 .points-game-status {
 	display: grid;
 	gap: 0.2rem;
@@ -1166,6 +1241,72 @@ select {
 .points-game-status p {
 	margin: 0;
 	font-size: 0.87rem;
+}
+
+.points-game-result-pill {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: fit-content;
+	padding: 0.18rem 0.55rem;
+	border-radius: 999px;
+	font-size: 0.76rem;
+	font-weight: 800;
+	border: 1px solid transparent;
+	animation: pointsGamePop 0.22s ease-out;
+}
+
+.points-game-result-pill.win {
+	background: #e4f8ee;
+	border-color: #8cd5ae;
+	color: #1d5f43;
+}
+
+.points-game-result-pill.lose {
+	background: #ffe9ed;
+	border-color: #f2adbb;
+	color: #7a2b3f;
+}
+
+.points-game-result-pill.draw {
+	background: #fff4de;
+	border-color: #e8c17f;
+	color: #815012;
+}
+
+@keyframes pointsGamePulse {
+	0%,
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+	50% {
+		transform: scale(1.06);
+		opacity: 0.8;
+	}
+}
+
+@keyframes pointsGameThinking {
+	0% {
+		opacity: 0.5;
+	}
+	50% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0.5;
+	}
+}
+
+@keyframes pointsGamePop {
+	0% {
+		transform: scale(0.93);
+		opacity: 0;
+	}
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
 }
 
 .points-kpi-grid article {
@@ -2724,6 +2865,52 @@ body.theme-dark .appointment-filter-chip,
 body.theme-dark .admin-quick-reschedule strong,
 body.theme-dark .dashboard-kicker {
 	color: var(--text-main);
+}
+
+body.theme-dark .points-game-hand {
+	background: linear-gradient(130deg, #3d2445 0%, #512d5a 100%);
+	border-color: #8b5a99;
+}
+
+body.theme-dark .points-game-hand small {
+	color: #ffd8ec;
+}
+
+body.theme-dark .points-game-vs {
+	background: #4b2955;
+	border-color: #88579a;
+	color: #ffe8f6;
+}
+
+body.theme-dark .points-game-duel.is-win .points-game-hand.player,
+body.theme-dark .points-game-duel.is-lose .points-game-hand.system {
+	background: linear-gradient(130deg, #1f4938 0%, #2a614a 100%);
+	border-color: #53a77f;
+	color: #e5fff3;
+}
+
+body.theme-dark .points-game-duel.is-draw .points-game-hand {
+	background: linear-gradient(130deg, #5a4723 0%, #71582a 100%);
+	border-color: #c99f54;
+	color: #fff4dd;
+}
+
+body.theme-dark .points-game-result-pill.win {
+	background: #1f4b38;
+	border-color: #55a67f;
+	color: #dffff0;
+}
+
+body.theme-dark .points-game-result-pill.lose {
+	background: #5c2b38;
+	border-color: #c87a92;
+	color: #ffe6ee;
+}
+
+body.theme-dark .points-game-result-pill.draw {
+	background: #5a4525;
+	border-color: #c89d5d;
+	color: #ffefcf;
 }
 
 body.theme-dark .price-card strong,

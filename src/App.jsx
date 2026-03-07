@@ -790,6 +790,7 @@ function App() {
   const [pointsGameOpen, setPointsGameOpen] = useState(false);
   const [pointsGameRound, setPointsGameRound] = useState({ playerChoice: "", cpuChoice: "", result: "" });
   const [pointsGameWins, setPointsGameWins] = useState(0);
+  const [pointsGameAnimating, setPointsGameAnimating] = useState(false);
   const [pointsGameCooldownUntil, setPointsGameCooldownUntil] = useState(0);
   const [pointsGameNow, setPointsGameNow] = useState(() => Date.now());
   const [contactForm, setContactForm] = useState({
@@ -860,6 +861,7 @@ function App() {
   const assistantMessagesEndRef = useRef(null);
   const ownerCarouselFileInputsRef = useRef({});
   const ownerContactBootstrappedRef = useRef(false);
+  const pointsGameResolveTimeoutRef = useRef(null);
   const [homePromoIndex, setHomePromoIndex] = useState(0);
   const [adminSavedMap, setAdminSavedMap] = useState({});
   const [feedback, setFeedback] = useState({ type: "info", text: "Bienvenida a EsmeNails. Inicia sesion o crea tu cuenta para continuar." });
@@ -3016,6 +3018,12 @@ function App() {
     return () => window.clearInterval(intervalId);
   }, [pointsGameCooldownLeftMs]);
 
+  useEffect(() => () => {
+    if (pointsGameResolveTimeoutRef.current) {
+      window.clearTimeout(pointsGameResolveTimeoutRef.current);
+    }
+  }, []);
+
   const creditPointsFromGame = useCallback((deltaPoints) => {
     const increment = normalizePointsValue(deltaPoints);
     if (increment <= 0) return;
@@ -3058,41 +3066,56 @@ function App() {
   const playPointsGameRound = useCallback((playerChoice) => {
     if (!playerChoice) return;
 
+    if (pointsGameAnimating) {
+      setFeedback({ type: "info", text: "Resolviendo la ronda actual, espera un momento." });
+      return;
+    }
+
     if (pointsGameCooldownLeftMs > 0) {
       setFeedback({ type: "info", text: `Espera ${pointsGameCooldownSeconds}s para jugar otra ronda.` });
       return;
     }
 
-    const randomIndex = Math.floor(Math.random() * pointsGameOptions.length);
-    const cpuChoice = pointsGameOptions[randomIndex]?.id || "piedra";
+    setPointsGameAnimating(true);
+    setPointsGameRound({ playerChoice, cpuChoice: "", result: "pending" });
 
-    let result = "draw";
-    if (playerChoice !== cpuChoice) {
-      const playerWins =
-        (playerChoice === "piedra" && cpuChoice === "tijera")
-        || (playerChoice === "papel" && cpuChoice === "piedra")
-        || (playerChoice === "tijera" && cpuChoice === "papel");
-      result = playerWins ? "win" : "lose";
+    if (pointsGameResolveTimeoutRef.current) {
+      window.clearTimeout(pointsGameResolveTimeoutRef.current);
     }
 
-    setPointsGameRound({ playerChoice, cpuChoice, result });
-  setPointsGameNow(Date.now());
-  setPointsGameCooldownUntil(Date.now() + POINTS_GAME_COOLDOWN_MS);
+    pointsGameResolveTimeoutRef.current = window.setTimeout(() => {
+      const randomIndex = Math.floor(Math.random() * pointsGameOptions.length);
+      const cpuChoice = pointsGameOptions[randomIndex]?.id || "piedra";
 
-    if (result === "win") {
-      setPointsGameWins((prev) => prev + 1);
-      creditPointsFromGame(0.1);
-      setFeedback({ type: "success", text: "Ganaste la ronda. +0.1 puntos agregados." });
-      return;
-    }
+      let result = "draw";
+      if (playerChoice !== cpuChoice) {
+        const playerWins =
+          (playerChoice === "piedra" && cpuChoice === "tijera")
+          || (playerChoice === "papel" && cpuChoice === "piedra")
+          || (playerChoice === "tijera" && cpuChoice === "papel");
+        result = playerWins ? "win" : "lose";
+      }
 
-    if (result === "draw") {
-      setFeedback({ type: "info", text: "Empate. Intenta otra ronda para sumar puntos." });
-      return;
-    }
+      setPointsGameRound({ playerChoice, cpuChoice, result });
+      setPointsGameAnimating(false);
+      setPointsGameNow(Date.now());
+      setPointsGameCooldownUntil(Date.now() + POINTS_GAME_COOLDOWN_MS);
 
-    setFeedback({ type: "info", text: "Esta ronda se perdio. Vuelve a jugar para ganar puntos." });
-  }, [creditPointsFromGame, pointsGameCooldownLeftMs, pointsGameCooldownSeconds]);
+      if (result === "win") {
+        setPointsGameWins((prev) => prev + 1);
+        creditPointsFromGame(0.1);
+        setFeedback({ type: "success", text: "Ganaste la ronda. +0.1 puntos agregados." });
+        return;
+      }
+
+      if (result === "draw") {
+        setFeedback({ type: "info", text: "Empate. Intenta otra ronda para sumar puntos." });
+        return;
+      }
+
+      setFeedback({ type: "info", text: "Esta ronda se perdio. Vuelve a jugar para ganar puntos." });
+    }, 900);
+  }, [creditPointsFromGame, pointsGameAnimating, pointsGameCooldownLeftMs, pointsGameCooldownSeconds]);
 
   const historyAppointments = historyData?.appointments || [];
   const historyOrders = historyData?.orders || [];
@@ -4051,8 +4074,8 @@ function App() {
                           <button
                             key={option.id}
                             type="button"
-                            className="secondary"
-                            disabled={pointsGameCooldownLeftMs > 0}
+                            className={`secondary ${pointsGameRound.playerChoice === option.id ? "points-game-choice-active" : ""}`}
+                            disabled={pointsGameCooldownLeftMs > 0 || pointsGameAnimating}
                             onClick={() => playPointsGameRound(option.id)}
                           >
                             {option.label}
@@ -4060,16 +4083,34 @@ function App() {
                         ))}
                       </div>
 
+                      <div className={`points-game-duel ${pointsGameAnimating ? "rolling" : ""} ${pointsGameRound.result ? `is-${pointsGameRound.result}` : ""}`}>
+                        <div className="points-game-hand player">
+                          <small>Tu jugada</small>
+                          <strong>{pointsGameOptions.find((item) => item.id === pointsGameRound.playerChoice)?.label || "-"}</strong>
+                        </div>
+                        <div className="points-game-vs">{pointsGameAnimating ? "..." : "VS"}</div>
+                        <div className="points-game-hand system">
+                          <small>Sistema</small>
+                          <strong>
+                            {pointsGameAnimating
+                              ? "Pensando..."
+                              : pointsGameOptions.find((item) => item.id === pointsGameRound.cpuChoice)?.label || "-"}
+                          </strong>
+                        </div>
+                      </div>
+
                       <div className="points-game-status">
                         <small>
                           Victorias acumuladas: <strong>{pointsGameWins}</strong>
                         </small>
                         <small>
-                          {pointsGameCooldownLeftMs > 0
+                          {pointsGameAnimating
+                            ? "Resolviendo ronda..."
+                            : pointsGameCooldownLeftMs > 0
                             ? `Siguiente ronda disponible en ${pointsGameCooldownSeconds}s`
                             : "Ronda disponible ahora"}
                         </small>
-                        {pointsGameRound.result && (
+                        {pointsGameRound.result && pointsGameRound.result !== "pending" && (
                           <p>
                             Tu jugada: <strong>{pointsGameOptions.find((item) => item.id === pointsGameRound.playerChoice)?.label || "-"}</strong>
                             {" | "}
@@ -4079,6 +4120,15 @@ function App() {
                               {pointsGameRound.result === "win" ? "Ganaste" : pointsGameRound.result === "lose" ? "Perdiste" : "Empate"}
                             </strong>
                           </p>
+                        )}
+                        {pointsGameRound.result && pointsGameRound.result !== "pending" && (
+                          <span className={`points-game-result-pill ${pointsGameRound.result}`}>
+                            {pointsGameRound.result === "win"
+                              ? "Victoria: +0.1 pts"
+                              : pointsGameRound.result === "lose"
+                                ? "Derrota: sin puntos"
+                                : "Empate: vuelve a intentar"}
+                          </span>
                         )}
                       </div>
                     </>

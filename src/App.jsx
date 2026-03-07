@@ -836,6 +836,7 @@ function App() {
   const profilePhotoInputRef = useRef(null);
   const assistantMessagesEndRef = useRef(null);
   const ownerCarouselFileInputsRef = useRef({});
+  const ownerContactBootstrappedRef = useRef(false);
   const [homePromoIndex, setHomePromoIndex] = useState(0);
   const [adminSavedMap, setAdminSavedMap] = useState({});
   const [feedback, setFeedback] = useState({ type: "info", text: "Bienvenida a EsmeNails. Inicia sesion o crea tu cuenta para continuar." });
@@ -2603,6 +2604,8 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (ownerContactBootstrappedRef.current) return;
+    ownerContactBootstrappedRef.current = true;
     loadOwnerContact();
   }, [loadOwnerContact]);
 

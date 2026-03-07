@@ -965,6 +965,8 @@ function App() {
   const [pointsGameAnimating, setPointsGameAnimating] = useState(false);
   const [pointsGameCooldownUntil, setPointsGameCooldownUntil] = useState(0);
   const [pointsGameNow, setPointsGameNow] = useState(() => Date.now());
+  const [pointsGameHintVisible, setPointsGameHintVisible] = useState(false);
+  const [pointsGameHintPaidQuestionId, setPointsGameHintPaidQuestionId] = useState("");
   const [pointsGameStats, setPointsGameStats] = useState(defaultPointsGameStats);
   const [contactForm, setContactForm] = useState({
     subject: "",
@@ -1035,6 +1037,7 @@ function App() {
   const ownerCarouselFileInputsRef = useRef({});
   const ownerContactBootstrappedRef = useRef(false);
   const pointsGameResolveTimeoutRef = useRef(null);
+  const pointsGameNextQuestionTimeoutRef = useRef(null);
   const [homePromoIndex, setHomePromoIndex] = useState(0);
   const [adminSavedMap, setAdminSavedMap] = useState({});
   const [feedback, setFeedback] = useState({ type: "info", text: "Bienvenida a EsmeNails. Inicia sesion o crea tu cuenta para continuar." });
@@ -3214,6 +3217,9 @@ function App() {
     if (pointsGameResolveTimeoutRef.current) {
       window.clearTimeout(pointsGameResolveTimeoutRef.current);
     }
+    if (pointsGameNextQuestionTimeoutRef.current) {
+      window.clearTimeout(pointsGameNextQuestionTimeoutRef.current);
+    }
   }, []);
 
   const updatePointsGameStats = useCallback((updater) => {
@@ -3364,7 +3370,23 @@ function App() {
   const nextPointsRiddle = useCallback(() => {
     setPointsGameRiddleIndex((prev) => pickNextRiddleIndex(prev));
     setPointsGameRound({ selectedOption: -1, correctOption: -1, result: "" });
+    setPointsGameHintVisible(false);
+    setPointsGameHintPaidQuestionId("");
   }, []);
+
+  const revealPointsRiddleHint = useCallback(() => {
+    const currentRiddle = pointsRiddles[pointsGameRiddleIndex];
+    if (!currentRiddle) return;
+    if (pointsGameAnimating) return;
+
+    if (pointsGameHintPaidQuestionId !== currentRiddle.id) {
+      creditPointsFromGame(-1);
+      setPointsGameHintPaidQuestionId(currentRiddle.id);
+      setFeedback({ type: "info", text: "Pista revelada. -1 punto aplicado." });
+    }
+
+    setPointsGameHintVisible(true);
+  }, [pointsGameAnimating, pointsGameHintPaidQuestionId, pointsGameRiddleIndex, creditPointsFromGame]);
 
   const playPointsGameRound = useCallback((selectedOption) => {
     if (!Number.isInteger(selectedOption) || selectedOption < 0) return;
@@ -3384,9 +3406,13 @@ function App() {
 
     setPointsGameAnimating(true);
     setPointsGameRound({ selectedOption, correctOption: -1, result: "pending" });
+    setPointsGameHintVisible(false);
 
     if (pointsGameResolveTimeoutRef.current) {
       window.clearTimeout(pointsGameResolveTimeoutRef.current);
+    }
+    if (pointsGameNextQuestionTimeoutRef.current) {
+      window.clearTimeout(pointsGameNextQuestionTimeoutRef.current);
     }
 
     pointsGameResolveTimeoutRef.current = window.setTimeout(() => {
@@ -3407,13 +3433,16 @@ function App() {
         setPointsGameWins((prev) => prev + 1);
         creditPointsFromGame(0.1);
         setFeedback({ type: "success", text: "Respuesta correcta. +0.1 puntos agregados." });
-        return;
+      } else {
+        creditPointsFromGame(-0.001);
+        setFeedback({ type: "info", text: "Respuesta incorrecta. -0.001 puntos aplicados." });
       }
 
-      creditPointsFromGame(-0.001);
-      setFeedback({ type: "info", text: "Respuesta incorrecta. -0.001 puntos aplicados." });
+      pointsGameNextQuestionTimeoutRef.current = window.setTimeout(() => {
+        nextPointsRiddle();
+      }, 1600);
     }, 900);
-  }, [creditPointsFromGame, pointsGameAnimating, pointsGameCooldownLeftMs, pointsGameCooldownSeconds, pointsGameRiddleIndex, updatePointsGameStats]);
+  }, [creditPointsFromGame, pointsGameAnimating, pointsGameCooldownLeftMs, pointsGameCooldownSeconds, pointsGameRiddleIndex, updatePointsGameStats, nextPointsRiddle]);
 
   useEffect(() => {
     if (!isAuthenticated || adminToken) return;
@@ -4421,7 +4450,9 @@ function App() {
                       <div className="points-game-riddle-card">
                         <small>Adivinanza actual</small>
                         <p>{pointsRiddles[pointsGameRiddleIndex]?.question || "Sin adivinanza disponible."}</p>
-                        <span>Pista: {pointsRiddles[pointsGameRiddleIndex]?.hint || "-"}</span>
+                        {pointsGameHintVisible && (
+                          <span>Pista: {pointsRiddles[pointsGameRiddleIndex]?.hint || "-"}</span>
+                        )}
                         <span>Banco dificil disponible: {pointsRiddles.length} preguntas</span>
                       </div>
 
@@ -4501,6 +4532,14 @@ function App() {
                         <button
                           type="button"
                           className="secondary"
+                          onClick={revealPointsRiddleHint}
+                          disabled={pointsGameAnimating}
+                        >
+                          Pistas -1pts
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary"
                           onClick={nextPointsRiddle}
                           disabled={pointsGameAnimating}
                         >
@@ -4515,7 +4554,7 @@ function App() {
                   <div className="points-achievements-head">
                     <div>
                       <small>Logros y progreso</small>
-                      <h3>Mis logros del juego</h3>
+                      <h3>Panel de logros</h3>
                     </div>
                     <strong>{unlockedAchievements.length}/{pointsGameAchievements.length} desbloqueados</strong>
                   </div>

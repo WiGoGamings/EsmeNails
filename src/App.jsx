@@ -28,6 +28,7 @@ const posSections = [
   "Precios",
   "Agendar cita",
   "Contacto",
+  "Asistente IA",
   "Mis puntos",
   "Historial",
   "Promociones",
@@ -206,6 +207,7 @@ const navIconBySection = {
   Precios: "prices",
   "Agendar cita": "calendar",
   Contacto: "contact",
+  "Asistente IA": "assistant",
   "Mis puntos": "points",
   Historial: "history",
   Promociones: "promo",
@@ -222,6 +224,7 @@ const quickRailLabelBySection = {
   Precios: "Precio",
   "Agendar cita": "Cita",
   Contacto: "Contacto",
+  "Asistente IA": "Asistente",
   "Mis puntos": "Puntos",
   Historial: "Historial",
   Promociones: "Promo",
@@ -424,6 +427,75 @@ const inferPromotionImageUrl = (promotion) => {
   return realNailImages.encapsulado;
 };
 
+const buildLocalAssistantReply = ({ message, services, products, promotions, ownerContact }) => {
+  const text = String(message || "").toLowerCase();
+
+  if (text.includes("precio") || text.includes("cuanto") || text.includes("costo")) {
+    const serviceLines = (services || [])
+      .filter((item) => Number(item?.price) > 0)
+      .slice(0, 4)
+      .map((item) => `- ${item.name}: $${Number(item.price)}`);
+
+    if (serviceLines.length === 0) {
+      return "Aun no tengo servicios con precio cargados. Puedes revisar la seccion Precios para confirmar el catalogo actual.";
+    }
+
+    return `Estos son algunos precios actuales:\n${serviceLines.join("\\n")}\\n\\nSi me dices tu presupuesto, te recomiendo una opcion.`;
+  }
+
+  if (text.includes("promo") || text.includes("descuento") || text.includes("oferta")) {
+    const promoLines = (promotions || [])
+      .slice(0, 4)
+      .map((promo) => {
+        const value = Number(promo?.value || 0);
+        if (!Number.isFinite(value) || value <= 0) return `- ${promo.title}`;
+        return promo.discountType === "percentage"
+          ? `- ${promo.title}: ${value}%`
+          : `- ${promo.title}: $${value}`;
+      });
+
+    if (promoLines.length === 0) {
+      return "Por ahora no veo promociones activas. Revisa la seccion Promociones para confirmar si ya publicaron nuevas.";
+    }
+
+    return `Promociones recomendadas:\n${promoLines.join("\\n")}`;
+  }
+
+  if (text.includes("contacto") || text.includes("whatsapp") || text.includes("telefono") || text.includes("direccion")) {
+    const lines = [
+      ownerContact?.whatsapp ? `WhatsApp: ${ownerContact.whatsapp}` : "",
+      ownerContact?.phone ? `Telefono: ${ownerContact.phone}` : "",
+      ownerContact?.address ? `Direccion: ${ownerContact.address}` : "",
+      ownerContact?.instagram ? `Instagram: ${ownerContact.instagram}` : ""
+    ].filter(Boolean);
+
+    if (lines.length === 0) {
+      return "Puedes abrir la seccion Contacto para ver los enlaces disponibles.";
+    }
+
+    return `Claro, aqui tienes los datos de contacto:\n${lines.join("\\n")}`;
+  }
+
+  if (text.includes("cita") || text.includes("agenda") || text.includes("reserv")) {
+    return "Para agendar: entra a Agendar cita, selecciona servicio, fecha y profesional, y confirma. Si quieres, te sugiero primero un servicio segun tu estilo.";
+  }
+
+  if (text.includes("producto")) {
+    const productLines = (products || [])
+      .filter((item) => Number(item?.price) > 0)
+      .slice(0, 4)
+      .map((item) => `- ${item.name}: $${Number(item.price)}`);
+
+    if (productLines.length === 0) {
+      return "Todavia no tengo productos con precio cargado en este momento.";
+    }
+
+    return `Estos productos estan disponibles:\n${productLines.join("\\n")}`;
+  }
+
+  return "Soy tu asistente personal de EsmeNails. Te ayudo con precios, promociones, productos, contacto y agendar cita. Escribeme tu duda y te guio.";
+};
+
 function NavIcon({ type }) {
   const common = { width: 16, height: 16, viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true };
 
@@ -438,6 +510,8 @@ function NavIcon({ type }) {
       return <svg {...common}><rect x="2.5" y="3.5" width="11" height="10" rx="1.5" /><path d="M5 2.5v2" /><path d="M11 2.5v2" /><path d="M2.5 6.5h11" /></svg>;
     case "contact":
       return <svg {...common}><circle cx="8" cy="5.3" r="2.3" /><path d="M3.2 13c1.2-2.1 3-3.1 4.8-3.1s3.6 1 4.8 3.1" /></svg>;
+    case "assistant":
+      return <svg {...common}><rect x="2.4" y="3" width="11.2" height="8" rx="2" /><path d="M5.2 13l1.8-2h1.8L10.6 13" /><path d="M5.5 6.5h5" /><path d="M6.8 8.7h2.4" /></svg>;
     case "points":
       return <svg {...common}><path d="M8 2.3l1.6 3.2 3.5.5-2.5 2.4.6 3.4L8 10.1 4.8 11.8l.6-3.4L3 6l3.5-.5z" /></svg>;
     case "history":
@@ -564,6 +638,15 @@ function App() {
     preferredContact: "email"
   });
   const [contactBusy, setContactBusy] = useState(false);
+  const [assistantInput, setAssistantInput] = useState("");
+  const [assistantBusy, setAssistantBusy] = useState(false);
+  const [assistantMessages, setAssistantMessages] = useState(() => ([
+    {
+      id: "assistant-welcome",
+      role: "assistant",
+      text: "Hola. Soy tu asistente personal de EsmeNails. Puedo ayudarte con precios, promociones, productos y citas."
+    }
+  ]));
   const [ownerContact, setOwnerContact] = useState(defaultOwnerContact);
   const [emailCodeSent, setEmailCodeSent] = useState(false);
   const [emailVerificationCode, setEmailVerificationCode] = useState("");
@@ -619,6 +702,7 @@ function App() {
     }
   });
   const profilePhotoInputRef = useRef(null);
+  const assistantMessagesEndRef = useRef(null);
   const menuCtaTimeoutRef = useRef(null);
   const [menuCtaPulse, setMenuCtaPulse] = useState(false);
   const [homePromoIndex, setHomePromoIndex] = useState(0);
@@ -1813,6 +1897,81 @@ function App() {
     }
   };
 
+  const submitAssistantMessage = async (event) => {
+    event.preventDefault();
+    const message = assistantInput.trim();
+    if (!message || assistantBusy) return;
+
+    const nextUserMessage = {
+      id: `user-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+      role: "user",
+      text: message
+    };
+
+    const nextHistory = [...assistantMessages, nextUserMessage];
+    setAssistantMessages(nextHistory);
+    setAssistantInput("");
+    setAssistantBusy(true);
+
+    const fallbackReply = buildLocalAssistantReply({
+      message,
+      services: catalogServices,
+      products: catalogProducts,
+      promotions: catalogPromotions,
+      ownerContact
+    });
+
+    try {
+      if (!API_BASE) {
+        throw new Error("API no disponible");
+      }
+
+      const response = await apiRequest("/ai", {
+        method: "POST",
+        body: {
+          message,
+          history: nextHistory.slice(-8).map((entry) => ({ role: entry.role, content: entry.text })),
+          context: {
+            services: catalogServices.slice(0, 20).map((item) => ({ name: item.name, price: Number(item.price) || 0 })),
+            products: catalogProducts.slice(0, 20).map((item) => ({ name: item.name, price: Number(item.price) || 0 })),
+            promotions: catalogPromotions.slice(0, 20).map((item) => ({
+              title: item.title,
+              value: Number(item.value) || 0,
+              discountType: item.discountType
+            })),
+            ownerContact: {
+              whatsapp: ownerContact.whatsapp,
+              phone: ownerContact.phone,
+              address: ownerContact.address,
+              instagram: ownerContact.instagram
+            }
+          }
+        }
+      });
+
+      const assistantReply = String(response?.reply || "").trim() || fallbackReply;
+      setAssistantMessages((prev) => ([
+        ...prev,
+        {
+          id: `assistant-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+          role: "assistant",
+          text: assistantReply
+        }
+      ]));
+    } catch {
+      setAssistantMessages((prev) => ([
+        ...prev,
+        {
+          id: `assistant-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+          role: "assistant",
+          text: fallbackReply
+        }
+      ]));
+    } finally {
+      setAssistantBusy(false);
+    }
+  };
+
   const updateAdminContactField = (messageId, field, value) => {
     setAdminData((prev) => {
       if (!prev) return prev;
@@ -2151,6 +2310,10 @@ function App() {
   useEffect(() => {
     loadOwnerContact();
   }, [loadOwnerContact]);
+
+  useEffect(() => {
+    assistantMessagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [assistantMessages]);
 
   useEffect(() => {
     const currentPath = getCurrentAppPath();
@@ -3193,6 +3356,48 @@ function App() {
                     {contactBusy ? "Enviando mensaje..." : "Enviar mensaje"}
                   </button>
                 </form>
+              </section>
+            ) : activeSection === "Asistente IA" ? (
+              <section className="assistant-wrap">
+                <article className="assistant-hero">
+                  <h2>Asistente personal con IA</h2>
+                  <p>Preguntame por precios, promociones, productos, recomendaciones y como agendar cita.</p>
+                  <div className="assistant-quick-actions">
+                    <button type="button" className="secondary" onClick={() => setAssistantInput("Que promociones tienen hoy?")}>Promociones de hoy</button>
+                    <button type="button" className="secondary" onClick={() => setAssistantInput("Recomiendame un servicio para evento")}>Recomendar servicio</button>
+                    <button type="button" className="secondary" onClick={() => setAssistantInput("Como agendo mi cita?")}>Como agendar</button>
+                  </div>
+                </article>
+
+                <article className="assistant-chat-card" aria-live="polite">
+                  <div className="assistant-messages">
+                    {assistantMessages.map((entry) => (
+                      <div key={entry.id} className={`assistant-msg ${entry.role === "user" ? "user" : "bot"}`}>
+                        <strong>{entry.role === "user" ? "Tu" : "Asistente"}</strong>
+                        <p>{entry.text}</p>
+                      </div>
+                    ))}
+                    {assistantBusy && (
+                      <div className="assistant-msg bot pending">
+                        <strong>Asistente</strong>
+                        <p>Escribiendo respuesta...</p>
+                      </div>
+                    )}
+                    <div ref={assistantMessagesEndRef} />
+                  </div>
+
+                  <form className="assistant-form" onSubmit={submitAssistantMessage}>
+                    <input
+                      value={assistantInput}
+                      onChange={(event) => setAssistantInput(event.target.value)}
+                      placeholder="Ejemplo: cual servicio me conviene si quiero algo elegante y rapido?"
+                      maxLength={1200}
+                    />
+                    <button type="submit" className="primary" disabled={assistantBusy || !assistantInput.trim()}>
+                      {assistantBusy ? "Consultando..." : "Enviar"}
+                    </button>
+                  </form>
+                </article>
               </section>
             ) : activeSection === "Mis puntos" ? (
               <section className="points-wrap">

@@ -9,6 +9,7 @@ import ordersRoutes from "./routes/orders.routes.js";
 import usersRoutes from "./routes/users.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import contactRoutes from "./routes/contact.routes.js";
+import assistantRoutes from "./routes/assistant.routes.js";
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use("/api/appointments", appointmentsRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/ai", assistantRoutes);
 
 app.use(errorHandler);
 

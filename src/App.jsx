@@ -2422,6 +2422,19 @@ function App() {
 
   useEffect(() => {
     const checkApi = async () => {
+      if (!API_BASE) {
+        setFeedback((prev) => {
+          if (prev?.type === "error" && String(prev?.text || "").includes("API no configurada")) {
+            return {
+              type: "info",
+              text: "Modo local activo: puedes iniciar sesion sin backend en esta version web."
+            };
+          }
+          return prev;
+        });
+        return;
+      }
+
       try {
         await apiRequest("/health");
       } catch (error) {

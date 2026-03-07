@@ -62,8 +62,8 @@ const ADMIN_LOCAL_SETTINGS_KEY = "esme_admin_settings_local";
 const MENU_CART_STORAGE_KEY = "esme_menu_cart";
 const ASSISTANT_HISTORY_STORAGE_PREFIX = "esme_assistant_history";
 const LOCAL_AUTH_USERS_KEY = "esme_local_auth_users";
-const LOCAL_ADMIN_EMAIL = "admin@esmenails.com";
-const LOCAL_ADMIN_PASSWORD = "admin123";
+const LOCAL_ADMIN_EMAIL = "admin.esme@esmenails.com";
+const LOCAL_ADMIN_PASSWORD = "EsmeNails2026";
 
 const getAssistantHistoryStorageKey = (isAuthenticated, sessionUser) => {
   const identity = isAuthenticated ? (sessionUser?.email || "authenticated-user") : "guest";

@@ -285,13 +285,17 @@ const pointsRiddles = hardRiddleConcepts.flatMap((concept, conceptIndex) =>
   })
 );
 
-const pickNextRiddleIndex = (currentIndex) => {
-  if (pointsRiddles.length <= 1) return 0;
-  let nextIndex = currentIndex;
-  while (nextIndex === currentIndex) {
-    nextIndex = Math.floor(Math.random() * pointsRiddles.length);
-  }
-  return nextIndex;
+const pickNextRiddleIndex = (currentIndex, solvedRiddleIds = []) => {
+  const solvedSet = new Set(Array.isArray(solvedRiddleIds) ? solvedRiddleIds : []);
+  const candidates = pointsRiddles
+    .map((_, index) => index)
+    .filter((index) => !solvedSet.has(pointsRiddles[index]?.id));
+
+  if (candidates.length === 0) return currentIndex;
+
+  const withoutCurrent = candidates.filter((index) => index !== currentIndex);
+  const pool = withoutCurrent.length > 0 ? withoutCurrent : candidates;
+  return pool[Math.floor(Math.random() * pool.length)];
 };
 const POINTS_GAME_COOLDOWN_MS = 10000;
 
@@ -336,7 +340,8 @@ const defaultPointsGameStats = {
   winsTotal: 0,
   totalPlaySeconds: 0,
   achievementPoints: 0,
-  unlockedAchievementIds: []
+  unlockedAchievementIds: [],
+  solvedRiddleIds: []
 };
 
 const sanitizePointsGameStats = (rawStats) => {
@@ -348,6 +353,9 @@ const sanitizePointsGameStats = (rawStats) => {
     achievementPoints: normalizePointsValue(Math.max(0, Number(source.achievementPoints) || 0)),
     unlockedAchievementIds: Array.isArray(source.unlockedAchievementIds)
       ? source.unlockedAchievementIds.filter((id) => typeof id === "string" && id.trim())
+      : [],
+    solvedRiddleIds: Array.isArray(source.solvedRiddleIds)
+      ? [...new Set(source.solvedRiddleIds.filter((id) => typeof id === "string" && id.trim()))]
       : []
   };
 };
@@ -3301,6 +3309,14 @@ function App() {
     return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
   }, [pointsGameStats.totalPlaySeconds]);
 
+  const solvedRiddleIdsSet = useMemo(
+    () => new Set(pointsGameStats.solvedRiddleIds || []),
+    [pointsGameStats.solvedRiddleIds]
+  );
+
+  const solvedRiddlesCount = solvedRiddleIdsSet.size;
+  const allRiddlesSolved = solvedRiddlesCount >= pointsRiddles.length;
+
   useEffect(() => {
     if (!isAuthenticated || adminToken) return;
     const storedStats = getStoredPointsGameStatsForUser({
@@ -3368,11 +3384,11 @@ function App() {
   }, []);
 
   const nextPointsRiddle = useCallback(() => {
-    setPointsGameRiddleIndex((prev) => pickNextRiddleIndex(prev));
+    setPointsGameRiddleIndex((prev) => pickNextRiddleIndex(prev, pointsGameStats.solvedRiddleIds));
     setPointsGameRound({ selectedOption: -1, correctOption: -1, result: "" });
     setPointsGameHintVisible(false);
     setPointsGameHintPaidQuestionId("");
-  }, []);
+  }, [pointsGameStats.solvedRiddleIds]);
 
   const revealPointsRiddleHint = useCallback(() => {
     const currentRiddle = pointsRiddles[pointsGameRiddleIndex];
@@ -3390,6 +3406,11 @@ function App() {
 
   const playPointsGameRound = useCallback((selectedOption) => {
     if (!Number.isInteger(selectedOption) || selectedOption < 0) return;
+
+    if (allRiddlesSolved) {
+      setFeedback({ type: "success", text: "Ya completaste todas las adivinanzas disponibles." });
+      return;
+    }
 
     if (pointsGameAnimating) {
       setFeedback({ type: "info", text: "Resolviendo la ronda actual, espera un momento." });
@@ -3426,7 +3447,10 @@ function App() {
       updatePointsGameStats((prev) => ({
         ...prev,
         roundsPlayed: prev.roundsPlayed + 1,
-        winsTotal: prev.winsTotal + (isCorrect ? 1 : 0)
+        winsTotal: prev.winsTotal + (isCorrect ? 1 : 0),
+        solvedRiddleIds: isCorrect
+          ? [...new Set([...(prev.solvedRiddleIds || []), currentRiddle.id])]
+          : (prev.solvedRiddleIds || [])
       }));
 
       if (isCorrect) {
@@ -3442,7 +3466,7 @@ function App() {
         nextPointsRiddle();
       }, 1600);
     }, 900);
-  }, [creditPointsFromGame, pointsGameAnimating, pointsGameCooldownLeftMs, pointsGameCooldownSeconds, pointsGameRiddleIndex, updatePointsGameStats, nextPointsRiddle]);
+  }, [creditPointsFromGame, pointsGameAnimating, pointsGameCooldownLeftMs, pointsGameCooldownSeconds, pointsGameRiddleIndex, updatePointsGameStats, nextPointsRiddle, allRiddlesSolved]);
 
   useEffect(() => {
     if (!isAuthenticated || adminToken) return;
@@ -4454,6 +4478,7 @@ function App() {
                           <span>Pista: {pointsRiddles[pointsGameRiddleIndex]?.hint || "-"}</span>
                         )}
                         <span>Banco dificil disponible: {pointsRiddles.length} preguntas</span>
+                        <span>Adivinanzas dominadas: {solvedRiddlesCount}/{pointsRiddles.length}</span>
                       </div>
 
                       <div className="points-game-options">
@@ -4462,7 +4487,7 @@ function App() {
                             key={`${pointsRiddles[pointsGameRiddleIndex]?.id || "riddle"}-${optionIndex}`}
                             type="button"
                             className={`secondary ${pointsGameRound.selectedOption === optionIndex ? "points-game-choice-active" : ""}`}
-                            disabled={pointsGameCooldownLeftMs > 0 || pointsGameAnimating}
+                            disabled={pointsGameCooldownLeftMs > 0 || pointsGameAnimating || allRiddlesSolved}
                             onClick={() => playPointsGameRound(optionIndex)}
                           >
                             {option}
@@ -4499,6 +4524,8 @@ function App() {
                         <small>
                           {pointsGameAnimating
                             ? "Resolviendo ronda..."
+                            : allRiddlesSolved
+                            ? "Completaste todo el banco dificil"
                             : pointsGameCooldownLeftMs > 0
                             ? `Siguiente ronda disponible en ${pointsGameCooldownSeconds}s`
                             : "Ronda disponible ahora"}
@@ -4533,7 +4560,7 @@ function App() {
                           type="button"
                           className="secondary"
                           onClick={revealPointsRiddleHint}
-                          disabled={pointsGameAnimating}
+                          disabled={pointsGameAnimating || allRiddlesSolved}
                         >
                           Pistas -1pts
                         </button>
@@ -4541,7 +4568,7 @@ function App() {
                           type="button"
                           className="secondary"
                           onClick={nextPointsRiddle}
-                          disabled={pointsGameAnimating}
+                          disabled={pointsGameAnimating || allRiddlesSolved}
                         >
                           Cambiar adivinanza
                         </button>

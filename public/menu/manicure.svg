@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" role="img" aria-label="Manicure Spa">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#d9ffe8"/>
+      <stop offset="100%" stop-color="#9beec1"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="520" fill="url(#bg)"/>
+  <g fill="#edfff4" opacity="0.78">
+    <circle cx="640" cy="120" r="70"/>
+    <circle cx="120" cy="410" r="90"/>
+  </g>
+  <g fill="#1a6b47">
+    <path d="M140 390c0-72 46-110 102-110s102 38 102 110v58H140z"/>
+    <path d="M380 348c0-78 50-120 110-120s110 42 110 120v100H380z"/>
+    <path d="M620 388c0-64 40-98 90-98s90 34 90 98v60H620z"/>
+  </g>
+  <text x="50%" y="92%" text-anchor="middle" font-size="52" font-family="Outfit, Arial" fill="#124a32">Manicure Spa</text>
+</svg>

@@ -1,0 +1,63 @@
+{
+  "name": "esmenails",
+  "private": true,
+  "version": "0.0.0",
+  "main": "desktop/electron-main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "vite",
+    "dev:server": "npm --prefix server run dev",
+    "desktop:dev": "concurrently \"npm run dev:client\" \"npm run dev:server\" \"wait-on tcp:5173 tcp:4000 && electron .\"",
+    "build": "vite build",
+    "build:client": "vite build",
+    "desktop:build": "npm run build && electron-builder --win nsis portable",
+    "desktop:build:portable": "npm run build && electron-builder --win portable",
+    "desktop:build:installer": "npm run build && electron-builder --win nsis",
+    "start:server": "npm --prefix server run start",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.13.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "concurrently": "^9.2.1",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "vite": "^7.3.1",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.esmenails.desktop",
+    "productName": "EsmeNails",
+    "asar": false,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "desktop/**",
+      "server/src/**",
+      "server/package.json",
+      "server/node_modules/**",
+      "public/**"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    }
+  }
+}

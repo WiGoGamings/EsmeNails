@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" role="img" aria-label="Encapsulado">
+  <defs>
+    <linearGradient id="bg" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffe9b8"/>
+      <stop offset="100%" stop-color="#ffc977"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="520" fill="url(#bg)"/>
+  <g fill="#fff5dc" opacity="0.7">
+    <polygon points="90,120 180,60 270,120 270,220 180,280 90,220"/>
+    <polygon points="550,270 690,220 760,340 690,460 550,410"/>
+  </g>
+  <g fill="#8a4f13">
+    <ellipse cx="165" cy="380" rx="62" ry="104"/>
+    <ellipse cx="320" cy="338" rx="72" ry="118"/>
+    <ellipse cx="490" cy="318" rx="76" ry="126"/>
+    <ellipse cx="665" cy="372" rx="68" ry="110"/>
+  </g>
+  <text x="50%" y="92%" text-anchor="middle" font-size="52" font-family="Outfit, Arial" fill="#6e3c0d">Encapsulado</text>
+</svg>

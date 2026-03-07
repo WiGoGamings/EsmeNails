@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" role="img" aria-label="Press On">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e9ddff"/>
+      <stop offset="100%" stop-color="#c7aeff"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="520" fill="url(#bg)"/>
+  <g fill="#f2ecff" opacity="0.72">
+    <rect x="60" y="300" width="240" height="150" rx="26"/>
+    <rect x="470" y="80" width="260" height="170" rx="26"/>
+  </g>
+  <g fill="#4b2a8f">
+    <rect x="110" y="250" width="78" height="188" rx="36"/>
+    <rect x="230" y="230" width="78" height="208" rx="36"/>
+    <rect x="350" y="210" width="78" height="228" rx="36"/>
+    <rect x="470" y="238" width="78" height="200" rx="36"/>
+    <rect x="590" y="262" width="78" height="176" rx="36"/>
+  </g>
+  <text x="50%" y="92%" text-anchor="middle" font-size="56" font-family="Outfit, Arial" fill="#30185f">Press On</text>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" role="img" aria-label="Gel X">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d4f0ff"/>
+      <stop offset="100%" stop-color="#98d0ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="520" fill="url(#bg)"/>
+  <g fill="#eff9ff" opacity="0.8">
+    <path d="M0 420c120-90 250-120 420-80s250 30 380-30v130H0z"/>
+  </g>
+  <g fill="#195781">
+    <rect x="120" y="274" width="98" height="170" rx="45"/>
+    <rect x="258" y="236" width="98" height="208" rx="45"/>
+    <rect x="396" y="212" width="98" height="232" rx="45"/>
+    <rect x="534" y="246" width="98" height="198" rx="45"/>
+  </g>
+  <text x="50%" y="92%" text-anchor="middle" font-size="56" font-family="Outfit, Arial" fill="#103c58">Gel X</text>
+</svg>

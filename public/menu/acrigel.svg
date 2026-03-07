@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" role="img" aria-label="Acrigel">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffd4c7"/>
+      <stop offset="100%" stop-color="#ffa58c"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="520" fill="url(#bg)"/>
+  <g fill="#fff1eb" opacity="0.7">
+    <circle cx="130" cy="110" r="72"/>
+    <circle cx="690" cy="450" r="90"/>
+  </g>
+  <g fill="#6d2a22">
+    <path d="M160 370c0-62 38-95 88-95s88 33 88 95v62H160z"/>
+    <path d="M382 330c0-66 42-101 96-101s96 35 96 101v102H382z"/>
+    <path d="M612 382c0-58 34-89 78-89s78 31 78 89v50H612z"/>
+  </g>
+  <text x="50%" y="92%" text-anchor="middle" font-size="56" font-family="Outfit, Arial" fill="#4b1711">Acrigel</text>
+</svg>

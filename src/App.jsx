@@ -221,47 +221,47 @@ const daySlots = ["8:00", "9:00", "10:00", "11:00", "12:00", "13:00", "14:00"];
 const cardPalette = ["pink", "rose", "red", "coral", "orange", "sand", "salmon"];
 
 const hardRiddleContexts = [
-  "En una evaluacion avanzada de salon premium,",
-  "Durante una capacitacion para nail artists senior,",
-  "En un protocolo de bioseguridad y belleza integral,",
-  "En una clienta con historial de sensibilidad cosmetica,",
-  "Dentro de un servicio editorial de alto impacto,",
-  "En una asesoria de imagen femenina profesional,",
-  "Durante una correccion tecnica de una aplicacion previa,",
-  "En una planificacion de mantenimiento de larga duracion,"
+  "En un servicio de uñas,",
+  "Durante una sesion de belleza,",
+  "En una cita de mantenimiento,",
+  "Cuando buscas que dure mas el diseño,",
+  "En una recomendacion para clienta,",
+  "Para un look femenino elegante,",
+  "En una rutina de cuidado personal,",
+  "Cuando quieres un resultado profesional,"
 ];
 
 const hardRiddleConcepts = [
-  { id: "nail-01", question: "que producto mejora la adhesion del color y reduce lifting temprano?", hint: "Es la primera capa tecnica.", correct: "Base coat", wrong: ["Top coat", "Cuticle oil"] },
-  { id: "nail-02", question: "que forma de uña tiende a alargar visualmente dedos cortos en manos pequeñas?", hint: "Silueta afinada en punta suave.", correct: "Almond", wrong: ["Square", "Flat"] },
-  { id: "nail-03", question: "que sistema suele aportar mayor rigidez estructural en extensiones?", hint: "Polvo + monomero.", correct: "Acrilico", wrong: ["Esmalte regular", "Gloss hidratante"] },
-  { id: "nail-04", question: "que paso tecnico no debe omitirse en gel para evitar desprendimiento?", hint: "Lampara entre capas.", correct: "Curar cada capa", wrong: ["Secado al aire", "Aplicar agua termal"] },
-  { id: "nail-05", question: "ante onicolisis, cual decision es profesional y segura?", hint: "Primero salud, luego estetica.", correct: "Suspender servicio y recomendar revision", wrong: ["Cubrir con capas gruesas", "Limar profundamente"] },
-  { id: "nail-06", question: "que tecnica minimiza grosor excesivo al sellar punta libre?", hint: "Control de material en borde.", correct: "Encapsulado fino con limado de precision", wrong: ["Doble capa sin limar", "Pulido sin estructura"] },
-  { id: "nail-07", question: "que indicador suele señalar sobrecurado de gel en cabina?", hint: "Sensacion termica abrupta.", correct: "Pico de calor intenso", wrong: ["Brillo uniforme", "Textura tersa"] },
-  { id: "nail-08", question: "que factor aumenta mas el riesgo de lifting en cuticula?", hint: "Preparacion de placa.", correct: "Dejar humedad o grasa en la placa", wrong: ["Usar primer correcto", "Limado equilibrado"] },
-  { id: "nail-09", question: "que practica mejora retencion en clientas con manos hiperhidroticas?", hint: "Control previo de humedad.", correct: "Deshidratador y primer adecuados", wrong: ["Mas aceite final", "Menos curado"] },
-  { id: "nail-10", question: "en soft gel tips, que variable impacta mas la duracion?", hint: "Compatibilidad de curvatura.", correct: "Ajuste exacto de tip a lateral", wrong: ["Color de la tip", "Longitud del nombre"] },
-  { id: "beauty-11", question: "que activo cosmetico se asocia con regulacion de sebo y poro visible?", hint: "Vitamina B3.", correct: "Niacinamida", wrong: ["Parafina", "Aceite mineral"] },
-  { id: "beauty-12", question: "que proteccion es clave para prevenir fotoenvejecimiento en manos?", hint: "SPF alto y reaplicacion.", correct: "Protector solar", wrong: ["Solo crema humectante", "Solo agua fria"] },
-  { id: "beauty-13", question: "que orden de maquillaje suele mejorar durabilidad en piel mixta?", hint: "Preparar, fijar y sellar.", correct: "Primer, base, sellado", wrong: ["Sellado, base, primer", "Base, aceite, agua"] },
-  { id: "beauty-14", question: "que variable define mejor una higiene correcta de brochas?", hint: "Frecuencia + secado.", correct: "Limpieza regular y secado completo", wrong: ["Solo enjuagar rapido", "Perfumar cerdas"] },
-  { id: "beauty-15", question: "para maquillaje de larga jornada, que decision reduce quiebre de base?", hint: "Capas delgadas.", correct: "Construccion en capas finas", wrong: ["Una capa gruesa", "No hidratar nada"] },
-  { id: "style-16", question: "que paleta suele verse mas sofisticada en entorno corporativo?", hint: "Neutros controlados.", correct: "Nude, mauve y vino suave", wrong: ["Neon saturado", "Multicolor fluo"] },
-  { id: "style-17", question: "que contraste tiende a estilizar manos en fotografia editorial?", hint: "Base limpia + acento puntual.", correct: "Tono limpio con detalle focal", wrong: ["Patron saturado total", "Glitter en cada dedo"] },
-  { id: "style-18", question: "que forma y largo favorecen elegancia diaria sin comprometer funcionalidad?", hint: "Intermedio y balanceado.", correct: "Almond corto-medio", wrong: ["Stiletto extremo", "Square XXL"] },
-  { id: "nail-19", question: "en recubrimiento natural, que error acelera quiebres por tension?", hint: "Arquitectura incorrecta.", correct: "Apex mal ubicado", wrong: ["Sellado correcto", "Retiro de polvo"] },
-  { id: "nail-20", question: "que criterio define una buena nivelacion de gel constructor?", hint: "Reflejo continuo.", correct: "Linea de luz uniforme", wrong: ["Burbuja central", "Borde ondulado"] },
-  { id: "nail-21", question: "que accion reduce riesgo de infeccion cruzada en herramientas metalicas?", hint: "No solo alcohol.", correct: "Esterilizacion y empaque limpio", wrong: ["Limpieza visual rapida", "Compartir entre clientas"] },
-  { id: "nail-22", question: "que decision es correcta ante alergia sospechada a acrilatos?", hint: "Detener exposicion.", correct: "Suspender producto y derivar", wrong: ["Aumentar cantidad", "Cambiar color solamente"] },
-  { id: "nail-23", question: "que aspecto del limado final mejora sellado y retencion?", hint: "Direccion y presion.", correct: "Limado controlado sin sobrecalentar", wrong: ["Presion maxima continua", "Movimiento aleatorio"] },
-  { id: "nail-24", question: "que senal suele anticipar fractura por punto de estres?", hint: "Transicion apex-zona libre.", correct: "Linea fina blanquecina de tension", wrong: ["Brillo alto", "Cuticula hidratada"] },
-  { id: "beauty-25", question: "para piel sensible, que enfoque minimiza irritacion acumulada?", hint: "Menos activos simultaneos.", correct: "Rutina simple con activos graduales", wrong: ["Exfoliar diario fuerte", "Probar todo a la vez"] },
-  { id: "beauty-26", question: "que practica mejora estabilidad de color en labial larga duracion?", hint: "Base labial previa.", correct: "Perfilar y sellar en capas", wrong: ["Aplicar aceite encima", "No preparar labios"] },
-  { id: "style-27", question: "en look bridal elegante, que diseno de uñas suele ser mas atemporal?", hint: "Limpio y luminoso.", correct: "Francesa fina o baby boomer", wrong: ["Neon abstracto", "Animal print full"] },
-  { id: "style-28", question: "que combinacion cromatica genera mayor sensacion de lujo discreto?", hint: "Contraste bajo.", correct: "Nude rosado con acento dorado fino", wrong: ["Verde neon con azul electrico", "Rojo, morado y lima juntos"] },
-  { id: "nail-29", question: "en mantenimiento de extensiones, que intervalo suele mantener estructura saludable?", hint: "No esperar ruptura.", correct: "Retoque cada 2-3 semanas", wrong: ["Cada 8-10 semanas", "Solo cuando se caigan"] },
-  { id: "nail-30", question: "que valida mejor una desinfeccion de superficie de mesa efectiva?", hint: "Tiempo de contacto.", correct: "Respetar dilucion y tiempo indicado", wrong: ["Secar de inmediato", "Aplicar sin limpiar polvo"] }
+  { id: "nail-01", question: "que producto se pone antes del color para que dure mas?", hint: "Es la capa base.", correct: "Base coat", wrong: ["Top coat", "Aceite de cuticula"] },
+  { id: "nail-02", question: "que forma de uña suele alargar visualmente los dedos?", hint: "Termina en punta suave.", correct: "Almond", wrong: ["Square", "Redonda plana"] },
+  { id: "nail-03", question: "que sistema de extension suele ser mas resistente?", hint: "Se usa polvo y liquido.", correct: "Acrilico", wrong: ["Esmalte regular", "Brillo hidratante"] },
+  { id: "nail-04", question: "que paso no debes saltar al aplicar gel color?", hint: "Se usa lampara.", correct: "Curar cada capa", wrong: ["Secar al aire", "Mojar las uñas"] },
+  { id: "nail-05", question: "si la uña se separa del lecho (onicolisis), que es lo correcto?", hint: "Primero seguridad.", correct: "Suspender servicio y recomendar revision", wrong: ["Cubrir con mas producto", "Limar fuerte la zona"] },
+  { id: "nail-06", question: "que ayuda a que la punta no quede muy gruesa?", hint: "Aplicar y limar con control.", correct: "Aplicacion fina con limado de precision", wrong: ["Poner doble capa", "No limar al final"] },
+  { id: "nail-07", question: "que senal indica que el gel calento demasiado en lampara?", hint: "La clienta lo siente enseguida.", correct: "Pico de calor intenso", wrong: ["Brillo bonito", "Color uniforme"] },
+  { id: "nail-08", question: "que causa comun hace que el producto se levante cerca de cuticula?", hint: "La placa debe estar limpia.", correct: "Dejar grasa o humedad en la uña", wrong: ["Usar primer correcto", "Limado suave"] },
+  { id: "nail-09", question: "en manos que sudan mucho, que mejora la duracion?", hint: "Preparacion extra.", correct: "Deshidratador y primer adecuados", wrong: ["Mas aceite final", "Menos curado"] },
+  { id: "nail-10", question: "en soft gel tips, que detalle es clave para que no se despeguen?", hint: "Ajuste lateral.", correct: "Que la tip ajuste bien a la uña", wrong: ["El color de la tip", "Nombre del diseño"] },
+  { id: "beauty-11", question: "que ingrediente ayuda con grasa y poros visibles?", hint: "Tambien se llama vitamina B3.", correct: "Niacinamida", wrong: ["Parafina", "Aceite mineral"] },
+  { id: "beauty-12", question: "que no debe faltar para cuidar manos del sol?", hint: "Tiene SPF.", correct: "Protector solar", wrong: ["Solo crema", "Solo agua fria"] },
+  { id: "beauty-13", question: "que orden suele durar mejor en maquillaje?", hint: "Preparar y sellar.", correct: "Primer, base y sellado", wrong: ["Sellado, base y primer", "Base y aceite"] },
+  { id: "beauty-14", question: "como se cuidan bien las brochas de maquillaje?", hint: "Lavar y secar bien.", correct: "Limpieza regular y secado completo", wrong: ["Solo enjuagar rapido", "Perfumar cerdas"] },
+  { id: "beauty-15", question: "para que la base no se cuartee, que funciona mejor?", hint: "Menos cantidad por capa.", correct: "Aplicar en capas finas", wrong: ["Una capa gruesa", "Sin hidratacion"] },
+  { id: "style-16", question: "que colores se ven elegantes en trabajo u oficina?", hint: "Tonos neutros.", correct: "Nude, rosa viejo y vino suave", wrong: ["Neon fuerte", "Multicolor fluo"] },
+  { id: "style-17", question: "que estilo de uñas se ve limpio y fino en fotos?", hint: "Base sencilla con detalle.", correct: "Tono limpio con detalle puntual", wrong: ["Diseño saturado completo", "Glitter en todas"] },
+  { id: "style-18", question: "que forma/largo es elegante y comodo para diario?", hint: "Ni muy largo ni muy puntiagudo.", correct: "Almond corto-medio", wrong: ["Stiletto extremo", "Square XXL"] },
+  { id: "nail-19", question: "que error hace que una uña se fracture por tension?", hint: "Estructura central.", correct: "Apex mal ubicado", wrong: ["Sellado correcto", "Retiro de polvo"] },
+  { id: "nail-20", question: "como saber si el gel constructor quedo bien nivelado?", hint: "Mira el reflejo.", correct: "Linea de luz uniforme", wrong: ["Burbuja en medio", "Borde irregular"] },
+  { id: "nail-21", question: "que reduce riesgo de contagio entre clientas en herramientas?", hint: "No basta con limpiar por encima.", correct: "Esterilizar y guardar limpio", wrong: ["Limpieza visual rapida", "Compartir sin control"] },
+  { id: "nail-22", question: "si hay sospecha de alergia al producto, que haces?", hint: "Detener es prioridad.", correct: "Suspender y recomendar revision", wrong: ["Poner mas producto", "Solo cambiar color"] },
+  { id: "nail-23", question: "que tipo de limado final ayuda a mejor sellado?", hint: "Con control y sin calentar.", correct: "Limado controlado y uniforme", wrong: ["Presion maxima", "Movimiento aleatorio"] },
+  { id: "nail-24", question: "que senal puede avisar fractura por estres?", hint: "Se ve una linea fina.", correct: "Linea blanquecina de tension", wrong: ["Brillo alto", "Cuticula hidratada"] },
+  { id: "beauty-25", question: "en piel sensible, que rutina suele ser mejor?", hint: "Simple y gradual.", correct: "Pocos activos y avance gradual", wrong: ["Exfoliar fuerte diario", "Mezclar muchos activos"] },
+  { id: "beauty-26", question: "como hacer que el labial dure mas?", hint: "Perfilado y capas.", correct: "Perfilar y sellar en capas", wrong: ["Aceite encima", "No preparar labios"] },
+  { id: "style-27", question: "que diseño de uñas bridal suele verse atemporal?", hint: "Clasico y suave.", correct: "Francesa fina o baby boomer", wrong: ["Neon abstracto", "Animal print completo"] },
+  { id: "style-28", question: "que combinacion se ve fina y discreta?", hint: "Base suave + detalle ligero.", correct: "Nude rosado con acento dorado fino", wrong: ["Verde neon y azul electrico", "Rojo, morado y lima juntos"] },
+  { id: "nail-29", question: "cada cuanto suele recomendarse retoque de extensiones?", hint: "Aproximadamente cada pocas semanas.", correct: "Cada 2-3 semanas", wrong: ["Cada 8-10 semanas", "Solo cuando se caigan"] },
+  { id: "nail-30", question: "que asegura una buena desinfeccion de mesa de trabajo?", hint: "Dilucion y tiempo de contacto.", correct: "Respetar producto y tiempo indicado", wrong: ["Secar al instante", "Aplicar sobre polvo"] }
 ];
 
 const buildRiddleOptions = (correct, wrongOptions, seed) => {
@@ -4458,7 +4458,7 @@ function App() {
                     <div>
                       <small>Mini juego</small>
                       <h3>Adivinanzas para ganar puntos</h3>
-                      <p>Banco experto con mas de 200 preguntas dificiles de uñas, estilo y belleza. Acierto: +0.1 | Error: -0.001.</p>
+                      <p>Banco intermedio con mas de 200 preguntas de uñas, estilo y belleza. Acierto: +0.1 | Error: -0.001.</p>
                     </div>
                     <button
                       type="button"
@@ -4477,7 +4477,7 @@ function App() {
                         {pointsGameHintVisible && (
                           <span>Pista: {pointsRiddles[pointsGameRiddleIndex]?.hint || "-"}</span>
                         )}
-                        <span>Banco dificil disponible: {pointsRiddles.length} preguntas</span>
+                        <span>Banco disponible: {pointsRiddles.length} preguntas</span>
                         <span>Adivinanzas dominadas: {solvedRiddlesCount}/{pointsRiddles.length}</span>
                       </div>
 

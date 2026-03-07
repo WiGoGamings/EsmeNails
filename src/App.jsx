@@ -2251,11 +2251,15 @@ function App() {
       return {
         ...prev,
         ownerContact: {
-          ...(prev.ownerContact || defaultOwnerContact),
-          [field]: value
+          ...(prev.ownerContact || {}),
+          [field]: typeof value === "string" ? value : ""
         }
       };
     });
+  };
+
+  const clearOwnerContactField = (field) => {
+    updateOwnerContactField(field, "");
   };
 
   const applySuggestedServiceImage = (service) => {
@@ -4448,38 +4452,45 @@ function App() {
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen principal</strong>
                                     <input
-                                      value={adminSettings.ownerContact?.homeImageMain || ""}
+                                      type="text"
+                                      autoComplete="off"
+                                      value={adminSettings.ownerContact?.homeImageMain ?? ""}
                                       onChange={(event) => updateOwnerContactField("homeImageMain", event.target.value)}
                                       placeholder="URL imagen principal"
                                     />
+                                    <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageMain")}>Limpiar</button>
                                   </div>
                                 </div>
                                 <div className="admin-image-editor-item">
                                   <SmartImage src={adminSettings.ownerContact?.homeImageOne} alt="Carrusel 1" className="admin-thumb" fallbackSrc={localMenuImages.gelx} />
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen 1</strong>
-                                    <input value={adminSettings.ownerContact?.homeImageOne || ""} onChange={(event) => updateOwnerContactField("homeImageOne", event.target.value)} placeholder="URL imagen 1" />
+                                    <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageOne ?? ""} onChange={(event) => updateOwnerContactField("homeImageOne", event.target.value)} placeholder="URL imagen 1" />
+                                    <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageOne")}>Limpiar</button>
                                   </div>
                                 </div>
                                 <div className="admin-image-editor-item">
                                   <SmartImage src={adminSettings.ownerContact?.homeImageTwo} alt="Carrusel 2" className="admin-thumb" fallbackSrc={localMenuImages.acrigel} />
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen 2</strong>
-                                    <input value={adminSettings.ownerContact?.homeImageTwo || ""} onChange={(event) => updateOwnerContactField("homeImageTwo", event.target.value)} placeholder="URL imagen 2" />
+                                    <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageTwo ?? ""} onChange={(event) => updateOwnerContactField("homeImageTwo", event.target.value)} placeholder="URL imagen 2" />
+                                    <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageTwo")}>Limpiar</button>
                                   </div>
                                 </div>
                                 <div className="admin-image-editor-item">
                                   <SmartImage src={adminSettings.ownerContact?.homeImageThree} alt="Carrusel 3" className="admin-thumb" fallbackSrc={localMenuImages.polygel} />
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen 3</strong>
-                                    <input value={adminSettings.ownerContact?.homeImageThree || ""} onChange={(event) => updateOwnerContactField("homeImageThree", event.target.value)} placeholder="URL imagen 3" />
+                                    <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageThree ?? ""} onChange={(event) => updateOwnerContactField("homeImageThree", event.target.value)} placeholder="URL imagen 3" />
+                                    <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageThree")}>Limpiar</button>
                                   </div>
                                 </div>
                                 <div className="admin-image-editor-item">
                                   <SmartImage src={adminSettings.ownerContact?.homeImageFour} alt="Carrusel 4" className="admin-thumb" fallbackSrc={localMenuImages.manicure} />
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen 4</strong>
-                                    <input value={adminSettings.ownerContact?.homeImageFour || ""} onChange={(event) => updateOwnerContactField("homeImageFour", event.target.value)} placeholder="URL imagen 4" />
+                                    <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageFour ?? ""} onChange={(event) => updateOwnerContactField("homeImageFour", event.target.value)} placeholder="URL imagen 4" />
+                                    <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageFour")}>Limpiar</button>
                                   </div>
                                 </div>
                               </div>

@@ -1850,6 +1850,8 @@ function App() {
         setAdminPromotionForm((prev) => ({ ...prev, imageUrl: reader.result }));
       } else if (target.form === "employee") {
         setAdminEmployeeForm((prev) => ({ ...prev, imageUrl: reader.result }));
+      } else if (target.ownerField) {
+        updateOwnerContactField(target.ownerField, reader.result);
       } else if (target.collection && target.id) {
         updateAdminSettingField(target.collection, target.id, "imageUrl", reader.result);
       }
@@ -2260,6 +2262,27 @@ function App() {
 
   const clearOwnerContactField = (field) => {
     updateOwnerContactField(field, "");
+  };
+
+  const hasOwnerCarouselImage = (value) => typeof value === "string" && value.trim().length > 0;
+
+  const renderOwnerCarouselThumb = (value, fallbackSrc, alt) => {
+    if (hasOwnerCarouselImage(value)) {
+      return (
+        <SmartImage
+          src={value}
+          alt={alt}
+          className="admin-thumb"
+          fallbackSrc={fallbackSrc}
+        />
+      );
+    }
+
+    return (
+      <div className="admin-thumb admin-thumb-empty" role="img" aria-label={`${alt} sin imagen`}>
+        Sin imagen
+      </div>
+    );
   };
 
   const pasteOwnerContactField = async (field) => {
@@ -4465,12 +4488,7 @@ function App() {
                               <h5 className="admin-subtitle">Carrusel Home</h5>
                               <div className="admin-image-editor-list">
                                 <div className="admin-image-editor-item">
-                                  <SmartImage
-                                    src={adminSettings.ownerContact?.homeImageMain}
-                                    alt="Carrusel principal"
-                                    className="admin-thumb"
-                                    fallbackSrc={localMenuImages.encapsulado}
-                                  />
+                                  {renderOwnerCarouselThumb(adminSettings.ownerContact?.homeImageMain, localMenuImages.encapsulado, "Carrusel principal")}
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen principal</strong>
                                     <input
@@ -4481,50 +4499,95 @@ function App() {
                                       placeholder="URL imagen principal"
                                     />
                                     <div className="admin-actions-row">
+                                      <label className="secondary admin-upload-label">
+                                        Subir desde dispositivo
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          hidden
+                                          onChange={(event) => handleAdminImageFileSelected(event, { ownerField: "homeImageMain" })}
+                                        />
+                                      </label>
                                       <button type="button" className="secondary" onClick={() => pasteOwnerContactField("homeImageMain")}>Pegar y reemplazar</button>
                                       <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageMain")}>Limpiar</button>
                                     </div>
                                   </div>
                                 </div>
                                 <div className="admin-image-editor-item">
-                                  <SmartImage src={adminSettings.ownerContact?.homeImageOne} alt="Carrusel 1" className="admin-thumb" fallbackSrc={localMenuImages.gelx} />
+                                  {renderOwnerCarouselThumb(adminSettings.ownerContact?.homeImageOne, localMenuImages.gelx, "Carrusel 1")}
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen 1</strong>
                                     <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageOne ?? ""} onChange={(event) => updateOwnerContactField("homeImageOne", event.target.value)} placeholder="URL imagen 1" />
                                     <div className="admin-actions-row">
+                                      <label className="secondary admin-upload-label">
+                                        Subir desde dispositivo
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          hidden
+                                          onChange={(event) => handleAdminImageFileSelected(event, { ownerField: "homeImageOne" })}
+                                        />
+                                      </label>
                                       <button type="button" className="secondary" onClick={() => pasteOwnerContactField("homeImageOne")}>Pegar y reemplazar</button>
                                       <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageOne")}>Limpiar</button>
                                     </div>
                                   </div>
                                 </div>
                                 <div className="admin-image-editor-item">
-                                  <SmartImage src={adminSettings.ownerContact?.homeImageTwo} alt="Carrusel 2" className="admin-thumb" fallbackSrc={localMenuImages.acrigel} />
+                                  {renderOwnerCarouselThumb(adminSettings.ownerContact?.homeImageTwo, localMenuImages.acrigel, "Carrusel 2")}
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen 2</strong>
                                     <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageTwo ?? ""} onChange={(event) => updateOwnerContactField("homeImageTwo", event.target.value)} placeholder="URL imagen 2" />
                                     <div className="admin-actions-row">
+                                      <label className="secondary admin-upload-label">
+                                        Subir desde dispositivo
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          hidden
+                                          onChange={(event) => handleAdminImageFileSelected(event, { ownerField: "homeImageTwo" })}
+                                        />
+                                      </label>
                                       <button type="button" className="secondary" onClick={() => pasteOwnerContactField("homeImageTwo")}>Pegar y reemplazar</button>
                                       <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageTwo")}>Limpiar</button>
                                     </div>
                                   </div>
                                 </div>
                                 <div className="admin-image-editor-item">
-                                  <SmartImage src={adminSettings.ownerContact?.homeImageThree} alt="Carrusel 3" className="admin-thumb" fallbackSrc={localMenuImages.polygel} />
+                                  {renderOwnerCarouselThumb(adminSettings.ownerContact?.homeImageThree, localMenuImages.polygel, "Carrusel 3")}
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen 3</strong>
                                     <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageThree ?? ""} onChange={(event) => updateOwnerContactField("homeImageThree", event.target.value)} placeholder="URL imagen 3" />
                                     <div className="admin-actions-row">
+                                      <label className="secondary admin-upload-label">
+                                        Subir desde dispositivo
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          hidden
+                                          onChange={(event) => handleAdminImageFileSelected(event, { ownerField: "homeImageThree" })}
+                                        />
+                                      </label>
                                       <button type="button" className="secondary" onClick={() => pasteOwnerContactField("homeImageThree")}>Pegar y reemplazar</button>
                                       <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageThree")}>Limpiar</button>
                                     </div>
                                   </div>
                                 </div>
                                 <div className="admin-image-editor-item">
-                                  <SmartImage src={adminSettings.ownerContact?.homeImageFour} alt="Carrusel 4" className="admin-thumb" fallbackSrc={localMenuImages.manicure} />
+                                  {renderOwnerCarouselThumb(adminSettings.ownerContact?.homeImageFour, localMenuImages.manicure, "Carrusel 4")}
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen 4</strong>
                                     <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageFour ?? ""} onChange={(event) => updateOwnerContactField("homeImageFour", event.target.value)} placeholder="URL imagen 4" />
                                     <div className="admin-actions-row">
+                                      <label className="secondary admin-upload-label">
+                                        Subir desde dispositivo
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          hidden
+                                          onChange={(event) => handleAdminImageFileSelected(event, { ownerField: "homeImageFour" })}
+                                        />
+                                      </label>
                                       <button type="button" className="secondary" onClick={() => pasteOwnerContactField("homeImageFour")}>Pegar y reemplazar</button>
                                       <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageFour")}>Limpiar</button>
                                     </div>

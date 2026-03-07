@@ -2574,6 +2574,25 @@ select {
 	margin-top: 0.2rem;
 }
 
+.admin-thumb-empty {
+	display: grid;
+	place-items: center;
+	font-size: 0.68rem;
+	font-weight: 700;
+	color: #8a4a32;
+	background: #fff3ed;
+	text-align: center;
+	padding: 0.25rem;
+}
+
+.admin-upload-label {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	padding: 0 0.75rem;
+}
+
 .history-card header {
 	display: grid;
 	gap: 0.08rem;

@@ -5799,6 +5799,60 @@ function App() {
 
         <p className={`feedback ${feedback.type}`}>{feedback.text}</p>
       </section>
+
+      <button
+        type="button"
+        className={`assistant-cloud-btn ${assistantFloatingOpen ? "open" : ""}`}
+        onClick={() => setAssistantFloatingOpen((prev) => !prev)}
+        aria-label="Abrir asistente personal"
+        title="Asistente personal"
+      >
+        <span className="assistant-cloud-icon" aria-hidden="true">Nube IA</span>
+        <span className="assistant-cloud-label">Asistente</span>
+      </button>
+
+      {assistantFloatingOpen && (
+        <aside className="assistant-floating-panel" aria-live="polite">
+          <header>
+            <strong>Asistente personal</strong>
+            <button type="button" className="secondary" onClick={() => setAssistantFloatingOpen(false)}>Cerrar</button>
+          </header>
+
+          <div className="assistant-quick-actions">
+            <button type="button" className="secondary" onClick={() => openAssistantWithPrompt("Que promociones tienen hoy?")}>Promociones</button>
+            <button type="button" className="secondary" onClick={() => openAssistantWithPrompt("Recomiendame un servicio")}>Recomendar</button>
+            <button type="button" className="secondary" onClick={() => openAssistantWithPrompt("Como agendo mi cita?")}>Agendar</button>
+          </div>
+
+          <div className="assistant-messages floating">
+            {assistantMessages.map((entry) => (
+              <div key={`floating-auth-${entry.id}`} className={`assistant-msg ${entry.role === "user" ? "user" : "bot"}`}>
+                <strong>{entry.role === "user" ? "Tu" : "Asistente"}</strong>
+                <p>{entry.text}</p>
+              </div>
+            ))}
+            {assistantBusy && (
+              <div className="assistant-msg bot pending">
+                <strong>Asistente</strong>
+                <p>Escribiendo respuesta...</p>
+              </div>
+            )}
+            <div ref={assistantMessagesEndRef} />
+          </div>
+
+          <form className="assistant-form" onSubmit={submitAssistantMessage}>
+            <input
+              value={assistantInput}
+              onChange={(event) => setAssistantInput(event.target.value)}
+              placeholder="Escribe tu pregunta..."
+              maxLength={1200}
+            />
+            <button type="submit" className="primary" disabled={assistantBusy || !assistantInput.trim()}>
+              {assistantBusy ? "Consultando..." : "Enviar"}
+            </button>
+          </form>
+        </aside>
+      )}
     </main>
     )
   );

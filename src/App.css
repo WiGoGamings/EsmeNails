@@ -1123,6 +1123,51 @@ select {
 	gap: 0.55rem;
 }
 
+.points-game-card {
+	border: 1px solid var(--border-main);
+	background: var(--surface-1);
+	border-radius: 12px;
+	padding: 0.65rem;
+	display: grid;
+	gap: 0.55rem;
+}
+
+.points-game-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.points-game-head h3,
+.points-game-head p,
+.points-game-head small {
+	margin: 0;
+}
+
+.points-game-head small,
+.points-game-status small {
+	color: var(--text-soft);
+	font-weight: 700;
+}
+
+.points-game-options {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.45rem;
+}
+
+.points-game-status {
+	display: grid;
+	gap: 0.2rem;
+}
+
+.points-game-status p {
+	margin: 0;
+	font-size: 0.87rem;
+}
+
 .points-kpi-grid article {
 	border: 1px solid var(--border-main);
 	background: var(--surface-1);
@@ -2681,6 +2726,24 @@ body.theme-dark .dashboard-kicker {
 	color: var(--text-main);
 }
 
+body.theme-dark .price-card strong,
+body.theme-dark .menu-card-price,
+body.theme-dark .menu-detail-price {
+	background: #ffffff;
+	border: 1px solid #efdae8;
+	color: #251227;
+	border-radius: 999px;
+	display: inline-flex;
+	align-items: center;
+	padding: 0.14rem 0.52rem;
+}
+
+body.theme-dark .contact-owner-icon-link {
+	background: #ffffff;
+	border-color: #efdae8;
+	color: #1b1b1b;
+}
+
 body.theme-dark .admin-table th {
 	background: var(--surface-3);
 	border-bottom-color: var(--border-main);
@@ -2756,7 +2819,7 @@ body.theme-dark .pos-content .menu-card-description,
 body.theme-dark .pos-content .profile-code-hint,
 body.theme-dark .pos-content .dashboard-kicker,
 body.theme-dark .pos-content .menu-detail-kicker {
-	color: #ff0389 !important;
+	color: var(--text-soft) !important;
 }
 
 body.theme-dark input,
@@ -2878,8 +2941,49 @@ body.theme-dark .slot-chip:disabled {
 }
 
 body.theme-dark .contact-owner-icon-link:hover {
-	background: #5f346d;
+	background: #ffe9f4;
+	border-color: #ffc7de;
+	color: #1b1b1b;
 	box-shadow: 0 6px 14px rgba(25, 9, 31, 0.36);
+}
+
+body.theme-dark .quick-rail {
+	background: linear-gradient(180deg, #5e2f69 0%, #3f2148 100%);
+	border-color: rgba(206, 149, 226, 0.36);
+	box-shadow: 0 12px 28px rgba(13, 6, 16, 0.44);
+}
+
+body.theme-dark .quick-rail button {
+	background: rgba(255, 232, 246, 0.18);
+	border: 1px solid rgba(255, 216, 238, 0.36);
+	color: #fff3fb;
+}
+
+body.theme-dark .quick-rail button.active,
+body.theme-dark .quick-rail button:hover {
+	background: #ffeaf7;
+	border-color: #ffd2eb;
+	color: #5f2047;
+}
+
+body.theme-dark .mobile-quick-nav button {
+	background: #3b2144;
+	border-color: #7a4a8a;
+	color: #ffe8f6;
+}
+
+body.theme-dark .mobile-quick-nav button.active {
+	background: #ff7dc1;
+	border-color: #ff9ace;
+	color: #3a1028;
+	box-shadow: 0 6px 14px rgba(18, 8, 21, 0.4);
+}
+
+body.theme-dark .quick-rail .nav-icon svg,
+body.theme-dark .mobile-quick-nav .nav-icon svg,
+body.theme-dark .profile-dropdown .nav-icon svg {
+	stroke-width: 1.85 !important;
+	filter: drop-shadow(0 0 0.45px rgba(13, 5, 15, 0.8));
 }
 
 @media (max-width: 760px) {
@@ -3018,6 +3122,7 @@ body.theme-dark .contact-owner-icon-link:hover {
 	.home-kpi-grid,
 	.home-panels,
 	.prices-grid,
+	.points-game-options,
 	.points-kpi-grid,
 	.points-rewards-grid,
 	.history-kpi-grid-client,
@@ -3034,6 +3139,11 @@ body.theme-dark .contact-owner-icon-link:hover {
 
 	.points-balance {
 		min-width: 0;
+	}
+
+	.points-game-head .primary,
+	.points-game-head .secondary {
+		width: 100%;
 	}
 
 	.home-cinema-card {

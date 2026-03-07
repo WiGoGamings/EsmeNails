@@ -218,6 +218,24 @@ const daySlots = ["8:00", "9:00", "10:00", "11:00", "12:00", "13:00", "14:00"];
 
 const cardPalette = ["pink", "rose", "red", "coral", "orange", "sand", "salmon"];
 
+const pointsGameOptions = [
+  { id: "piedra", label: "Piedra" },
+  { id: "papel", label: "Papel" },
+  { id: "tijera", label: "Tijera" }
+];
+const POINTS_GAME_COOLDOWN_MS = 10000;
+
+const normalizePointsValue = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.round((parsed + Number.EPSILON) * 10) / 10;
+};
+
+const formatPointsValue = (value) => {
+  const normalized = normalizePointsValue(value);
+  return Number.isInteger(normalized) ? String(normalized) : normalized.toFixed(1);
+};
+
 const startHour = 8;
 const visibleHours = daySlots.length;
 const appointmentSlotStartHour = 8;
@@ -769,6 +787,11 @@ function App() {
   });
   const [profileForm, setProfileForm] = useState(defaultProfileForm);
   const [profileBusy, setProfileBusy] = useState(false);
+  const [pointsGameOpen, setPointsGameOpen] = useState(false);
+  const [pointsGameRound, setPointsGameRound] = useState({ playerChoice: "", cpuChoice: "", result: "" });
+  const [pointsGameWins, setPointsGameWins] = useState(0);
+  const [pointsGameCooldownUntil, setPointsGameCooldownUntil] = useState(0);
+  const [pointsGameNow, setPointsGameNow] = useState(() => Date.now());
   const [contactForm, setContactForm] = useState({
     subject: "",
     message: "",
@@ -2975,6 +2998,102 @@ function App() {
     [appointments]
   );
 
+  const pointsGameCooldownLeftMs = useMemo(
+    () => Math.max(0, pointsGameCooldownUntil - pointsGameNow),
+    [pointsGameCooldownUntil, pointsGameNow]
+  );
+
+  const pointsGameCooldownSeconds = useMemo(
+    () => Math.ceil(pointsGameCooldownLeftMs / 1000),
+    [pointsGameCooldownLeftMs]
+  );
+
+  useEffect(() => {
+    if (pointsGameCooldownLeftMs <= 0) return undefined;
+    const intervalId = window.setInterval(() => {
+      setPointsGameNow(Date.now());
+    }, 250);
+    return () => window.clearInterval(intervalId);
+  }, [pointsGameCooldownLeftMs]);
+
+  const creditPointsFromGame = useCallback((deltaPoints) => {
+    const increment = normalizePointsValue(deltaPoints);
+    if (increment <= 0) return;
+
+    setProfileForm((prev) => ({
+      ...prev,
+      points: normalizePointsValue((Number(prev.points) || 0) + increment)
+    }));
+
+    setSessionUser((prev) => {
+      if (!prev) return prev;
+
+      const nextPoints = normalizePointsValue((Number(prev.points) || 0) + increment);
+      const nextUser = {
+        ...prev,
+        points: nextPoints
+      };
+
+      localStorage.setItem("esme_user", JSON.stringify(nextUser));
+
+      if (!API_BASE) {
+        const normalizedEmail = normalizeAuthEmail(nextUser.email);
+        const users = getLocalAuthUsers();
+        const nextUsers = users.map((entry) => {
+          const byEmail = normalizeAuthEmail(entry?.email) === normalizedEmail;
+          const byId = String(entry?.id || "") === String(nextUser.id || "");
+          if (!byEmail && !byId) return entry;
+          return {
+            ...entry,
+            points: nextPoints
+          };
+        });
+        setLocalAuthUsers(nextUsers);
+      }
+
+      return nextUser;
+    });
+  }, []);
+
+  const playPointsGameRound = useCallback((playerChoice) => {
+    if (!playerChoice) return;
+
+    if (pointsGameCooldownLeftMs > 0) {
+      setFeedback({ type: "info", text: `Espera ${pointsGameCooldownSeconds}s para jugar otra ronda.` });
+      return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * pointsGameOptions.length);
+    const cpuChoice = pointsGameOptions[randomIndex]?.id || "piedra";
+
+    let result = "draw";
+    if (playerChoice !== cpuChoice) {
+      const playerWins =
+        (playerChoice === "piedra" && cpuChoice === "tijera")
+        || (playerChoice === "papel" && cpuChoice === "piedra")
+        || (playerChoice === "tijera" && cpuChoice === "papel");
+      result = playerWins ? "win" : "lose";
+    }
+
+    setPointsGameRound({ playerChoice, cpuChoice, result });
+  setPointsGameNow(Date.now());
+  setPointsGameCooldownUntil(Date.now() + POINTS_GAME_COOLDOWN_MS);
+
+    if (result === "win") {
+      setPointsGameWins((prev) => prev + 1);
+      creditPointsFromGame(0.1);
+      setFeedback({ type: "success", text: "Ganaste la ronda. +0.1 puntos agregados." });
+      return;
+    }
+
+    if (result === "draw") {
+      setFeedback({ type: "info", text: "Empate. Intenta otra ronda para sumar puntos." });
+      return;
+    }
+
+    setFeedback({ type: "info", text: "Esta ronda se perdio. Vuelve a jugar para ganar puntos." });
+  }, [creditPointsFromGame, pointsGameCooldownLeftMs, pointsGameCooldownSeconds]);
+
   const historyAppointments = historyData?.appointments || [];
   const historyOrders = historyData?.orders || [];
   const historySummary = historyData?.summary || {
@@ -3890,7 +4009,7 @@ function App() {
                   </div>
                   <div className="points-balance">
                     <small>Saldo actual</small>
-                    <strong>{pointsBalance} pts</strong>
+                    <strong>{formatPointsValue(pointsBalance)} pts</strong>
                     <span>Nivel: {pointsTier}</span>
                   </div>
                 </article>
@@ -3899,14 +4018,71 @@ function App() {
                   <div className="points-progress-head">
                     <strong>
                       {nextReward
-                        ? `Te faltan ${Math.max(0, nextReward.points - pointsBalance)} pts para: ${nextReward.title}`
+                        ? `Te faltan ${formatPointsValue(Math.max(0, nextReward.points - pointsBalance))} pts para: ${nextReward.title}`
                         : "Ya desbloqueaste todas las recompensas actuales"}
                     </strong>
-                    <small>{nextReward ? `${pointsBalance}/${nextReward.points}` : "Nivel maximo"}</small>
+                    <small>{nextReward ? `${formatPointsValue(pointsBalance)}/${formatPointsValue(nextReward.points)}` : "Nivel maximo"}</small>
                   </div>
                   <div className="points-progress-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pointsProgressPercent)}>
                     <span style={{ width: `${pointsProgressPercent}%` }} />
                   </div>
+                </article>
+
+                <article className="points-game-card">
+                  <div className="points-game-head">
+                    <div>
+                      <small>Mini juego</small>
+                      <h3>Jugar para ganar puntos</h3>
+                      <p>Cada victoria suma +0.1 puntos. Juega Piedra, Papel o Tijera.</p>
+                    </div>
+                    <button
+                      type="button"
+                      className={pointsGameOpen ? "secondary" : "primary"}
+                      onClick={() => setPointsGameOpen((prev) => !prev)}
+                    >
+                      {pointsGameOpen ? "Cerrar juego" : "Jugar para ganar puntos"}
+                    </button>
+                  </div>
+
+                  {pointsGameOpen && (
+                    <>
+                      <div className="points-game-options">
+                        {pointsGameOptions.map((option) => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            className="secondary"
+                            disabled={pointsGameCooldownLeftMs > 0}
+                            onClick={() => playPointsGameRound(option.id)}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="points-game-status">
+                        <small>
+                          Victorias acumuladas: <strong>{pointsGameWins}</strong>
+                        </small>
+                        <small>
+                          {pointsGameCooldownLeftMs > 0
+                            ? `Siguiente ronda disponible en ${pointsGameCooldownSeconds}s`
+                            : "Ronda disponible ahora"}
+                        </small>
+                        {pointsGameRound.result && (
+                          <p>
+                            Tu jugada: <strong>{pointsGameOptions.find((item) => item.id === pointsGameRound.playerChoice)?.label || "-"}</strong>
+                            {" | "}
+                            Sistema: <strong>{pointsGameOptions.find((item) => item.id === pointsGameRound.cpuChoice)?.label || "-"}</strong>
+                            {" | "}
+                            Resultado: <strong>
+                              {pointsGameRound.result === "win" ? "Ganaste" : pointsGameRound.result === "lose" ? "Perdiste" : "Empate"}
+                            </strong>
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </article>
 
                 <div className="points-kpi-grid">
@@ -3924,7 +4100,7 @@ function App() {
                   </article>
                   <article>
                     <small>Siguiente meta</small>
-                    <strong>{nextReward ? `${nextReward.points} pts` : "Completada"}</strong>
+                    <strong>{nextReward ? `${formatPointsValue(nextReward.points)} pts` : "Completada"}</strong>
                   </article>
                 </div>
 
@@ -3935,7 +4111,7 @@ function App() {
                       <article key={reward.id} className={`points-reward-card ${unlocked ? "unlocked" : "locked"}`}>
                         <header>
                           <strong>{reward.title}</strong>
-                          <span>{reward.points} pts</span>
+                          <span>{formatPointsValue(reward.points)} pts</span>
                         </header>
                         <p>{reward.description}</p>
                         <button

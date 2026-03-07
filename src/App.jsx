@@ -228,12 +228,12 @@ const POINTS_GAME_COOLDOWN_MS = 10000;
 const normalizePointsValue = (value) => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return 0;
-  return Math.round((parsed + Number.EPSILON) * 10) / 10;
+  return Math.round((parsed + Number.EPSILON) * 1000) / 1000;
 };
 
 const formatPointsValue = (value) => {
   const normalized = normalizePointsValue(value);
-  return Number.isInteger(normalized) ? String(normalized) : normalized.toFixed(1);
+  return normalized.toFixed(3).replace(/\.?(0+)$/, "");
 };
 
 const startHour = 8;
@@ -3026,17 +3026,17 @@ function App() {
 
   const creditPointsFromGame = useCallback((deltaPoints) => {
     const increment = normalizePointsValue(deltaPoints);
-    if (increment <= 0) return;
+    if (increment === 0) return;
 
     setProfileForm((prev) => ({
       ...prev,
-      points: normalizePointsValue((Number(prev.points) || 0) + increment)
+      points: normalizePointsValue(Math.max(0, (Number(prev.points) || 0) + increment))
     }));
 
     setSessionUser((prev) => {
       if (!prev) return prev;
 
-      const nextPoints = normalizePointsValue((Number(prev.points) || 0) + increment);
+      const nextPoints = normalizePointsValue(Math.max(0, (Number(prev.points) || 0) + increment));
       const nextUser = {
         ...prev,
         points: nextPoints
@@ -3113,7 +3113,8 @@ function App() {
         return;
       }
 
-      setFeedback({ type: "info", text: "Esta ronda se perdio. Vuelve a jugar para ganar puntos." });
+      creditPointsFromGame(-0.001);
+      setFeedback({ type: "info", text: "Esta ronda se perdio. -0.001 puntos aplicados." });
     }, 900);
   }, [creditPointsFromGame, pointsGameAnimating, pointsGameCooldownLeftMs, pointsGameCooldownSeconds]);
 
@@ -4126,7 +4127,7 @@ function App() {
                             {pointsGameRound.result === "win"
                               ? "Victoria: +0.1 pts"
                               : pointsGameRound.result === "lose"
-                                ? "Derrota: sin puntos"
+                                ? "Derrota: -0.001 pts"
                                 : "Empate: vuelve a intentar"}
                           </span>
                         )}

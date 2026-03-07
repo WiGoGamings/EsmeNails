@@ -3130,6 +3130,18 @@ function App() {
           return;
         }
 
+        try {
+          await loginAsAdminWithCredentials({
+            email: authForm.email,
+            password: authForm.password,
+            fromMainLogin: true
+          });
+          setAuthForm(defaultAuth);
+          return;
+        } catch {
+          // If credentials are not local admin, continue with local client login.
+        }
+
         const users = getLocalAuthUsers();
         const localUser = users.find((entry) =>
           normalizeAuthEmail(entry?.email) === normalizedEmail

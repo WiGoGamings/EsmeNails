@@ -2262,6 +2262,28 @@ function App() {
     updateOwnerContactField(field, "");
   };
 
+  const pasteOwnerContactField = async (field) => {
+    try {
+      const canReadClipboard = typeof navigator !== "undefined"
+        && navigator.clipboard
+        && typeof navigator.clipboard.readText === "function";
+
+      if (!canReadClipboard) {
+        throw new Error("Tu navegador no permite leer portapapeles en esta pagina.");
+      }
+
+      const pasted = await navigator.clipboard.readText();
+      const value = String(pasted || "").trim();
+      updateOwnerContactField(field, value);
+      setFeedback({ type: "success", text: "URL pegada en el carrusel." });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        text: error?.message || "No se pudo leer el portapapeles. Pega manualmente con Ctrl + V."
+      });
+    }
+  };
+
   const applySuggestedServiceImage = (service) => {
     updateAdminSettingField("services", service.id, "imageUrl", inferServiceImageUrl(service));
   };
@@ -4458,7 +4480,10 @@ function App() {
                                       onChange={(event) => updateOwnerContactField("homeImageMain", event.target.value)}
                                       placeholder="URL imagen principal"
                                     />
-                                    <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageMain")}>Limpiar</button>
+                                    <div className="admin-actions-row">
+                                      <button type="button" className="secondary" onClick={() => pasteOwnerContactField("homeImageMain")}>Pegar y reemplazar</button>
+                                      <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageMain")}>Limpiar</button>
+                                    </div>
                                   </div>
                                 </div>
                                 <div className="admin-image-editor-item">
@@ -4466,7 +4491,10 @@ function App() {
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen 1</strong>
                                     <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageOne ?? ""} onChange={(event) => updateOwnerContactField("homeImageOne", event.target.value)} placeholder="URL imagen 1" />
-                                    <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageOne")}>Limpiar</button>
+                                    <div className="admin-actions-row">
+                                      <button type="button" className="secondary" onClick={() => pasteOwnerContactField("homeImageOne")}>Pegar y reemplazar</button>
+                                      <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageOne")}>Limpiar</button>
+                                    </div>
                                   </div>
                                 </div>
                                 <div className="admin-image-editor-item">
@@ -4474,7 +4502,10 @@ function App() {
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen 2</strong>
                                     <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageTwo ?? ""} onChange={(event) => updateOwnerContactField("homeImageTwo", event.target.value)} placeholder="URL imagen 2" />
-                                    <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageTwo")}>Limpiar</button>
+                                    <div className="admin-actions-row">
+                                      <button type="button" className="secondary" onClick={() => pasteOwnerContactField("homeImageTwo")}>Pegar y reemplazar</button>
+                                      <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageTwo")}>Limpiar</button>
+                                    </div>
                                   </div>
                                 </div>
                                 <div className="admin-image-editor-item">
@@ -4482,7 +4513,10 @@ function App() {
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen 3</strong>
                                     <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageThree ?? ""} onChange={(event) => updateOwnerContactField("homeImageThree", event.target.value)} placeholder="URL imagen 3" />
-                                    <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageThree")}>Limpiar</button>
+                                    <div className="admin-actions-row">
+                                      <button type="button" className="secondary" onClick={() => pasteOwnerContactField("homeImageThree")}>Pegar y reemplazar</button>
+                                      <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageThree")}>Limpiar</button>
+                                    </div>
                                   </div>
                                 </div>
                                 <div className="admin-image-editor-item">
@@ -4490,7 +4524,10 @@ function App() {
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen 4</strong>
                                     <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageFour ?? ""} onChange={(event) => updateOwnerContactField("homeImageFour", event.target.value)} placeholder="URL imagen 4" />
-                                    <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageFour")}>Limpiar</button>
+                                    <div className="admin-actions-row">
+                                      <button type="button" className="secondary" onClick={() => pasteOwnerContactField("homeImageFour")}>Pegar y reemplazar</button>
+                                      <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageFour")}>Limpiar</button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>

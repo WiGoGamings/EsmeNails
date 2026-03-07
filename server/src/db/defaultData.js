@@ -9,7 +9,7 @@
       model: "Liso",
       timeMinutes: 45,
       price: 18,
-      imageUrl: "/menu/manicure.svg"
+      imageUrl: "https://source.unsplash.com/1600x1200/?manicure,hand,nails&sig=14"
     },
     {
       id: "srv-gel-x",
@@ -19,7 +19,7 @@
       model: "French",
       timeMinutes: 90,
       price: 45,
-      imageUrl: "/menu/gelx.svg"
+      imageUrl: "https://source.unsplash.com/1600x1200/?gel,nails,manicure&sig=13"
     },
     {
       id: "srv-acrylic-art",
@@ -29,7 +29,7 @@
       model: "3D",
       timeMinutes: 120,
       price: 62,
-      imageUrl: "/menu/acrigel.svg"
+      imageUrl: "https://source.unsplash.com/1600x1200/?acrylic,nails,salon&sig=11"
     },
     {
       id: "srv-lash-lifting",
@@ -39,7 +39,7 @@
       model: "Natural",
       timeMinutes: 70,
       price: 38,
-      imageUrl: "/menu/lashes.svg"
+      imageUrl: "https://source.unsplash.com/1600x1200/?eyelash,beauty,salon&sig=17"
     }
   ],
   products: [
@@ -86,7 +86,7 @@
       discountType: "percentage",
       value: 12,
       active: true,
-      imageUrl: "/menu/lashes.svg"
+      imageUrl: "https://source.unsplash.com/1600x1200/?eyelash,beauty,salon&sig=17"
     }
   ],
   employees: [
@@ -108,11 +108,11 @@
     facebook: "https://facebook.com/esmenails.oficial",
     tiktok: "https://tiktok.com/@esmenails.oficial",
     address: "Calle Belleza 123, Ciudad de Mexico",
-    homeImageMain: "/menu/encapsulado.svg",
-    homeImageOne: "/menu/gelx.svg",
-    homeImageTwo: "/menu/acrigel.svg",
-    homeImageThree: "/menu/polygel.svg",
-    homeImageFour: "/menu/manicure.svg"
+    homeImageMain: "https://source.unsplash.com/1600x1200/?nail,art,closeup&sig=15",
+    homeImageOne: "https://source.unsplash.com/1600x1200/?gel,nails,manicure&sig=13",
+    homeImageTwo: "https://source.unsplash.com/1600x1200/?acrylic,nails,salon&sig=11",
+    homeImageThree: "https://source.unsplash.com/1600x1200/?polygel,nails,beauty&sig=12",
+    homeImageFour: "https://source.unsplash.com/1600x1200/?manicure,hand,nails&sig=14"
   },
   pointsProgram: {
     pointsPerAmount: 10,

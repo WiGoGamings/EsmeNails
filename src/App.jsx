@@ -35,48 +35,59 @@ const posSections = [
   "Privacidad y seguridad"
 ];
 
+const realNailImages = {
+  acrigel: "https://source.unsplash.com/1600x1200/?acrylic,nails,salon&sig=11",
+  polygel: "https://source.unsplash.com/1600x1200/?polygel,nails,beauty&sig=12",
+  gelx: "https://source.unsplash.com/1600x1200/?gel,nails,manicure&sig=13",
+  manicure: "https://source.unsplash.com/1600x1200/?manicure,hand,nails&sig=14",
+  encapsulado: "https://source.unsplash.com/1600x1200/?nail,art,closeup&sig=15",
+  presson: "https://source.unsplash.com/1600x1200/?press,on,nails&sig=16",
+  lashes: "https://source.unsplash.com/1600x1200/?eyelash,beauty,salon&sig=17",
+  artist: "https://source.unsplash.com/1200x1200/?nail,technician,salon&sig=18"
+};
+
 const menuCategories = [
   {
     id: "acrigel",
     title: "Acrigel",
     subtitle: "Estructura firme y acabado premium",
-    image: "/menu/acrigel.svg"
+    image: realNailImages.acrigel
   },
   {
     id: "polygel",
     title: "Polygel",
     subtitle: "Ligero, flexible y natural",
-    image: "/menu/polygel.svg"
+    image: realNailImages.polygel
   },
   {
     id: "gelx",
     title: "Gel X",
     subtitle: "Extensiones modernas y rápidas",
-    image: "/menu/gelx.svg"
+    image: realNailImages.gelx
   },
   {
     id: "manicure-spa",
     title: "Manicure Spa",
     subtitle: "Cuidado completo de manos y uñas",
-    image: "/menu/manicure.svg"
+    image: realNailImages.manicure
   },
   {
     id: "encapsulado",
     title: "Encapsulado",
     subtitle: "Diseño interno con brillo duradero",
-    image: "/menu/encapsulado.svg"
+    image: realNailImages.encapsulado
   },
   {
     id: "press-on",
     title: "Press On",
     subtitle: "Sets listos para aplicar",
-    image: "/menu/presson.svg"
+    image: realNailImages.presson
   },
   {
     id: "pestañas",
     title: "Pestañas",
     subtitle: "Lifting, volumen y mirada definida",
-    image: "/menu/lashes.svg"
+    image: realNailImages.lashes
   }
 ];
 
@@ -245,11 +256,11 @@ const defaultOwnerContact = {
   facebook: "https://facebook.com/esmenails.oficial",
   tiktok: "https://tiktok.com/@esmenails.oficial",
   address: "Calle Belleza 123, Ciudad de Mexico",
-  homeImageMain: "/menu/encapsulado.svg",
-  homeImageOne: "/menu/gelx.svg",
-  homeImageTwo: "/menu/acrigel.svg",
-  homeImageThree: "/menu/polygel.svg",
-  homeImageFour: "/menu/manicure.svg"
+  homeImageMain: realNailImages.encapsulado,
+  homeImageOne: realNailImages.gelx,
+  homeImageTwo: realNailImages.acrigel,
+  homeImageThree: realNailImages.polygel,
+  homeImageFour: realNailImages.manicure
 };
 
 const normalizeAppPath = (rawPath) => {
@@ -320,7 +331,7 @@ const resolveImageUrl = (rawUrl) => {
   return `${normalizedBase}${trimmed}`;
 };
 
-function SmartImage({ src, fallbackSrc = "/menu/manicure.svg", alt, ...rest }) {
+function SmartImage({ src, fallbackSrc = realNailImages.manicure, alt, ...rest }) {
   const toResolved = useCallback((value) => resolveImageUrl(value) || resolveImageUrl(fallbackSrc), [fallbackSrc]);
   const [currentSrc, setCurrentSrc] = useState(() => toResolved(src));
 
@@ -353,26 +364,26 @@ const mergeOwnerContactDefaults = (ownerContact) => ({
 
 const inferServiceImageUrl = (service) => {
   const text = `${service?.name || ""} ${service?.style || ""} ${service?.model || ""} ${service?.description || ""}`.toLowerCase();
-  if (isLashesContent(text)) return "/menu/lashes.svg";
-  if (text.includes("poly")) return "/menu/polygel.svg";
-  if (text.includes("gel x") || text.includes("gelx")) return "/menu/gelx.svg";
-  if (text.includes("encaps")) return "/menu/encapsulado.svg";
-  if (text.includes("acri")) return "/menu/acrigel.svg";
-  return "/menu/manicure.svg";
+  if (isLashesContent(text)) return realNailImages.lashes;
+  if (text.includes("poly")) return realNailImages.polygel;
+  if (text.includes("gel x") || text.includes("gelx")) return realNailImages.gelx;
+  if (text.includes("encaps")) return realNailImages.encapsulado;
+  if (text.includes("acri")) return realNailImages.acrigel;
+  return realNailImages.manicure;
 };
 
 const inferProductImageUrl = (product) => {
   const text = `${product?.name || ""} ${product?.description || ""}`.toLowerCase();
-  if (isLashesContent(text)) return "/menu/lashes.svg";
-  if (text.includes("press")) return "/menu/presson.svg";
-  return "/menu/manicure.svg";
+  if (isLashesContent(text)) return realNailImages.lashes;
+  if (text.includes("press")) return realNailImages.presson;
+  return realNailImages.manicure;
 };
 
 const inferPromotionImageUrl = (promotion) => {
   const text = `${promotion?.title || ""} ${promotion?.description || ""}`.toLowerCase();
-  if (isLashesContent(text)) return "/menu/lashes.svg";
-  if (text.includes("gel x") || text.includes("gelx")) return "/menu/gelx.svg";
-  return "/menu/encapsulado.svg";
+  if (isLashesContent(text)) return realNailImages.lashes;
+  if (text.includes("gel x") || text.includes("gelx")) return realNailImages.gelx;
+  return realNailImages.encapsulado;
 };
 
 function NavIcon({ type }) {
@@ -2037,7 +2048,7 @@ function App() {
           id: "fallback-home-slide",
           title: "EsmeNails Studio",
           subtitle: "Disenos modernos y experiencias premium",
-          imageUrl: "/menu/gelx.svg",
+          imageUrl: realNailImages.gelx,
           kicker: "Destacado"
         }
       ];
@@ -2355,7 +2366,7 @@ function App() {
                 <article className="profile-hero">
                   <div className="profile-avatar-wrap">
                     {profileForm.profileImageUrl ? (
-                      <SmartImage src={profileForm.profileImageUrl} alt="Foto de perfil" className="profile-avatar" fallbackSrc="/menu/manicure.svg" />
+                      <SmartImage src={profileForm.profileImageUrl} alt="Foto de perfil" className="profile-avatar" fallbackSrc={realNailImages.manicure} />
                     ) : (
                       <div className="profile-avatar placeholder">{(profileForm.name || sessionUser?.name || "E").slice(0, 1).toUpperCase()}</div>
                     )}
@@ -3375,7 +3386,7 @@ function App() {
                                     onChange={(event) => handleAdminImageFileSelected(event, { form: "service" })}
                                   />
                                   {adminServiceForm.imageUrl && (
-                                    <SmartImage src={adminServiceForm.imageUrl} alt="Preview servicio" className="admin-thumb" fallbackSrc="/menu/acrigel.svg" />
+                                    <SmartImage src={adminServiceForm.imageUrl} alt="Preview servicio" className="admin-thumb" fallbackSrc={realNailImages.acrigel} />
                                   )}
                                   <button type="submit" className="primary">Crear</button>
                                 </form>
@@ -3409,7 +3420,7 @@ function App() {
                                               className="admin-image-input"
                                               onChange={(event) => handleAdminImageFileSelected(event, { collection: "services", id: service.id })}
                                             />
-                                            {service.imageUrl && <SmartImage src={service.imageUrl} alt={service.name} className="admin-thumb" fallbackSrc="/menu/acrigel.svg" />}
+                                            {service.imageUrl && <SmartImage src={service.imageUrl} alt={service.name} className="admin-thumb" fallbackSrc={realNailImages.acrigel} />}
                                           </td>
                                           <td>
                                             <input value={service.style} onChange={(event) => updateAdminSettingField("services", service.id, "style", event.target.value)} />
@@ -3476,7 +3487,7 @@ function App() {
                                     onChange={(event) => handleAdminImageFileSelected(event, { form: "product" })}
                                   />
                                   {adminProductForm.imageUrl && (
-                                    <SmartImage src={adminProductForm.imageUrl} alt="Preview producto" className="admin-thumb" fallbackSrc="/menu/presson.svg" />
+                                    <SmartImage src={adminProductForm.imageUrl} alt="Preview producto" className="admin-thumb" fallbackSrc={realNailImages.presson} />
                                   )}
                                   <button type="submit" className="primary">Crear</button>
                                 </form>
@@ -3508,7 +3519,7 @@ function App() {
                                               className="admin-image-input"
                                               onChange={(event) => handleAdminImageFileSelected(event, { collection: "products", id: product.id })}
                                             />
-                                            {product.imageUrl && <SmartImage src={product.imageUrl} alt={product.name} className="admin-thumb" fallbackSrc="/menu/presson.svg" />}
+                                            {product.imageUrl && <SmartImage src={product.imageUrl} alt={product.name} className="admin-thumb" fallbackSrc={realNailImages.presson} />}
                                           </td>
                                           <td>
                                             <input type="number" min="0" step="0.01" value={product.price} onChange={(event) => updateAdminSettingField("products", product.id, "price", event.target.value)} />
@@ -3561,7 +3572,7 @@ function App() {
                                     onChange={(event) => handleAdminImageFileSelected(event, { form: "employee" })}
                                   />
                                   {adminEmployeeForm.imageUrl && (
-                                    <SmartImage src={adminEmployeeForm.imageUrl} alt="Preview empleada" className="admin-thumb" fallbackSrc="/menu/manicure.svg" />
+                                    <SmartImage src={adminEmployeeForm.imageUrl} alt="Preview empleada" className="admin-thumb" fallbackSrc={realNailImages.artist} />
                                   )}
                                   <button type="submit" className="primary">Crear</button>
                                 </form>
@@ -3592,7 +3603,7 @@ function App() {
                                               className="admin-image-input"
                                               onChange={(event) => handleAdminImageFileSelected(event, { collection: "employees", id: employee.id })}
                                             />
-                                            {employee.imageUrl && <SmartImage src={employee.imageUrl} alt={employee.name} className="admin-thumb" fallbackSrc="/menu/manicure.svg" />}
+                                            {employee.imageUrl && <SmartImage src={employee.imageUrl} alt={employee.name} className="admin-thumb" fallbackSrc={realNailImages.artist} />}
                                           </td>
                                           <td>
                                             <input value={employee.role} onChange={(event) => updateAdminSettingField("employees", employee.id, "role", event.target.value)} />
@@ -3831,7 +3842,7 @@ function App() {
                                     onChange={(event) => handleAdminImageFileSelected(event, { form: "promotion" })}
                                   />
                                   {adminPromotionForm.imageUrl && (
-                                    <SmartImage src={adminPromotionForm.imageUrl} alt="Preview promocion" className="admin-thumb" fallbackSrc="/menu/encapsulado.svg" />
+                                    <SmartImage src={adminPromotionForm.imageUrl} alt="Preview promocion" className="admin-thumb" fallbackSrc={realNailImages.encapsulado} />
                                   )}
                                   <button type="submit" className="primary">Crear</button>
                                 </form>
@@ -3864,7 +3875,7 @@ function App() {
                                               className="admin-image-input"
                                               onChange={(event) => handleAdminImageFileSelected(event, { collection: "promotions", id: promo.id })}
                                             />
-                                            {promo.imageUrl && <SmartImage src={promo.imageUrl} alt={promo.title} className="admin-thumb" fallbackSrc="/menu/encapsulado.svg" />}
+                                            {promo.imageUrl && <SmartImage src={promo.imageUrl} alt={promo.title} className="admin-thumb" fallbackSrc={realNailImages.encapsulado} />}
                                           </td>
                                           <td>
                                             <select value={promo.discountType} onChange={(event) => updateAdminSettingField("promotions", promo.id, "discountType", event.target.value)}>
@@ -3909,7 +3920,7 @@ function App() {
                         src={selectedMenuCategory.image}
                         alt={selectedMenuCategory.title}
                         className="menu-detail-image"
-                        fallbackSrc="/menu/manicure.svg"
+                        fallbackSrc={realNailImages.manicure}
                       />
                       <div className="menu-detail-body">
                         <p className="menu-detail-kicker">Categoria seleccionada</p>
@@ -3959,7 +3970,7 @@ function App() {
 
                       return (
                         <article key={category.id} className="menu-card">
-                          <SmartImage src={category.image} alt={category.title} fallbackSrc="/menu/manicure.svg" />
+                          <SmartImage src={category.image} alt={category.title} fallbackSrc={realNailImages.manicure} />
                           <div className="menu-card-text">
                             <strong>{category.title}</strong>
                             <small>{category.subtitle}</small>
@@ -4056,7 +4067,7 @@ function App() {
                     {filteredCatalogServices.map((service) => (
                       <article key={service.id} className="price-card">
                         {service.imageUrl && (
-                          <SmartImage src={service.imageUrl} alt={service.name} className="price-card-image" fallbackSrc="/menu/acrigel.svg" />
+                          <SmartImage src={service.imageUrl} alt={service.name} className="price-card-image" fallbackSrc={realNailImages.acrigel} />
                         )}
                         <header>
                           <h3>{service.name}</h3>
@@ -4091,7 +4102,7 @@ function App() {
                     {filteredCatalogProducts.map((product) => (
                       <article key={product.id} className="price-card">
                         {product.imageUrl && (
-                          <SmartImage src={product.imageUrl} alt={product.name} className="price-card-image" fallbackSrc="/menu/presson.svg" />
+                          <SmartImage src={product.imageUrl} alt={product.name} className="price-card-image" fallbackSrc={realNailImages.presson} />
                         )}
                         <header>
                           <h3>{product.name}</h3>
@@ -4114,7 +4125,7 @@ function App() {
                     {filteredCatalogPromotions.map((promotion) => (
                       <article key={promotion.id} className="price-card">
                         {promotion.imageUrl && (
-                          <SmartImage src={promotion.imageUrl} alt={promotion.title} className="price-card-image" fallbackSrc="/menu/encapsulado.svg" />
+                          <SmartImage src={promotion.imageUrl} alt={promotion.title} className="price-card-image" fallbackSrc={realNailImages.encapsulado} />
                         )}
                         <header>
                           <h3>{promotion.title}</h3>
@@ -4177,7 +4188,7 @@ function App() {
                   {filteredCatalogPromotions.map((promotion) => (
                     <article key={promotion.id} className="promo-card">
                       {promotion.imageUrl ? (
-                        <SmartImage src={promotion.imageUrl} alt={promotion.title} className="promo-card-image" fallbackSrc="/menu/encapsulado.svg" />
+                        <SmartImage src={promotion.imageUrl} alt={promotion.title} className="promo-card-image" fallbackSrc={realNailImages.encapsulado} />
                       ) : (
                         <div className="promo-card-image placeholder">Promo</div>
                       )}
@@ -4368,7 +4379,7 @@ function App() {
                         src={homeActiveSlide.imageUrl}
                         alt={homeActiveSlide.title}
                         className="home-cinema-image"
-                        fallbackSrc="/menu/gelx.svg"
+                        fallbackSrc={realNailImages.gelx}
                       />
                     )}
                     <div className="home-cinema-overlay">
@@ -4393,7 +4404,7 @@ function App() {
                             className={`home-film-item ${isActive ? "active" : ""}`}
                             onClick={() => setHomePromoIndex(baseIndex)}
                           >
-                            <SmartImage src={item.imageUrl} alt={item.title} fallbackSrc="/menu/gelx.svg" />
+                            <SmartImage src={item.imageUrl} alt={item.title} fallbackSrc={realNailImages.gelx} />
                             <span>{item.title}</span>
                           </button>
                         );

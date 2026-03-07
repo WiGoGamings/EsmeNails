@@ -60,6 +60,12 @@ const localMenuImages = {
 
 const ADMIN_LOCAL_SETTINGS_KEY = "esme_admin_settings_local";
 const MENU_CART_STORAGE_KEY = "esme_menu_cart";
+const ASSISTANT_HISTORY_STORAGE_PREFIX = "esme_assistant_history";
+
+const getAssistantHistoryStorageKey = (isAuthenticated, sessionUser) => {
+  const identity = isAuthenticated ? (sessionUser?.email || "authenticated-user") : "guest";
+  return `${ASSISTANT_HISTORY_STORAGE_PREFIX}:${identity.toLowerCase()}`;
+};
 
 const createLocalEntityId = (prefix) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -428,8 +434,43 @@ const inferPromotionImageUrl = (promotion) => {
   return realNailImages.encapsulado;
 };
 
-const buildLocalAssistantReply = ({ message, services, products, promotions, ownerContact }) => {
+const parseBudgetFromPrompt = (text) => {
+  const hasBudgetIntent = /presupuesto|tengo|hasta|maximo|cuanto puedo gastar|\$|mxn/.test(text);
+  if (!hasBudgetIntent) return 0;
+
+  const matches = text.match(/\d+(?:[.,]\d{1,2})?/g);
+  if (!matches || matches.length === 0) return 0;
+
+  const parsed = Number(matches[0].replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const buildLocalAssistantResponse = ({ message, services, products, promotions, ownerContact }) => {
   const text = String(message || "").toLowerCase();
+  const budget = parseBudgetFromPrompt(text);
+
+  if (budget > 0) {
+    const candidate = (services || [])
+      .map((service) => ({ ...service, priceValue: Number(service?.price || 0) }))
+      .filter((service) => Number.isFinite(service.priceValue) && service.priceValue > 0 && service.priceValue <= budget)
+      .sort((a, b) => b.priceValue - a.priceValue)[0];
+
+    if (candidate) {
+      return {
+        text: [
+          `Con un presupuesto de $${budget}, te recomiendo ${candidate.name} por $${candidate.priceValue}.`,
+          `Duracion estimada: ${Number(candidate.timeMinutes) || 60} min.`,
+          "Usa el boton de abajo para agendar esta recomendacion."
+        ].join("\n"),
+        suggestedServiceId: candidate.id || ""
+      };
+    }
+
+    return {
+      text: `Con presupuesto de $${budget} no encontre un servicio exacto en este momento. Si quieres, te muestro opciones cercanas o promociones activas.`,
+      suggestedServiceId: ""
+    };
+  }
 
   if (text.includes("precio") || text.includes("cuanto") || text.includes("costo")) {
     const serviceLines = (services || [])
@@ -438,10 +479,10 @@ const buildLocalAssistantReply = ({ message, services, products, promotions, own
       .map((item) => `- ${item.name}: $${Number(item.price)}`);
 
     if (serviceLines.length === 0) {
-      return "Aun no tengo servicios con precio cargados. Puedes revisar la seccion Precios para confirmar el catalogo actual.";
+      return { text: "Aun no tengo servicios con precio cargados. Puedes revisar la seccion Precios para confirmar el catalogo actual.", suggestedServiceId: "" };
     }
 
-    return `Estos son algunos precios actuales:\n${serviceLines.join("\\n")}\\n\\nSi me dices tu presupuesto, te recomiendo una opcion.`;
+    return { text: `Estos son algunos precios actuales:\n${serviceLines.join("\\n")}\\n\\nSi me dices tu presupuesto, te recomiendo una opcion.`, suggestedServiceId: "" };
   }
 
   if (text.includes("promo") || text.includes("descuento") || text.includes("oferta")) {
@@ -456,10 +497,10 @@ const buildLocalAssistantReply = ({ message, services, products, promotions, own
       });
 
     if (promoLines.length === 0) {
-      return "Por ahora no veo promociones activas. Revisa la seccion Promociones para confirmar si ya publicaron nuevas.";
+      return { text: "Por ahora no veo promociones activas. Revisa la seccion Promociones para confirmar si ya publicaron nuevas.", suggestedServiceId: "" };
     }
 
-    return `Promociones recomendadas:\n${promoLines.join("\\n")}`;
+    return { text: `Promociones recomendadas:\n${promoLines.join("\\n")}`, suggestedServiceId: "" };
   }
 
   if (text.includes("contacto") || text.includes("whatsapp") || text.includes("telefono") || text.includes("direccion")) {
@@ -471,14 +512,14 @@ const buildLocalAssistantReply = ({ message, services, products, promotions, own
     ].filter(Boolean);
 
     if (lines.length === 0) {
-      return "Puedes abrir la seccion Contacto para ver los enlaces disponibles.";
+      return { text: "Puedes abrir la seccion Contacto para ver los enlaces disponibles.", suggestedServiceId: "" };
     }
 
-    return `Claro, aqui tienes los datos de contacto:\n${lines.join("\\n")}`;
+    return { text: `Claro, aqui tienes los datos de contacto:\n${lines.join("\\n")}`, suggestedServiceId: "" };
   }
 
   if (text.includes("cita") || text.includes("agenda") || text.includes("reserv")) {
-    return "Para agendar: entra a Agendar cita, selecciona servicio, fecha y profesional, y confirma. Si quieres, te sugiero primero un servicio segun tu estilo.";
+    return { text: "Para agendar: entra a Agendar cita, selecciona servicio, fecha y profesional, y confirma. Si quieres, te sugiero primero un servicio segun tu estilo.", suggestedServiceId: "" };
   }
 
   if (text.includes("producto")) {
@@ -488,13 +529,23 @@ const buildLocalAssistantReply = ({ message, services, products, promotions, own
       .map((item) => `- ${item.name}: $${Number(item.price)}`);
 
     if (productLines.length === 0) {
-      return "Todavia no tengo productos con precio cargado en este momento.";
+      return { text: "Todavia no tengo productos con precio cargado en este momento.", suggestedServiceId: "" };
     }
 
-    return `Estos productos estan disponibles:\n${productLines.join("\\n")}`;
+    return { text: `Estos productos estan disponibles:\n${productLines.join("\\n")}`, suggestedServiceId: "" };
   }
 
-  return "Soy tu asistente personal de EsmeNails. Te ayudo con precios, promociones, productos, contacto y agendar cita. Escribeme tu duda y te guio.";
+  return {
+    text: "Soy tu asistente personal de EsmeNails. Te ayudo con precios, promociones, productos, contacto y agendar cita. Escribeme tu duda y te guio.",
+    suggestedServiceId: ""
+  };
+};
+
+const assistantWelcomeMessage = {
+  id: "assistant-welcome",
+  role: "assistant",
+  text: "Hola. Soy tu asistente personal de EsmeNails. Puedo ayudarte con precios, promociones, productos y citas.",
+  suggestedServiceId: ""
 };
 
 function NavIcon({ type }) {
@@ -652,13 +703,7 @@ function App() {
   const [assistantInput, setAssistantInput] = useState("");
   const [assistantBusy, setAssistantBusy] = useState(false);
   const [assistantFloatingOpen, setAssistantFloatingOpen] = useState(false);
-  const [assistantMessages, setAssistantMessages] = useState(() => ([
-    {
-      id: "assistant-welcome",
-      role: "assistant",
-      text: "Hola. Soy tu asistente personal de EsmeNails. Puedo ayudarte con precios, promociones, productos y citas."
-    }
-  ]));
+  const [assistantMessages, setAssistantMessages] = useState(() => ([assistantWelcomeMessage]));
   const [ownerContact, setOwnerContact] = useState(defaultOwnerContact);
   const [emailCodeSent, setEmailCodeSent] = useState(false);
   const [emailVerificationCode, setEmailVerificationCode] = useState("");
@@ -721,6 +766,10 @@ function App() {
   const appointmentTimeSlots = useMemo(
     () => buildTimeSlots(appointmentSlotStartHour, appointmentSlotEndHour, appointmentSlotStepMinutes),
     []
+  );
+  const assistantHistoryStorageKey = useMemo(
+    () => getAssistantHistoryStorageKey(isAuthenticated, sessionUser),
+    [isAuthenticated, sessionUser]
   );
 
   const buildEmptyAdminData = useCallback(() => ({
@@ -1970,7 +2019,7 @@ function App() {
     setAssistantInput("");
     setAssistantBusy(true);
 
-    const fallbackReply = buildLocalAssistantReply({
+    const fallbackResponse = buildLocalAssistantResponse({
       message,
       services: catalogServices,
       products: catalogProducts,
@@ -1989,7 +2038,7 @@ function App() {
           message,
           history: nextHistory.slice(-8).map((entry) => ({ role: entry.role, content: entry.text })),
           context: {
-            services: catalogServices.slice(0, 20).map((item) => ({ name: item.name, price: Number(item.price) || 0 })),
+            services: catalogServices.slice(0, 20).map((item) => ({ id: item.id, name: item.name, price: Number(item.price) || 0 })),
             products: catalogProducts.slice(0, 20).map((item) => ({ name: item.name, price: Number(item.price) || 0 })),
             promotions: catalogPromotions.slice(0, 20).map((item) => ({
               title: item.title,
@@ -2006,13 +2055,19 @@ function App() {
         }
       });
 
-      const assistantReply = String(response?.reply || "").trim() || fallbackReply;
+      const assistantReply = String(response?.reply || "").trim() || fallbackResponse.text;
+      const apiSuggestedServiceId = String(response?.suggestedServiceId || "").trim();
+      const suggestedServiceId = catalogServices.some((service) => service.id === apiSuggestedServiceId)
+        ? apiSuggestedServiceId
+        : fallbackResponse.suggestedServiceId;
+
       setAssistantMessages((prev) => ([
         ...prev,
         {
           id: `assistant-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
           role: "assistant",
-          text: assistantReply
+          text: assistantReply,
+          suggestedServiceId
         }
       ]));
     } catch {
@@ -2021,7 +2076,8 @@ function App() {
         {
           id: `assistant-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
           role: "assistant",
-          text: fallbackReply
+          text: fallbackResponse.text,
+          suggestedServiceId: fallbackResponse.suggestedServiceId
         }
       ]));
     } finally {
@@ -2345,6 +2401,43 @@ function App() {
   useEffect(() => {
     assistantMessagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [assistantMessages]);
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(assistantHistoryStorageKey) || "[]");
+      if (Array.isArray(stored) && stored.length > 0) {
+        const normalized = stored
+          .filter((entry) => entry && (entry.role === "user" || entry.role === "assistant") && typeof entry.text === "string")
+          .slice(-20)
+          .map((entry, index) => ({
+            id: entry.id || `assistant-history-${index}`,
+            role: entry.role,
+            text: entry.text,
+            suggestedServiceId: typeof entry.suggestedServiceId === "string" ? entry.suggestedServiceId : ""
+          }));
+
+        if (normalized.length > 0) {
+          setAssistantMessages(normalized);
+          return;
+        }
+      }
+    } catch {
+      // Ignore parse errors and fall back to welcome message.
+    }
+
+    setAssistantMessages([assistantWelcomeMessage]);
+  }, [assistantHistoryStorageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        assistantHistoryStorageKey,
+        JSON.stringify((assistantMessages || []).slice(-20))
+      );
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [assistantHistoryStorageKey, assistantMessages]);
 
   useEffect(() => {
     try {
@@ -3415,6 +3508,23 @@ function App() {
                       <div key={entry.id} className={`assistant-msg ${entry.role === "user" ? "user" : "bot"}`}>
                         <strong>{entry.role === "user" ? "Tu" : "Asistente"}</strong>
                         <p>{entry.text}</p>
+                        {entry.role === "assistant" && entry.suggestedServiceId && (
+                          <button
+                            type="button"
+                            className="secondary assistant-inline-action"
+                            onClick={() => {
+                              if (!isAuthenticated) {
+                                setFeedback({ type: "info", text: "Inicia sesion para agendar esta recomendacion." });
+                                setMode("login");
+                                return;
+                              }
+                              openAppointmentModal({ serviceId: entry.suggestedServiceId });
+                              setActiveSection("Agendar cita");
+                            }}
+                          >
+                            Agendar esta recomendacion
+                          </button>
+                        )}
                       </div>
                     ))}
                     {assistantBusy && (
@@ -5685,6 +5795,23 @@ function App() {
                     <div key={`floating-${entry.id}`} className={`assistant-msg ${entry.role === "user" ? "user" : "bot"}`}>
                       <strong>{entry.role === "user" ? "Tu" : "Asistente"}</strong>
                       <p>{entry.text}</p>
+                      {entry.role === "assistant" && entry.suggestedServiceId && (
+                        <button
+                          type="button"
+                          className="secondary assistant-inline-action"
+                          onClick={() => {
+                            if (!isAuthenticated) {
+                              setFeedback({ type: "info", text: "Inicia sesion para agendar esta recomendacion." });
+                              setMode("login");
+                              return;
+                            }
+                            openAppointmentModal({ serviceId: entry.suggestedServiceId });
+                            setActiveSection("Agendar cita");
+                          }}
+                        >
+                          Agendar esta recomendacion
+                        </button>
+                      )}
                     </div>
                   ))}
                   {assistantBusy && (
@@ -5829,6 +5956,23 @@ function App() {
               <div key={`floating-auth-${entry.id}`} className={`assistant-msg ${entry.role === "user" ? "user" : "bot"}`}>
                 <strong>{entry.role === "user" ? "Tu" : "Asistente"}</strong>
                 <p>{entry.text}</p>
+                {entry.role === "assistant" && entry.suggestedServiceId && (
+                  <button
+                    type="button"
+                    className="secondary assistant-inline-action"
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        setFeedback({ type: "info", text: "Inicia sesion para agendar esta recomendacion." });
+                        setMode("login");
+                        return;
+                      }
+                      openAppointmentModal({ serviceId: entry.suggestedServiceId });
+                      setActiveSection("Agendar cita");
+                    }}
+                  >
+                    Agendar esta recomendacion
+                  </button>
+                )}
               </div>
             ))}
             {assistantBusy && (

@@ -6,7 +6,7 @@ const historyItemSchema = z.object({
 });
 
 export const assistantContextSchema = z.object({
-  services: z.array(z.object({ name: z.string().optional(), price: z.number().optional() })).max(40).optional().default([]),
+  services: z.array(z.object({ id: z.string().optional(), name: z.string().optional(), price: z.number().optional() })).max(40).optional().default([]),
   products: z.array(z.object({ name: z.string().optional(), price: z.number().optional() })).max(40).optional().default([]),
   promotions: z.array(z.object({ title: z.string().optional(), value: z.number().optional(), discountType: z.string().optional() })).max(40).optional().default([]),
   ownerContact: z.object({

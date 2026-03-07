@@ -2094,6 +2094,16 @@ select {
 	margin: 0;
 }
 
+.assistant-msg p {
+	white-space: pre-wrap;
+}
+
+.assistant-inline-action {
+	margin-top: 0.25rem;
+	min-height: 36px;
+	font-size: 0.78rem;
+}
+
 .assistant-msg.user {
 	justify-self: end;
 	background: #ffece2;

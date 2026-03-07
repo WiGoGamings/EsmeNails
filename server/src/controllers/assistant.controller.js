@@ -20,27 +20,67 @@ const formatPriceList = (items = [], getLabel) => {
   return filtered.map((item) => `- ${item.label}: $${item.price}`).join("\\n");
 };
 
+const parseBudgetFromPrompt = (text) => {
+  const hasBudgetIntent = /presupuesto|tengo|hasta|maximo|cuanto puedo gastar|\$|mxn/.test(text);
+  if (!hasBudgetIntent) return 0;
+
+  const matches = String(text || "").match(/\d+(?:[.,]\d{1,2})?/g);
+  if (!matches || matches.length === 0) return 0;
+
+  const parsed = Number(matches[0].replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 const buildLocalReply = ({ message, context }) => {
   const text = String(message || "").toLowerCase();
   const services = context?.services || [];
   const products = context?.products || [];
   const promotions = context?.promotions || [];
   const owner = context?.ownerContact || {};
+  const budget = parseBudgetFromPrompt(text);
+
+  if (budget > 0) {
+    const recommendedService = services
+      .map((service) => ({ ...service, priceValue: Number(service?.price || 0) }))
+      .filter((service) => Number.isFinite(service.priceValue) && service.priceValue > 0 && service.priceValue <= budget)
+      .sort((a, b) => b.priceValue - a.priceValue)[0];
+
+    if (recommendedService) {
+      return {
+        reply: [
+          `Con un presupuesto de $${budget}, te recomiendo ${recommendedService.name || "este servicio"} por $${recommendedService.priceValue}.`,
+          "Puedes usar el boton de recomendacion para agendarlo al instante."
+        ].join("\n"),
+        suggestedServiceId: recommendedService.id || ""
+      };
+    }
+
+    return {
+      reply: `Con presupuesto de $${budget} no encontre un servicio exacto cargado. Si quieres, te muestro alternativas o promociones activas.`,
+      suggestedServiceId: ""
+    };
+  }
 
   if (text.includes("precio") || text.includes("cuanto") || text.includes("costo")) {
     const serviceBlock = formatPriceList(services, (item) => item?.name || "Servicio");
     const productBlock = formatPriceList(products, (item) => item?.name || "Producto");
 
     if (!serviceBlock && !productBlock) {
-      return "Te puedo ayudar con precios, pero aun no tengo catalogo cargado. Ve a la seccion Precios para revisar los importes actuales.";
+      return {
+        reply: "Te puedo ayudar con precios, pero aun no tengo catalogo cargado. Ve a la seccion Precios para revisar los importes actuales.",
+        suggestedServiceId: ""
+      };
     }
 
-    return [
-      "Claro. Estos son algunos precios actuales:",
-      serviceBlock ? "Servicios:\n" + serviceBlock : "",
-      productBlock ? "Productos:\n" + productBlock : "",
-      "Si quieres, te recomiendo una opcion segun tu presupuesto."
-    ].filter(Boolean).join("\\n\\n");
+    return {
+      reply: [
+        "Claro. Estos son algunos precios actuales:",
+        serviceBlock ? "Servicios:\n" + serviceBlock : "",
+        productBlock ? "Productos:\n" + productBlock : "",
+        "Si quieres, te recomiendo una opcion segun tu presupuesto."
+      ].filter(Boolean).join("\n\n"),
+      suggestedServiceId: ""
+    };
   }
 
   if (text.includes("promo") || text.includes("descuento") || text.includes("oferta")) {
@@ -55,10 +95,16 @@ const buildLocalReply = ({ message, context }) => {
       });
 
     if (promoLines.length === 0) {
-      return "Ahorita no detecto promociones cargadas. Puedes revisar la seccion Promociones para confirmar si hay nuevas.";
+      return {
+        reply: "Ahorita no detecto promociones cargadas. Puedes revisar la seccion Promociones para confirmar si hay nuevas.",
+        suggestedServiceId: ""
+      };
     }
 
-    return `Estas promociones podrian interesarte:\n${promoLines.join("\\n")}\\n\\nSi me dices tu servicio ideal, te sugiero cual conviene mas.`;
+    return {
+      reply: `Estas promociones podrian interesarte:\n${promoLines.join("\\n")}\\n\\nSi me dices tu servicio ideal, te sugiero cual conviene mas.`,
+      suggestedServiceId: ""
+    };
   }
 
   if (text.includes("contacto") || text.includes("whatsapp") || text.includes("telefono") || text.includes("direccion")) {
@@ -70,17 +116,29 @@ const buildLocalReply = ({ message, context }) => {
     ].filter(Boolean);
 
     if (contactLines.length === 0) {
-      return "Puedes abrir la seccion Contacto para ver los canales activos del negocio.";
+      return {
+        reply: "Puedes abrir la seccion Contacto para ver los canales activos del negocio.",
+        suggestedServiceId: ""
+      };
     }
 
-    return `Claro, aqui tienes los datos de contacto:\n${contactLines.join("\\n")}`;
+    return {
+      reply: `Claro, aqui tienes los datos de contacto:\n${contactLines.join("\\n")}`,
+      suggestedServiceId: ""
+    };
   }
 
   if (text.includes("cita") || text.includes("agenda") || text.includes("reserv")) {
-    return "Perfecto. Para agendar rapido entra a la seccion Agendar cita, elige servicio, fecha y profesional. Si quieres, te ayudo a elegir un servicio primero.";
+    return {
+      reply: "Perfecto. Para agendar rapido entra a la seccion Agendar cita, elige servicio, fecha y profesional. Si quieres, te ayudo a elegir un servicio primero.",
+      suggestedServiceId: ""
+    };
   }
 
-  return "Soy tu asistente de EsmeNails. Te puedo ayudar con precios, promociones, recomendaciones de servicios y datos de contacto. Dime que necesitas y te guio paso a paso.";
+  return {
+    reply: "Soy tu asistente de EsmeNails. Te puedo ayudar con precios, promociones, recomendaciones de servicios y datos de contacto. Dime que necesitas y te guio paso a paso.",
+    suggestedServiceId: ""
+  };
 };
 
 const buildSystemPrompt = (context) => {
@@ -159,12 +217,12 @@ export const askAssistant = async (req, res) => {
   try {
     const aiReply = await askOpenAI({ message, history, context });
     if (aiReply) {
-      return res.status(200).json({ reply: aiReply, provider: "openai" });
+      return res.status(200).json({ reply: aiReply, provider: "openai", suggestedServiceId: "" });
     }
   } catch {
     // If provider call fails, fallback to local assistant instead of breaking UX.
   }
 
   const fallbackReply = buildLocalReply({ message, context });
-  return res.status(200).json({ reply: fallbackReply, provider: "local" });
+  return res.status(200).json({ reply: fallbackReply.reply, provider: "local", suggestedServiceId: fallbackReply.suggestedServiceId || "" });
 };

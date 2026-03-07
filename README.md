@@ -61,6 +61,42 @@ npm run desktop:build
 
 Con esto, cualquier persona podra descargar tu app para PC sin Play Console.
 
+## Abrirla desde GitHub tipo app
+
+### Opcion 1: Descargar app de PC (.exe)
+
+1. Entra al repo: `https://github.com/WiGoGamings/EsmeNails`.
+2. Abre la pestana **Releases**.
+3. Descarga el archivo `.exe` mas reciente.
+4. Ejecutalo en Windows.
+
+### Opcion 2: Abrir version web (GitHub Pages)
+
+1. Entra al repo en GitHub.
+2. Ve a **Settings > Pages**.
+3. En **Build and deployment**, selecciona **GitHub Actions**.
+4. Haz push a `main` y el workflow `Deploy Web (GitHub Pages)` publicara la app.
+
+Notas:
+- El workflow web usa `VITE_API_URL` desde **Settings > Secrets and variables > Actions > Variables**.
+- Si no defines `VITE_API_URL`, la app web compilara igual, pero necesitara que el backend este disponible para iniciar sesion y usar funciones de datos.
+
+## Automatizacion incluida (GitHub Actions)
+
+Este repo ya incluye:
+
+- `.github/workflows/desktop-release.yml`
+	- Al subir un tag `v*` (ejemplo `v1.0.1`), compila Windows y adjunta `.exe` automaticamente al Release.
+- `.github/workflows/pages.yml`
+	- Al hacer push a `main`, compila y publica la web en GitHub Pages.
+
+Para disparar release automatica de escritorio:
+
+```bash
+git tag -a v1.0.1 -m "Release v1.0.1"
+git push origin v1.0.1
+```
+
 ## Variables de entorno
 
 Puedes copiar `.env.example` y ajustar valores en `server/.env` segun necesites (correo SMTP, credenciales admin, etc.).

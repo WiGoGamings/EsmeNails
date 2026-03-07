@@ -1342,6 +1342,22 @@ select {
 	color: #623022;
 }
 
+.menu-card-price {
+	margin: 0.15rem 0 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: fit-content;
+	padding: 0.2rem 0.55rem;
+	border-radius: 999px;
+	font-size: 0.76rem;
+	font-weight: 800;
+	letter-spacing: 0.01em;
+	color: #7a264a;
+	background: #ffd9ec;
+	border: 1px solid #f6b7d7;
+}
+
 .menu-card-actions {
 	display: grid;
 	grid-template-columns: 1fr;
@@ -1410,6 +1426,13 @@ select {
 	font-size: 0.75rem;
 	color: #8a3b24;
 	font-weight: 700;
+}
+
+.menu-detail-price {
+	margin: 0;
+	font-size: 0.92rem;
+	font-weight: 800;
+	color: #7a264a;
 }
 
 .menu-detail-actions {

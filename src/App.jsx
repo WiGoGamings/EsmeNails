@@ -3897,70 +3897,38 @@ function App() {
               </section>
             ) : activeSection === "Menu" ? (
               selectedMenuCategory ? (
-                <section className="menu-detail">
-                  <SmartImage
-                    src={selectedMenuCategory.image}
-                    alt={selectedMenuCategory.title}
-                    className="menu-detail-image"
-                    fallbackSrc="/menu/manicure.svg"
-                  />
-                  <div className="menu-detail-body">
-                    <p className="menu-detail-kicker">Categoria seleccionada</p>
-                    <h2>{selectedMenuCategory.title}</h2>
-                    <p>{selectedMenuCategory.subtitle}</p>
-                    <p>{catalogServices.find((service) => service.id === findSuggestedServiceId(selectedMenuCategory, catalogServices))?.description || "Descripcion disponible en panel admin."}</p>
-                    <div className="menu-detail-actions">
-                      <button type="button" className="secondary" onClick={backToMenuGrid}>
-                        Volver al menu
-                      </button>
-                      <button
-                        type="button"
-                        className={`primary ${menuCtaPulse ? "menu-cta-highlight" : ""}`}
-                        onClick={() => {
-                          openAppointmentModal({
-                            serviceId: findSuggestedServiceId(selectedMenuCategory, catalogServices)
-                          });
-                          setFeedback({ type: "info", text: `Agenda tu cita para ${selectedMenuCategory.title}.` });
-                        }}
-                      >
-                        Agendar cita
-                      </button>
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => {
-                          const serviceId = findSuggestedServiceId(selectedMenuCategory, catalogServices);
-                          const matchedService = catalogServices.find((service) => service.id === serviceId);
-                          triggerMenuCta(matchedService?.name || selectedMenuCategory.title, "detalle de menu");
-                        }}
-                      >
-                        Quiero este producto
-                      </button>
-                    </div>
-                  </div>
-                </section>
-              ) : (
-                <>
-                  <p>Selecciona un estilo de unas para abrir su pagina.</p>
-                  <div className="menu-grid">
-                    {menuCategories.map((category) => (
-                      <article key={category.id} className="menu-card">
-                        <SmartImage src={category.image} alt={category.title} fallbackSrc="/menu/manicure.svg" />
-                        <div className="menu-card-text">
-                          <strong>{category.title}</strong>
-                          <small>{category.subtitle}</small>
-                          <p className="menu-card-description">
-                            {catalogServices.find((service) => service.id === findSuggestedServiceId(category, catalogServices))?.description || "Descripcion editable desde panel admin."}
-                          </p>
-                        </div>
-                        <div className="menu-card-actions">
-                          <button type="button" className="secondary" onClick={() => openMenuCategory(category)}>Ver detalle</button>
+                (() => {
+                  const selectedServiceId = findSuggestedServiceId(selectedMenuCategory, catalogServices);
+                  const selectedService = catalogServices.find((service) => service.id === selectedServiceId);
+                  const selectedServicePrice = Number(selectedService?.price);
+                  const hasSelectedServicePrice = Number.isFinite(selectedServicePrice) && selectedServicePrice > 0;
+
+                  return (
+                    <section className="menu-detail">
+                      <SmartImage
+                        src={selectedMenuCategory.image}
+                        alt={selectedMenuCategory.title}
+                        className="menu-detail-image"
+                        fallbackSrc="/menu/manicure.svg"
+                      />
+                      <div className="menu-detail-body">
+                        <p className="menu-detail-kicker">Categoria seleccionada</p>
+                        <h2>{selectedMenuCategory.title}</h2>
+                        <p>{selectedMenuCategory.subtitle}</p>
+                        <p className="menu-detail-price">{hasSelectedServicePrice ? `Precio: $${selectedServicePrice}` : "Precio disponible en Precios"}</p>
+                        <p>{selectedService?.description || "Descripcion disponible en panel admin."}</p>
+                        <div className="menu-detail-actions">
+                          <button type="button" className="secondary" onClick={backToMenuGrid}>
+                            Volver al menu
+                          </button>
                           <button
                             type="button"
                             className={`primary ${menuCtaPulse ? "menu-cta-highlight" : ""}`}
                             onClick={() => {
-                              openAppointmentModal({ serviceId: findSuggestedServiceId(category, catalogServices) });
-                              setFeedback({ type: "info", text: `Agenda tu cita para ${category.title}.` });
+                              openAppointmentModal({
+                                serviceId: selectedServiceId
+                              });
+                              setFeedback({ type: "info", text: `Agenda tu cita para ${selectedMenuCategory.title}.` });
                             }}
                           >
                             Agendar cita
@@ -3969,16 +3937,62 @@ function App() {
                             type="button"
                             className="secondary"
                             onClick={() => {
-                              const serviceId = findSuggestedServiceId(category, catalogServices);
-                              const matchedService = catalogServices.find((service) => service.id === serviceId);
-                              triggerMenuCta(matchedService?.name || category.title, "tarjeta de menu");
+                              triggerMenuCta(selectedService?.name || selectedMenuCategory.title, "detalle de menu");
                             }}
                           >
                             Quiero este producto
                           </button>
                         </div>
-                      </article>
-                    ))}
+                      </div>
+                    </section>
+                  );
+                })()
+              ) : (
+                <>
+                  <p>Selecciona un estilo de unas para abrir su pagina.</p>
+                  <div className="menu-grid">
+                    {menuCategories.map((category) => {
+                      const suggestedServiceId = findSuggestedServiceId(category, catalogServices);
+                      const matchedService = catalogServices.find((service) => service.id === suggestedServiceId);
+                      const matchedPrice = Number(matchedService?.price);
+                      const hasMatchedPrice = Number.isFinite(matchedPrice) && matchedPrice > 0;
+
+                      return (
+                        <article key={category.id} className="menu-card">
+                          <SmartImage src={category.image} alt={category.title} fallbackSrc="/menu/manicure.svg" />
+                          <div className="menu-card-text">
+                            <strong>{category.title}</strong>
+                            <small>{category.subtitle}</small>
+                            <p className="menu-card-price">{hasMatchedPrice ? `Desde $${matchedPrice}` : "Precio en seccion Precios"}</p>
+                            <p className="menu-card-description">
+                              {matchedService?.description || "Descripcion editable desde panel admin."}
+                            </p>
+                          </div>
+                          <div className="menu-card-actions">
+                            <button type="button" className="secondary" onClick={() => openMenuCategory(category)}>Ver detalle</button>
+                            <button
+                              type="button"
+                              className={`primary ${menuCtaPulse ? "menu-cta-highlight" : ""}`}
+                              onClick={() => {
+                                openAppointmentModal({ serviceId: suggestedServiceId });
+                                setFeedback({ type: "info", text: `Agenda tu cita para ${category.title}.` });
+                              }}
+                            >
+                              Agendar cita
+                            </button>
+                            <button
+                              type="button"
+                              className="secondary"
+                              onClick={() => {
+                                triggerMenuCta(matchedService?.name || category.title, "tarjeta de menu");
+                              }}
+                            >
+                              Quiero este producto
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
                 </>
               )

@@ -2756,7 +2756,7 @@ body.theme-dark .pos-content .menu-card-description,
 body.theme-dark .pos-content .profile-code-hint,
 body.theme-dark .pos-content .dashboard-kicker,
 body.theme-dark .pos-content .menu-detail-kicker {
-	color: #ffe3f2 !important;
+	color: #ff0389 !important;
 }
 
 body.theme-dark input,
@@ -2918,9 +2918,13 @@ body.theme-dark .contact-owner-icon-link:hover {
 		z-index: 80;
 		overflow-x: auto;
 		overflow-y: hidden;
+		scroll-snap-type: x mandatory;
+		overscroll-behavior-x: contain;
+		-webkit-overflow-scrolling: touch;
 		padding: 0.35rem;
 		border-radius: 14px;
 		scrollbar-width: thin;
+		background: linear-gradient(95deg, rgba(239, 79, 131, 0.95) 0%, rgba(239, 127, 86, 0.95) 100%);
 		box-shadow: 0 12px 24px rgba(33, 13, 20, 0.28);
 		backdrop-filter: blur(6px);
 	}
@@ -2930,6 +2934,30 @@ body.theme-dark .contact-owner-icon-link:hover {
 		min-height: 42px;
 		padding: 0.35rem 0.3rem;
 		flex: 0 0 auto;
+		scroll-snap-align: start;
+		border: 1px solid rgba(255, 255, 255, 0.28);
+		transition: transform 0.16s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+	}
+
+	.quick-rail button:active {
+		transform: scale(0.97);
+	}
+
+	.quick-rail button.active {
+		box-shadow: 0 6px 14px rgba(34, 10, 20, 0.26);
+	}
+
+	.quick-rail::-webkit-scrollbar {
+		height: 5px;
+	}
+
+	.quick-rail::-webkit-scrollbar-thumb {
+		background: rgba(255, 236, 246, 0.8);
+		border-radius: 999px;
+	}
+
+	.quick-rail::-webkit-scrollbar-track {
+		background: rgba(255, 255, 255, 0.2);
 	}
 
 	.quick-rail-label {
@@ -2942,8 +2970,12 @@ body.theme-dark .contact-owner-icon-link:hover {
 		display: flex;
 		gap: 0.35rem;
 		overflow-x: auto;
+		scroll-snap-type: x proximity;
+		overscroll-behavior-x: contain;
+		-webkit-overflow-scrolling: touch;
 		padding: 0.25rem 0.1rem 0.35rem;
 		margin-bottom: 0.15rem;
+		scrollbar-width: none;
 	}
 
 	.mobile-quick-nav button {
@@ -2960,12 +2992,23 @@ body.theme-dark .contact-owner-icon-link:hover {
 		align-items: center;
 		gap: 0.28rem;
 		padding: 0.35rem 0.6rem;
+		scroll-snap-align: start;
+		transition: transform 0.16s ease, box-shadow 0.2s ease;
+	}
+
+	.mobile-quick-nav button:active {
+		transform: scale(0.97);
 	}
 
 	.mobile-quick-nav button.active {
 		background: var(--accent-main);
 		border-color: var(--accent-main);
 		color: #fff;
+		box-shadow: 0 6px 14px rgba(122, 41, 87, 0.25);
+	}
+
+	.mobile-quick-nav::-webkit-scrollbar {
+		display: none;
 	}
 
 	.content-cards {

@@ -2075,6 +2075,19 @@ select {
 	gap: 0.3rem;
 }
 
+.saved-pill {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.2rem 0.55rem;
+	border-radius: 999px;
+	font-size: 0.75rem;
+	font-weight: 800;
+	background: #e8fbf1;
+	border: 1px solid #92d8b6;
+	color: #176241;
+}
+
 .admin-detail-tabs {
 	display: grid;
 	grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -2418,6 +2431,12 @@ body.theme-dark .admin-image-editor-fields strong {
 body.theme-dark .admin-image-editor-item {
 	background: var(--surface-2);
 	border-color: var(--border-main);
+}
+
+body.theme-dark .saved-pill {
+	background: #204736;
+	border-color: #3f8a67;
+	color: #d9ffe9;
 }
 
 body.theme-dark .admin-detail-tabs button,

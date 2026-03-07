@@ -620,6 +620,7 @@ function App() {
   const menuCtaTimeoutRef = useRef(null);
   const [menuCtaPulse, setMenuCtaPulse] = useState(false);
   const [homePromoIndex, setHomePromoIndex] = useState(0);
+  const [adminSavedMap, setAdminSavedMap] = useState({});
   const [feedback, setFeedback] = useState({ type: "info", text: "Bienvenida a EsmeNails. Inicia sesion o crea tu cuenta para continuar." });
   const appointmentTimeSlots = useMemo(
     () => buildTimeSlots(appointmentSlotStartHour, appointmentSlotEndHour, appointmentSlotStepMinutes),
@@ -724,6 +725,19 @@ function App() {
 
     return normalizedSettings;
   }, [persistLocalAdminSettings]);
+
+  const markAdminSaved = useCallback((key) => {
+    setAdminSavedMap((prev) => ({ ...prev, [key]: true }));
+
+    setTimeout(() => {
+      setAdminSavedMap((prev) => {
+        if (!prev[key]) return prev;
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }, 1800);
+  }, []);
 
   const redirectTo = (path) => {
     const targetPath = normalizeAppPath(path);
@@ -983,6 +997,7 @@ function App() {
           rewards: normalizedRewards
         }
       });
+      markAdminSaved("points-program");
       setFeedback({ type: "success", text: "Programa de puntos actualizado al instante." });
       return;
     }
@@ -999,6 +1014,7 @@ function App() {
       });
       await refreshAdminPanels();
       await refreshAgendaData();
+      markAdminSaved("points-program");
       setFeedback({ type: "success", text: "Programa de puntos actualizado." });
     } catch (error) {
       setFeedback({ type: "error", text: error.message || "No se pudo actualizar programa de puntos." });
@@ -1018,6 +1034,7 @@ function App() {
         ...base,
         services: (base.services || []).map((entry) => (entry.id === service.id ? updatedService : entry))
       });
+      markAdminSaved(`service-${service.id}`);
       setFeedback({ type: "success", text: `Servicio ${service.name} actualizado al instante.` });
       return;
     }
@@ -1038,6 +1055,7 @@ function App() {
       });
       await refreshAdminPanels();
       await refreshAgendaData();
+      markAdminSaved(`service-${service.id}`);
       setFeedback({ type: "success", text: `Servicio ${service.name} actualizado.` });
     } catch (error) {
       setFeedback({ type: "error", text: error.message || "No se pudo guardar servicio." });
@@ -1057,6 +1075,7 @@ function App() {
         ...base,
         products: (base.products || []).map((entry) => (entry.id === product.id ? updatedProduct : entry))
       });
+      markAdminSaved(`product-${product.id}`);
       setFeedback({ type: "success", text: `Producto ${product.name} actualizado al instante.` });
       return;
     }
@@ -1075,6 +1094,7 @@ function App() {
       });
       await refreshAdminPanels();
       await refreshAgendaData();
+      markAdminSaved(`product-${product.id}`);
       setFeedback({ type: "success", text: `Producto ${product.name} actualizado.` });
     } catch (error) {
       setFeedback({ type: "error", text: error.message || "No se pudo guardar producto." });
@@ -1094,6 +1114,7 @@ function App() {
         ...base,
         promotions: (base.promotions || []).map((entry) => (entry.id === promotion.id ? updatedPromotion : entry))
       });
+      markAdminSaved(`promotion-${promotion.id}`);
       setFeedback({ type: "success", text: `Promocion ${promotion.title} actualizada al instante.` });
       return;
     }
@@ -1113,6 +1134,7 @@ function App() {
       });
       await refreshAdminPanels();
       await refreshAgendaData();
+      markAdminSaved(`promotion-${promotion.id}`);
       setFeedback({ type: "success", text: `Promocion ${promotion.title} actualizada.` });
     } catch (error) {
       setFeedback({ type: "error", text: error.message || "No se pudo guardar promocion." });
@@ -1139,6 +1161,7 @@ function App() {
         services: [...(base.services || []), createdService]
       });
       setAdminServiceForm({ name: "", description: "", style: "", model: "", timeMinutes: 60, price: 0, imageUrl: "" });
+      markAdminSaved("service-create");
       setFeedback({ type: "success", text: "Servicio creado y publicado en su categoria." });
       return;
     }
@@ -1157,6 +1180,7 @@ function App() {
       setAdminServiceForm({ name: "", description: "", style: "", model: "", timeMinutes: 60, price: 0, imageUrl: "" });
       await refreshAdminPanels();
       await refreshAgendaData();
+      markAdminSaved("service-create");
       setFeedback({ type: "success", text: "Servicio creado." });
     } catch (error) {
       setFeedback({ type: "error", text: error.message || "No se pudo crear servicio." });
@@ -1181,6 +1205,7 @@ function App() {
         products: [...(base.products || []), createdProduct]
       });
       setAdminProductForm({ name: "", description: "", price: 0, stock: 0, imageUrl: "" });
+      markAdminSaved("product-create");
       setFeedback({ type: "success", text: "Producto creado y visible al instante." });
       return;
     }
@@ -1199,6 +1224,7 @@ function App() {
       setAdminProductForm({ name: "", description: "", price: 0, stock: 0, imageUrl: "" });
       await refreshAdminPanels();
       await refreshAgendaData();
+      markAdminSaved("product-create");
       setFeedback({ type: "success", text: "Producto creado." });
     } catch (error) {
       setFeedback({ type: "error", text: error.message || "No se pudo crear producto." });
@@ -1224,6 +1250,7 @@ function App() {
         promotions: [...(base.promotions || []), createdPromotion]
       });
       setAdminPromotionForm({ title: "", description: "", discountType: "percentage", value: 0, active: true, imageUrl: "" });
+      markAdminSaved("promotion-create");
       setFeedback({ type: "success", text: "Promocion creada y publicada al instante." });
       return;
     }
@@ -1241,6 +1268,7 @@ function App() {
       setAdminPromotionForm({ title: "", description: "", discountType: "percentage", value: 0, active: true, imageUrl: "" });
       await refreshAdminPanels();
       await refreshAgendaData();
+      markAdminSaved("promotion-create");
       setFeedback({ type: "success", text: "Promocion creada." });
     } catch (error) {
       setFeedback({ type: "error", text: error.message || "No se pudo crear promocion." });
@@ -1259,6 +1287,7 @@ function App() {
         ...base,
         employees: (base.employees || []).map((entry) => (entry.id === employee.id ? updatedEmployee : entry))
       });
+      markAdminSaved(`employee-${employee.id}`);
       setFeedback({ type: "success", text: `Empleada ${employee.name} actualizada al instante.` });
       return;
     }
@@ -1276,6 +1305,7 @@ function App() {
       });
       await refreshAdminPanels();
       await refreshAgendaData();
+      markAdminSaved(`employee-${employee.id}`);
       setFeedback({ type: "success", text: `Empleada ${employee.name} actualizada.` });
     } catch (error) {
       setFeedback({ type: "error", text: error.message || "No se pudo guardar empleada." });
@@ -1604,6 +1634,7 @@ function App() {
       });
 
       setAdminEmployeeForm({ name: "", role: "Nail Artist", active: true, imageUrl: "" });
+      markAdminSaved("employee-create");
       setFeedback({ type: "success", text: "Empleada creada y visible al instante." });
       return;
     }
@@ -1621,6 +1652,7 @@ function App() {
       setAdminEmployeeForm({ name: "", role: "Nail Artist", active: true, imageUrl: "" });
       await refreshAdminPanels();
       await refreshAgendaData();
+      markAdminSaved("employee-create");
       setFeedback({ type: "success", text: "Empleada creada." });
     } catch (error) {
       setFeedback({ type: "error", text: error.message || "No se pudo crear empleada." });
@@ -1765,6 +1797,7 @@ function App() {
         ...base,
         ownerContact: mergeOwnerContactDefaults(adminSettings.ownerContact)
       });
+      markAdminSaved("owner-contact");
       setFeedback({ type: "success", text: "Datos de contacto guardados y publicados al instante." });
       return;
     }
@@ -1792,6 +1825,7 @@ function App() {
       });
       setOwnerContact(mergeOwnerContactDefaults(response.ownerContact || adminSettings.ownerContact));
       await refreshAdminPanels();
+      markAdminSaved("owner-contact");
       setFeedback({ type: "success", text: "Datos de contacto del dueno actualizados." });
     } catch (error) {
       setFeedback({ type: "error", text: error.message || "No se pudo actualizar contacto del dueno." });
@@ -3746,6 +3780,7 @@ function App() {
                               <div className="admin-actions-row">
                                 <button type="button" className="secondary" onClick={applySuggestedOwnerCarouselImages}>Usar pack real sugerido</button>
                                 <button type="button" className="primary" onClick={saveOwnerContact}>Guardar carrusel</button>
+                                {adminSavedMap["owner-contact"] && <span className="saved-pill">Guardado</span>}
                               </div>
 
                               <h5 className="admin-subtitle">Servicios creados</h5>
@@ -3763,6 +3798,7 @@ function App() {
                                       <div className="admin-actions-row">
                                         <button type="button" className="secondary" onClick={() => applySuggestedServiceImage(service)}>Foto real sugerida</button>
                                         <button type="button" className="primary" onClick={() => saveService(service)}>Guardar</button>
+                                        {adminSavedMap[`service-${service.id}`] && <span className="saved-pill">Guardado</span>}
                                       </div>
                                     </div>
                                   </div>
@@ -3784,6 +3820,7 @@ function App() {
                                       <div className="admin-actions-row">
                                         <button type="button" className="secondary" onClick={() => applySuggestedProductImage(product)}>Foto real sugerida</button>
                                         <button type="button" className="primary" onClick={() => saveProduct(product)}>Guardar</button>
+                                        {adminSavedMap[`product-${product.id}`] && <span className="saved-pill">Guardado</span>}
                                       </div>
                                     </div>
                                   </div>
@@ -3805,6 +3842,7 @@ function App() {
                                       <div className="admin-actions-row">
                                         <button type="button" className="secondary" onClick={() => applySuggestedPromotionImage(promo)}>Foto real sugerida</button>
                                         <button type="button" className="primary" onClick={() => savePromotion(promo)}>Guardar</button>
+                                        {adminSavedMap[`promotion-${promo.id}`] && <span className="saved-pill">Guardado</span>}
                                       </div>
                                     </div>
                                   </div>
@@ -3869,6 +3907,7 @@ function App() {
                                   />
                                   <SmartImage src={adminServiceForm.imageUrl} alt="Preview servicio" className="admin-thumb" fallbackSrc={localMenuImages.acrigel} />
                                   <button type="submit" className="primary">Crear</button>
+                                  {adminSavedMap["service-create"] && <span className="saved-pill">Guardado</span>}
                                 </form>
 
                                 <div className="admin-table-wrap">
@@ -3916,6 +3955,7 @@ function App() {
                                           </td>
                                           <td>
                                             <button type="button" className="secondary" onClick={() => saveService(service)}>Guardar</button>
+                                            {adminSavedMap[`service-${service.id}`] && <span className="saved-pill">Guardado</span>}
                                           </td>
                                         </tr>
                                       ))}
@@ -3968,6 +4008,7 @@ function App() {
                                   />
                                   <SmartImage src={adminProductForm.imageUrl} alt="Preview producto" className="admin-thumb" fallbackSrc={localMenuImages.presson} />
                                   <button type="submit" className="primary">Crear</button>
+                                  {adminSavedMap["product-create"] && <span className="saved-pill">Guardado</span>}
                                 </form>
 
                                 <div className="admin-table-wrap">
@@ -4007,6 +4048,7 @@ function App() {
                                           </td>
                                           <td>
                                             <button type="button" className="secondary" onClick={() => saveProduct(product)}>Guardar</button>
+                                            {adminSavedMap[`product-${product.id}`] && <span className="saved-pill">Guardado</span>}
                                           </td>
                                         </tr>
                                       ))}
@@ -4051,6 +4093,7 @@ function App() {
                                   />
                                   <SmartImage src={adminEmployeeForm.imageUrl} alt="Preview empleada" className="admin-thumb" fallbackSrc={localMenuImages.artist} />
                                   <button type="submit" className="primary">Crear</button>
+                                  {adminSavedMap["employee-create"] && <span className="saved-pill">Guardado</span>}
                                 </form>
 
                                 <div className="admin-table-wrap">
@@ -4089,6 +4132,7 @@ function App() {
                                           </td>
                                           <td>
                                             <button type="button" className="secondary" onClick={() => saveEmployee(employee)}>Guardar</button>
+                                            {adminSavedMap[`employee-${employee.id}`] && <span className="saved-pill">Guardado</span>}
                                           </td>
                                         </tr>
                                       ))}
@@ -4173,6 +4217,7 @@ function App() {
                                 </div>
                                 <div className="admin-actions-row">
                                   <button type="button" className="primary" onClick={saveOwnerContact}>Guardar contacto del dueno</button>
+                                  {adminSavedMap["owner-contact"] && <span className="saved-pill">Guardado</span>}
                                 </div>
                               </article>
 
@@ -4265,6 +4310,7 @@ function App() {
 
                                 <div className="admin-actions-row">
                                   <button type="button" className="primary" onClick={savePointsProgram}>Guardar programa de puntos</button>
+                                  {adminSavedMap["points-program"] && <span className="saved-pill">Guardado</span>}
                                 </div>
                               </article>
 
@@ -4319,6 +4365,7 @@ function App() {
                                   />
                                   <SmartImage src={adminPromotionForm.imageUrl} alt="Preview promocion" className="admin-thumb" fallbackSrc={localMenuImages.encapsulado} />
                                   <button type="submit" className="primary">Crear</button>
+                                  {adminSavedMap["promotion-create"] && <span className="saved-pill">Guardado</span>}
                                 </form>
 
                                 <div className="admin-table-wrap">
@@ -4365,6 +4412,7 @@ function App() {
                                           </td>
                                           <td>
                                             <button type="button" className="secondary" onClick={() => savePromotion(promo)}>Guardar</button>
+                                            {adminSavedMap[`promotion-${promo.id}`] && <span className="saved-pill">Guardado</span>}
                                           </td>
                                         </tr>
                                       ))}

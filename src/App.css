@@ -1303,6 +1303,39 @@ select {
 	gap: 0.6rem;
 }
 
+.menu-screen-wrap {
+	display: grid;
+	gap: 0.65rem;
+}
+
+.menu-search-hero {
+	border: 1px solid #efcec0;
+	background: #fff8f3;
+	border-radius: 14px;
+	padding: 0.75rem;
+	display: grid;
+	gap: 0.45rem;
+}
+
+.menu-search-hero h3,
+.menu-search-hero p,
+.menu-search-hero small {
+	margin: 0;
+}
+
+.menu-search-row {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	gap: 0.45rem;
+	align-items: center;
+}
+
+.menu-search-icon {
+	font-size: 0.8rem;
+	font-weight: 700;
+	color: #7a2f1b;
+}
+
 .menu-card {
 	border: 1px solid #efcec0;
 	background: #fff8f3;
@@ -2086,6 +2119,63 @@ select {
 	align-items: center;
 }
 
+.assistant-messages.floating {
+	max-height: 260px;
+}
+
+.assistant-cloud-btn {
+	position: fixed;
+	right: 18px;
+	bottom: 18px;
+	z-index: 1200;
+	border: 0;
+	border-radius: 999px;
+	padding: 0.5rem 0.8rem;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	background: linear-gradient(120deg, #ff7da6 0%, #ff9a6e 100%);
+	color: #fff;
+	font-weight: 800;
+	box-shadow: 0 10px 20px rgba(75, 22, 12, 0.28);
+}
+
+.assistant-cloud-btn.open {
+	box-shadow: 0 0 0 3px rgba(255, 153, 110, 0.34), 0 10px 20px rgba(75, 22, 12, 0.28);
+}
+
+.assistant-cloud-icon {
+	font-size: 0.78rem;
+	font-weight: 900;
+	letter-spacing: 0.02em;
+}
+
+.assistant-cloud-label {
+	font-size: 0.82rem;
+}
+
+.assistant-floating-panel {
+	position: fixed;
+	right: 18px;
+	bottom: 76px;
+	width: min(420px, calc(100vw - 24px));
+	z-index: 1199;
+	border: 1px solid #efcec0;
+	background: #fff8f3;
+	border-radius: 16px;
+	padding: 0.7rem;
+	display: grid;
+	gap: 0.45rem;
+	box-shadow: 0 18px 32px rgba(54, 18, 8, 0.28);
+}
+
+.assistant-floating-panel header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.45rem;
+}
+
 @keyframes contactLinksRun {
 	0% {
 		transform: translateX(0);
@@ -2682,6 +2772,17 @@ body.theme-dark .assistant-msg.bot {
 	color: #ece9ff;
 }
 
+body.theme-dark .menu-search-hero,
+body.theme-dark .assistant-floating-panel {
+	background: #2c1f2a;
+	border-color: #6a3e55;
+}
+
+body.theme-dark .assistant-cloud-btn {
+	background: linear-gradient(120deg, #b95d87 0%, #ba754f 100%);
+	color: #fff1f7;
+}
+
 body.theme-dark .menu-cart-panel {
 	background: #2c1f2a;
 	border-color: #6a3e55;
@@ -2829,12 +2930,27 @@ body.theme-dark .contact-owner-icon-link:hover {
 		grid-template-columns: 1fr;
 	}
 
+	.menu-search-row {
+		grid-template-columns: 1fr;
+	}
+
 	.menu-detail {
 		grid-template-columns: 1fr;
 	}
 
 	.menu-detail-with-list {
 		grid-template-columns: 1fr;
+	}
+
+	.assistant-cloud-btn {
+		right: 12px;
+		bottom: 12px;
+	}
+
+	.assistant-floating-panel {
+		right: 12px;
+		bottom: 70px;
+		width: calc(100vw - 24px);
 	}
 
 	.menu-detail-actions {

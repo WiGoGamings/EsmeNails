@@ -568,6 +568,7 @@ function App() {
   const [activeSection, setActiveSection] = useState("Agendar cita");
   const [selectedMenuCategory, setSelectedMenuCategory] = useState(null);
   const [selectedMenuServiceId, setSelectedMenuServiceId] = useState("");
+  const [menuSearchQuery, setMenuSearchQuery] = useState("");
   const [menuCartItems, setMenuCartItems] = useState(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(MENU_CART_STORAGE_KEY) || "[]");
@@ -650,6 +651,7 @@ function App() {
   const [contactBusy, setContactBusy] = useState(false);
   const [assistantInput, setAssistantInput] = useState("");
   const [assistantBusy, setAssistantBusy] = useState(false);
+  const [assistantFloatingOpen, setAssistantFloatingOpen] = useState(false);
   const [assistantMessages, setAssistantMessages] = useState(() => ([
     {
       id: "assistant-welcome",
@@ -2027,6 +2029,13 @@ function App() {
     }
   };
 
+  const openAssistantWithPrompt = (prompt) => {
+    setAssistantFloatingOpen(true);
+    if (typeof prompt === "string" && prompt.trim()) {
+      setAssistantInput(prompt.trim());
+    }
+  };
+
   const updateAdminContactField = (messageId, field, value) => {
     setAdminData((prev) => {
       if (!prev) return prev;
@@ -3394,9 +3403,9 @@ function App() {
                   <h2>Asistente personal con IA</h2>
                   <p>Preguntame por precios, promociones, productos, recomendaciones y como agendar cita.</p>
                   <div className="assistant-quick-actions">
-                    <button type="button" className="secondary" onClick={() => setAssistantInput("Que promociones tienen hoy?")}>Promociones de hoy</button>
-                    <button type="button" className="secondary" onClick={() => setAssistantInput("Recomiendame un servicio para evento")}>Recomendar servicio</button>
-                    <button type="button" className="secondary" onClick={() => setAssistantInput("Como agendo mi cita?")}>Como agendar</button>
+                    <button type="button" className="secondary" onClick={() => openAssistantWithPrompt("Que promociones tienen hoy?")}>Promociones de hoy</button>
+                    <button type="button" className="secondary" onClick={() => openAssistantWithPrompt("Recomiendame un servicio para evento")}>Recomendar servicio</button>
+                    <button type="button" className="secondary" onClick={() => openAssistantWithPrompt("Como agendo mi cita?")}>Como agendar</button>
                   </div>
                 </article>
 
@@ -4791,10 +4800,49 @@ function App() {
             ) : activeSection === "Menu" ? (
               (() => {
                 const selectedMenuService = catalogServices.find((service) => service.id === selectedMenuServiceId) || null;
+                const normalizedMenuQuery = menuSearchQuery.trim().toLowerCase();
+                const visibleMenuServices = normalizedMenuQuery
+                  ? catalogServices.filter((service) => [service.name, service.style, service.model, service.description]
+                    .join(" ")
+                    .toLowerCase()
+                    .includes(normalizedMenuQuery))
+                  : catalogServices;
+                const visibleMenuCategories = normalizedMenuQuery
+                  ? menuCategories.filter((category) => [category.title, category.subtitle].join(" ").toLowerCase().includes(normalizedMenuQuery))
+                  : menuCategories;
                 const menuListCount = menuCartItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
                 const menuListTotal = menuCartItems.reduce(
                   (sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 0)),
                   0
+                );
+
+                const menuSearchBar = (
+                  <article className="menu-search-hero">
+                    <p className="menu-detail-kicker">Buscador rapido</p>
+                    <h3>Busca servicios por nombre, estilo o descripcion</h3>
+                    <div className="menu-search-row">
+                      <span className="menu-search-icon" aria-hidden="true">Buscar:</span>
+                      <input
+                        value={menuSearchQuery}
+                        onChange={(event) => setMenuSearchQuery(event.target.value)}
+                        placeholder="Ejemplo: gel x, manicure spa, natural, elegante"
+                        maxLength={120}
+                      />
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => setMenuSearchQuery("")}
+                        disabled={!menuSearchQuery.trim()}
+                      >
+                        Limpiar
+                      </button>
+                    </div>
+                    {menuSearchQuery.trim() && (
+                      <small>
+                        Resultados: {visibleMenuServices.length > 0 ? `${visibleMenuServices.length} servicio(s)` : `${visibleMenuCategories.length} categoria(s)`}
+                      </small>
+                    )}
+                  </article>
                 );
 
                 if (selectedMenuService) {
@@ -4802,8 +4850,10 @@ function App() {
                   const hasSelectedServicePrice = Number.isFinite(selectedServicePrice) && selectedServicePrice > 0;
 
                   return (
-                    <section className="menu-detail-with-list">
-                      <div className="menu-detail">
+                    <section className="menu-screen-wrap">
+                      {menuSearchBar}
+                      <div className="menu-detail-with-list">
+                        <div className="menu-detail">
                         <SmartImage
                           src={selectedMenuService.imageUrl}
                           alt={selectedMenuService.name}
@@ -4840,9 +4890,9 @@ function App() {
                             </button>
                           </div>
                         </div>
-                      </div>
+                        </div>
 
-                      <article className="menu-cart-panel">
+                        <article className="menu-cart-panel">
                         <header>
                           <h3>Tu lista</h3>
                           <span>{menuListCount} item(s)</span>
@@ -4870,7 +4920,8 @@ function App() {
                             Vaciar lista
                           </button>
                         </footer>
-                      </article>
+                        </article>
+                      </div>
                     </section>
                   );
                 }
@@ -4931,11 +4982,12 @@ function App() {
 
                 return (
                   <>
+                    {menuSearchBar}
                     {catalogServices.length > 0 ? (
                       <>
                         <p>Servicios publicados desde Panel admin. Cada tarjeta incluye acceso a Detalles para agregar a tu lista o agendar cita.</p>
                         <div className="menu-grid">
-                          {catalogServices.map((service) => {
+                          {visibleMenuServices.map((service) => {
                             const servicePrice = Number(service.price);
                             const hasServicePrice = Number.isFinite(servicePrice) && servicePrice > 0;
 
@@ -4960,13 +5012,21 @@ function App() {
                               </article>
                             );
                           })}
+                          {visibleMenuServices.length === 0 && (
+                            <article className="menu-card">
+                              <div className="menu-card-text">
+                                <strong>Sin resultados</strong>
+                                <p className="menu-card-description">No se encontraron servicios con ese texto. Prueba otra palabra.</p>
+                              </div>
+                            </article>
+                          )}
                         </div>
                       </>
                     ) : (
                       <>
                         <p>Selecciona un estilo de unas para abrir su pagina.</p>
                         <div className="menu-grid">
-                          {menuCategories.map((category) => {
+                          {visibleMenuCategories.map((category) => {
                             const suggestedServiceId = findSuggestedServiceId(category, catalogServices);
                             const matchedService = catalogServices.find((service) => service.id === suggestedServiceId);
                             const matchedPrice = Number(matchedService?.price);
@@ -4989,6 +5049,14 @@ function App() {
                               </article>
                             );
                           })}
+                          {visibleMenuCategories.length === 0 && (
+                            <article className="menu-card">
+                              <div className="menu-card-text">
+                                <strong>Sin resultados</strong>
+                                <p className="menu-card-description">No se encontraron categorias con ese texto.</p>
+                              </div>
+                            </article>
+                          )}
                         </div>
                       </>
                     )}
@@ -5587,6 +5655,60 @@ function App() {
             )}
 
             <p className={`feedback ${feedback.type}`}>{feedback.text}</p>
+
+            <button
+              type="button"
+              className={`assistant-cloud-btn ${assistantFloatingOpen ? "open" : ""}`}
+              onClick={() => setAssistantFloatingOpen((prev) => !prev)}
+              aria-label="Abrir asistente personal"
+              title="Asistente personal"
+            >
+              <span className="assistant-cloud-icon" aria-hidden="true">Nube IA</span>
+              <span className="assistant-cloud-label">Asistente</span>
+            </button>
+
+            {assistantFloatingOpen && (
+              <aside className="assistant-floating-panel" aria-live="polite">
+                <header>
+                  <strong>Asistente personal</strong>
+                  <button type="button" className="secondary" onClick={() => setAssistantFloatingOpen(false)}>Cerrar</button>
+                </header>
+
+                <div className="assistant-quick-actions">
+                  <button type="button" className="secondary" onClick={() => openAssistantWithPrompt("Que promociones tienen hoy?")}>Promociones</button>
+                  <button type="button" className="secondary" onClick={() => openAssistantWithPrompt("Recomiendame un servicio")}>Recomendar</button>
+                  <button type="button" className="secondary" onClick={() => openAssistantWithPrompt("Como agendo mi cita?")}>Agendar</button>
+                </div>
+
+                <div className="assistant-messages floating">
+                  {assistantMessages.map((entry) => (
+                    <div key={`floating-${entry.id}`} className={`assistant-msg ${entry.role === "user" ? "user" : "bot"}`}>
+                      <strong>{entry.role === "user" ? "Tu" : "Asistente"}</strong>
+                      <p>{entry.text}</p>
+                    </div>
+                  ))}
+                  {assistantBusy && (
+                    <div className="assistant-msg bot pending">
+                      <strong>Asistente</strong>
+                      <p>Escribiendo respuesta...</p>
+                    </div>
+                  )}
+                  <div ref={assistantMessagesEndRef} />
+                </div>
+
+                <form className="assistant-form" onSubmit={submitAssistantMessage}>
+                  <input
+                    value={assistantInput}
+                    onChange={(event) => setAssistantInput(event.target.value)}
+                    placeholder="Escribe tu pregunta..."
+                    maxLength={1200}
+                  />
+                  <button type="submit" className="primary" disabled={assistantBusy || !assistantInput.trim()}>
+                    {assistantBusy ? "Consultando..." : "Enviar"}
+                  </button>
+                </form>
+              </aside>
+            )}
           </section>
         </div>
       </main>

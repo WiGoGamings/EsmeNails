@@ -255,8 +255,31 @@ const defaultOwnerContact = {
 const resolveImageUrl = (rawUrl) => {
   if (typeof rawUrl !== "string") return "";
 
-  const trimmed = rawUrl.trim();
+  let trimmed = rawUrl.trim();
   if (!trimmed) return "";
+
+  if (/^www\./i.test(trimmed)) {
+    trimmed = `https://${trimmed}`;
+  }
+
+  if (/^http:\/\//i.test(trimmed)) {
+    trimmed = `https://${trimmed.slice(7)}`;
+  }
+
+  const driveMatch = trimmed.match(/^https?:\/\/drive\.google\.com\/file\/d\/([^/]+)\//i);
+  if (driveMatch?.[1]) {
+    trimmed = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.hostname.includes("dropbox.com")) {
+      parsed.searchParams.set("raw", "1");
+      trimmed = parsed.toString();
+    }
+  } catch {
+    // Keep original value when it's not a valid absolute URL.
+  }
 
   if (/^(https?:|data:|blob:)/i.test(trimmed)) {
     return trimmed;
@@ -271,6 +294,32 @@ const resolveImageUrl = (rawUrl) => {
 
   return `${normalizedBase}${trimmed}`;
 };
+
+function SmartImage({ src, fallbackSrc = "/menu/manicure.svg", alt, ...rest }) {
+  const toResolved = useCallback((value) => resolveImageUrl(value) || resolveImageUrl(fallbackSrc), [fallbackSrc]);
+  const [currentSrc, setCurrentSrc] = useState(() => toResolved(src));
+
+  useEffect(() => {
+    setCurrentSrc(toResolved(src));
+  }, [src, toResolved]);
+
+  const fallbackResolved = resolveImageUrl(fallbackSrc);
+
+  return (
+    <img
+      {...rest}
+      src={currentSrc}
+      alt={alt}
+      onError={(event) => {
+        if (currentSrc !== fallbackResolved) {
+          setCurrentSrc(fallbackResolved);
+          return;
+        }
+        event.currentTarget.onerror = null;
+      }}
+    />
+  );
+}
 
 const mergeOwnerContactDefaults = (ownerContact) => ({
   ...defaultOwnerContact,
@@ -2275,7 +2324,7 @@ function App() {
                 <article className="profile-hero">
                   <div className="profile-avatar-wrap">
                     {profileForm.profileImageUrl ? (
-                      <img src={resolveImageUrl(profileForm.profileImageUrl)} alt="Foto de perfil" className="profile-avatar" />
+                      <SmartImage src={profileForm.profileImageUrl} alt="Foto de perfil" className="profile-avatar" fallbackSrc="/menu/manicure.svg" />
                     ) : (
                       <div className="profile-avatar placeholder">{(profileForm.name || sessionUser?.name || "E").slice(0, 1).toUpperCase()}</div>
                     )}
@@ -3295,7 +3344,7 @@ function App() {
                                     onChange={(event) => handleAdminImageFileSelected(event, { form: "service" })}
                                   />
                                   {adminServiceForm.imageUrl && (
-                                    <img src={resolveImageUrl(adminServiceForm.imageUrl)} alt="Preview servicio" className="admin-thumb" />
+                                    <SmartImage src={adminServiceForm.imageUrl} alt="Preview servicio" className="admin-thumb" fallbackSrc="/menu/acrigel.svg" />
                                   )}
                                   <button type="submit" className="primary">Crear</button>
                                 </form>
@@ -3329,7 +3378,7 @@ function App() {
                                               className="admin-image-input"
                                               onChange={(event) => handleAdminImageFileSelected(event, { collection: "services", id: service.id })}
                                             />
-                                            {service.imageUrl && <img src={resolveImageUrl(service.imageUrl)} alt={service.name} className="admin-thumb" />}
+                                            {service.imageUrl && <SmartImage src={service.imageUrl} alt={service.name} className="admin-thumb" fallbackSrc="/menu/acrigel.svg" />}
                                           </td>
                                           <td>
                                             <input value={service.style} onChange={(event) => updateAdminSettingField("services", service.id, "style", event.target.value)} />
@@ -3396,7 +3445,7 @@ function App() {
                                     onChange={(event) => handleAdminImageFileSelected(event, { form: "product" })}
                                   />
                                   {adminProductForm.imageUrl && (
-                                    <img src={resolveImageUrl(adminProductForm.imageUrl)} alt="Preview producto" className="admin-thumb" />
+                                    <SmartImage src={adminProductForm.imageUrl} alt="Preview producto" className="admin-thumb" fallbackSrc="/menu/presson.svg" />
                                   )}
                                   <button type="submit" className="primary">Crear</button>
                                 </form>
@@ -3428,7 +3477,7 @@ function App() {
                                               className="admin-image-input"
                                               onChange={(event) => handleAdminImageFileSelected(event, { collection: "products", id: product.id })}
                                             />
-                                            {product.imageUrl && <img src={resolveImageUrl(product.imageUrl)} alt={product.name} className="admin-thumb" />}
+                                            {product.imageUrl && <SmartImage src={product.imageUrl} alt={product.name} className="admin-thumb" fallbackSrc="/menu/presson.svg" />}
                                           </td>
                                           <td>
                                             <input type="number" min="0" step="0.01" value={product.price} onChange={(event) => updateAdminSettingField("products", product.id, "price", event.target.value)} />
@@ -3481,7 +3530,7 @@ function App() {
                                     onChange={(event) => handleAdminImageFileSelected(event, { form: "employee" })}
                                   />
                                   {adminEmployeeForm.imageUrl && (
-                                    <img src={resolveImageUrl(adminEmployeeForm.imageUrl)} alt="Preview empleada" className="admin-thumb" />
+                                    <SmartImage src={adminEmployeeForm.imageUrl} alt="Preview empleada" className="admin-thumb" fallbackSrc="/menu/manicure.svg" />
                                   )}
                                   <button type="submit" className="primary">Crear</button>
                                 </form>
@@ -3512,7 +3561,7 @@ function App() {
                                               className="admin-image-input"
                                               onChange={(event) => handleAdminImageFileSelected(event, { collection: "employees", id: employee.id })}
                                             />
-                                            {employee.imageUrl && <img src={resolveImageUrl(employee.imageUrl)} alt={employee.name} className="admin-thumb" />}
+                                            {employee.imageUrl && <SmartImage src={employee.imageUrl} alt={employee.name} className="admin-thumb" fallbackSrc="/menu/manicure.svg" />}
                                           </td>
                                           <td>
                                             <input value={employee.role} onChange={(event) => updateAdminSettingField("employees", employee.id, "role", event.target.value)} />
@@ -3751,7 +3800,7 @@ function App() {
                                     onChange={(event) => handleAdminImageFileSelected(event, { form: "promotion" })}
                                   />
                                   {adminPromotionForm.imageUrl && (
-                                    <img src={resolveImageUrl(adminPromotionForm.imageUrl)} alt="Preview promocion" className="admin-thumb" />
+                                    <SmartImage src={adminPromotionForm.imageUrl} alt="Preview promocion" className="admin-thumb" fallbackSrc="/menu/encapsulado.svg" />
                                   )}
                                   <button type="submit" className="primary">Crear</button>
                                 </form>
@@ -3784,7 +3833,7 @@ function App() {
                                               className="admin-image-input"
                                               onChange={(event) => handleAdminImageFileSelected(event, { collection: "promotions", id: promo.id })}
                                             />
-                                            {promo.imageUrl && <img src={resolveImageUrl(promo.imageUrl)} alt={promo.title} className="admin-thumb" />}
+                                            {promo.imageUrl && <SmartImage src={promo.imageUrl} alt={promo.title} className="admin-thumb" fallbackSrc="/menu/encapsulado.svg" />}
                                           </td>
                                           <td>
                                             <select value={promo.discountType} onChange={(event) => updateAdminSettingField("promotions", promo.id, "discountType", event.target.value)}>
@@ -3818,10 +3867,11 @@ function App() {
             ) : activeSection === "Menu" ? (
               selectedMenuCategory ? (
                 <section className="menu-detail">
-                  <img
-                    src={resolveImageUrl(selectedMenuCategory.image)}
+                  <SmartImage
+                    src={selectedMenuCategory.image}
                     alt={selectedMenuCategory.title}
                     className="menu-detail-image"
+                    fallbackSrc="/menu/manicure.svg"
                   />
                   <div className="menu-detail-body">
                     <p className="menu-detail-kicker">Categoria seleccionada</p>
@@ -3864,7 +3914,7 @@ function App() {
                   <div className="menu-grid">
                     {menuCategories.map((category) => (
                       <article key={category.id} className="menu-card">
-                        <img src={resolveImageUrl(category.image)} alt={category.title} />
+                        <SmartImage src={category.image} alt={category.title} fallbackSrc="/menu/manicure.svg" />
                         <div className="menu-card-text">
                           <strong>{category.title}</strong>
                           <small>{category.subtitle}</small>
@@ -3961,7 +4011,7 @@ function App() {
                     {filteredCatalogServices.map((service) => (
                       <article key={service.id} className="price-card">
                         {service.imageUrl && (
-                          <img src={resolveImageUrl(service.imageUrl)} alt={service.name} className="price-card-image" />
+                          <SmartImage src={service.imageUrl} alt={service.name} className="price-card-image" fallbackSrc="/menu/acrigel.svg" />
                         )}
                         <header>
                           <h3>{service.name}</h3>
@@ -3996,7 +4046,7 @@ function App() {
                     {filteredCatalogProducts.map((product) => (
                       <article key={product.id} className="price-card">
                         {product.imageUrl && (
-                          <img src={resolveImageUrl(product.imageUrl)} alt={product.name} className="price-card-image" />
+                          <SmartImage src={product.imageUrl} alt={product.name} className="price-card-image" fallbackSrc="/menu/presson.svg" />
                         )}
                         <header>
                           <h3>{product.name}</h3>
@@ -4019,7 +4069,7 @@ function App() {
                     {filteredCatalogPromotions.map((promotion) => (
                       <article key={promotion.id} className="price-card">
                         {promotion.imageUrl && (
-                          <img src={resolveImageUrl(promotion.imageUrl)} alt={promotion.title} className="price-card-image" />
+                          <SmartImage src={promotion.imageUrl} alt={promotion.title} className="price-card-image" fallbackSrc="/menu/encapsulado.svg" />
                         )}
                         <header>
                           <h3>{promotion.title}</h3>
@@ -4082,7 +4132,7 @@ function App() {
                   {filteredCatalogPromotions.map((promotion) => (
                     <article key={promotion.id} className="promo-card">
                       {promotion.imageUrl ? (
-                        <img src={resolveImageUrl(promotion.imageUrl)} alt={promotion.title} className="promo-card-image" />
+                        <SmartImage src={promotion.imageUrl} alt={promotion.title} className="promo-card-image" fallbackSrc="/menu/encapsulado.svg" />
                       ) : (
                         <div className="promo-card-image placeholder">Promo</div>
                       )}
@@ -4268,11 +4318,12 @@ function App() {
                 <article className="home-cinema-card">
                   <div className="home-cinema-main">
                     {homeActiveSlide?.imageUrl && (
-                      <img
+                      <SmartImage
                         key={homeActiveSlide.id}
-                        src={resolveImageUrl(homeActiveSlide.imageUrl)}
+                        src={homeActiveSlide.imageUrl}
                         alt={homeActiveSlide.title}
                         className="home-cinema-image"
+                        fallbackSrc="/menu/gelx.svg"
                       />
                     )}
                     <div className="home-cinema-overlay">
@@ -4297,7 +4348,7 @@ function App() {
                             className={`home-film-item ${isActive ? "active" : ""}`}
                             onClick={() => setHomePromoIndex(baseIndex)}
                           >
-                            <img src={resolveImageUrl(item.imageUrl)} alt={item.title} />
+                            <SmartImage src={item.imageUrl} alt={item.title} fallbackSrc="/menu/gelx.svg" />
                             <span>{item.title}</span>
                           </button>
                         );

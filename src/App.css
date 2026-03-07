@@ -25,7 +25,7 @@ body.theme-dark {
 	--surface-2: #341d3a;
 	--surface-3: #42204b;
 	--text-main: #ffe7f5;
-	--text-soft: #efb8d7;
+	--text-soft: #ffd0e8;
 	--border-main: #693777;
 	--accent-main: #ff4fa4;
 	--accent-strong: #ff7abf;
@@ -2752,7 +2752,7 @@ body.theme-dark .pos-content .menu-card-description,
 body.theme-dark .pos-content .profile-code-hint,
 body.theme-dark .pos-content .dashboard-kicker,
 body.theme-dark .pos-content .menu-detail-kicker {
-	color: var(--text-soft) !important;
+	color: #ffe3f2 !important;
 }
 
 body.theme-dark input,
@@ -2765,7 +2765,15 @@ body.theme-dark select {
 
 body.theme-dark input::placeholder,
 body.theme-dark textarea::placeholder {
-	color: #d7a8c6;
+	color: #f2cae1;
+}
+
+body.theme-dark .auth-card small,
+body.theme-dark .auth-card p,
+body.theme-dark .dashboard-kicker,
+body.theme-dark .admin-subtitle,
+body.theme-dark .quick-rail-label {
+	color: #ffe1f0;
 }
 
 body.theme-dark .primary {

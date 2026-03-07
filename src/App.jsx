@@ -57,6 +57,8 @@ const localMenuImages = {
   artist: realNailImages.artist
 };
 
+const ADMIN_LOCAL_SETTINGS_KEY = "esme_admin_settings_local";
+
 const legacyMenuToRealImage = {
   "/menu/acrigel.svg": realNailImages.acrigel,
   "menu/acrigel.svg": realNailImages.acrigel,
@@ -624,6 +626,105 @@ function App() {
     []
   );
 
+  const buildEmptyAdminData = useCallback(() => ({
+    overview: { clients: 0, appointments: 0, orders: 0, revenue: 0 },
+    totals: {
+      day: { newClients: 0, appointments: 0, orders: 0, revenue: 0, donations: 0 },
+      week: { newClients: 0, appointments: 0, orders: 0, revenue: 0, donations: 0 },
+      month: { newClients: 0, appointments: 0, orders: 0, revenue: 0, donations: 0 },
+      year: { newClients: 0, appointments: 0, orders: 0, revenue: 0, donations: 0 }
+    },
+    users: [],
+    appointments: [],
+    completedAppointments: [],
+    contactMessages: [],
+    clientHistory: []
+  }), []);
+
+  const getRuntimeSettingsSnapshot = useCallback(() => ({
+    services: Array.isArray(catalogServices) ? [...catalogServices] : [],
+    products: Array.isArray(catalogProducts) ? [...catalogProducts] : [],
+    promotions: Array.isArray(catalogPromotions) ? [...catalogPromotions] : [],
+    employees: Array.isArray(catalogEmployees) ? [...catalogEmployees] : [],
+    ownerContact: mergeOwnerContactDefaults(ownerContact),
+    pointsProgram: catalogPointsProgram || defaultPointsProgram
+  }), [catalogEmployees, catalogPointsProgram, catalogProducts, catalogPromotions, catalogServices, ownerContact]);
+
+  const persistLocalAdminSettings = useCallback((settings) => {
+    try {
+      localStorage.setItem(ADMIN_LOCAL_SETTINGS_KEY, JSON.stringify(settings));
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, []);
+
+  const getLocalAdminSettingsSnapshot = useCallback(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(ADMIN_LOCAL_SETTINGS_KEY) || "null");
+      if (stored && typeof stored === "object") {
+        return {
+          services: Array.isArray(stored.services) ? stored.services : [],
+          products: Array.isArray(stored.products) ? stored.products : [],
+          promotions: Array.isArray(stored.promotions) ? stored.promotions : [],
+          employees: Array.isArray(stored.employees) ? stored.employees : [],
+          ownerContact: mergeOwnerContactDefaults(stored.ownerContact),
+          pointsProgram: stored.pointsProgram || defaultPointsProgram
+        };
+      }
+    } catch {
+      // Fall back to runtime values.
+    }
+
+    return getRuntimeSettingsSnapshot();
+  }, [getRuntimeSettingsSnapshot]);
+
+  const applyAdminSettingsToRuntime = useCallback((nextSettings) => {
+    const services = Array.isArray(nextSettings?.services)
+      ? nextSettings.services.map((service) => ({
+          ...service,
+          imageUrl: normalizeRealImageUrl(service?.imageUrl) || inferServiceImageUrl(service)
+        }))
+      : [];
+
+    const products = Array.isArray(nextSettings?.products)
+      ? nextSettings.products.map((product) => ({
+          ...product,
+          imageUrl: normalizeRealImageUrl(product?.imageUrl) || inferProductImageUrl(product)
+        }))
+      : [];
+
+    const promotions = Array.isArray(nextSettings?.promotions)
+      ? nextSettings.promotions.map((promotion) => ({
+          ...promotion,
+          imageUrl: normalizeRealImageUrl(promotion?.imageUrl) || inferPromotionImageUrl(promotion)
+        }))
+      : [];
+
+    const employees = Array.isArray(nextSettings?.employees) ? nextSettings.employees : [];
+    const owner = mergeOwnerContactDefaults(nextSettings?.ownerContact);
+    const pointsProgram = nextSettings?.pointsProgram || defaultPointsProgram;
+
+    const normalizedSettings = {
+      services,
+      products,
+      promotions,
+      employees,
+      ownerContact: owner,
+      pointsProgram
+    };
+
+    setAdminSettings(normalizedSettings);
+    setCatalogServices(services);
+    setCatalogProducts(products);
+    setCatalogPromotions(promotions);
+    setCatalogEmployees(employees);
+    setCatalogPointsProgram(pointsProgram);
+    setOwnerContact(owner);
+    persistLocalAdminSettings(normalizedSettings);
+
+    return normalizedSettings;
+  }, [persistLocalAdminSettings]);
+
   const redirectTo = (path) => {
     const targetPath = normalizeAppPath(path);
     const targetHash = `#${targetPath}`;
@@ -744,18 +845,31 @@ function App() {
   const refreshAdminPanels = useCallback(async (token = adminToken) => {
     if (!token) return;
 
+    if (!API_BASE) {
+      const localSettings = getLocalAdminSettingsSnapshot();
+      applyAdminSettingsToRuntime(localSettings);
+      setAdminData(buildEmptyAdminData());
+      return;
+    }
+
     const [dashboardResponse, settingsResponse] = await Promise.all([
       apiRequest("/admin/dashboard", { token }),
       apiRequest("/admin/settings", { token })
     ]);
     setAdminData(dashboardResponse);
-    setAdminSettings(settingsResponse);
+    applyAdminSettingsToRuntime(settingsResponse);
     if (settingsResponse?.ownerContact) {
       setOwnerContact(mergeOwnerContactDefaults(settingsResponse.ownerContact));
     }
-  }, [adminToken]);
+  }, [adminToken, applyAdminSettingsToRuntime, buildEmptyAdminData, getLocalAdminSettingsSnapshot]);
 
   const loadOwnerContact = useCallback(async () => {
+    if (!API_BASE) {
+      const localSettings = getLocalAdminSettingsSnapshot();
+      setOwnerContact(mergeOwnerContactDefaults(localSettings.ownerContact));
+      return;
+    }
+
     try {
       const response = await apiRequest("/contact/owner-info");
       if (response?.ownerContact) {
@@ -764,7 +878,7 @@ function App() {
     } catch {
       // Keep local fallback examples if endpoint is unavailable.
     }
-  }, []);
+  }, [getLocalAdminSettingsSnapshot]);
 
   const updateAdminSettingField = (collection, id, field, value) => {
     setAdminSettings((prev) => {
@@ -859,6 +973,20 @@ function App() {
       .filter((reward) => reward.id && reward.title && reward.points > 0)
       .sort((a, b) => a.points - b.points);
 
+    if (!API_BASE) {
+      const base = getLocalAdminSettingsSnapshot();
+      applyAdminSettingsToRuntime({
+        ...base,
+        pointsProgram: {
+          pointsPerAmount: Number(adminSettings.pointsProgram.pointsPerAmount) || 10,
+          pointsPerUnit: Number(adminSettings.pointsProgram.pointsPerUnit) || 1,
+          rewards: normalizedRewards
+        }
+      });
+      setFeedback({ type: "success", text: "Programa de puntos actualizado al instante." });
+      return;
+    }
+
     try {
       await apiRequest("/admin/settings/points-program", {
         method: "PUT",
@@ -878,6 +1006,22 @@ function App() {
   };
 
   const saveService = async (service) => {
+    if (!API_BASE) {
+      const base = getLocalAdminSettingsSnapshot();
+      const updatedService = {
+        ...service,
+        timeMinutes: Number(service.timeMinutes),
+        price: Number(service.price),
+        imageUrl: service.imageUrl || ""
+      };
+      applyAdminSettingsToRuntime({
+        ...base,
+        services: (base.services || []).map((entry) => (entry.id === service.id ? updatedService : entry))
+      });
+      setFeedback({ type: "success", text: `Servicio ${service.name} actualizado al instante.` });
+      return;
+    }
+
     try {
       await apiRequest(`/admin/settings/services/${service.id}`, {
         method: "PUT",
@@ -901,6 +1045,22 @@ function App() {
   };
 
   const saveProduct = async (product) => {
+    if (!API_BASE) {
+      const base = getLocalAdminSettingsSnapshot();
+      const updatedProduct = {
+        ...product,
+        price: Number(product.price),
+        stock: Number(product.stock),
+        imageUrl: product.imageUrl || ""
+      };
+      applyAdminSettingsToRuntime({
+        ...base,
+        products: (base.products || []).map((entry) => (entry.id === product.id ? updatedProduct : entry))
+      });
+      setFeedback({ type: "success", text: `Producto ${product.name} actualizado al instante.` });
+      return;
+    }
+
     try {
       await apiRequest(`/admin/settings/products/${product.id}`, {
         method: "PUT",
@@ -922,6 +1082,22 @@ function App() {
   };
 
   const savePromotion = async (promotion) => {
+    if (!API_BASE) {
+      const base = getLocalAdminSettingsSnapshot();
+      const updatedPromotion = {
+        ...promotion,
+        value: Number(promotion.value),
+        active: Boolean(promotion.active),
+        imageUrl: promotion.imageUrl || ""
+      };
+      applyAdminSettingsToRuntime({
+        ...base,
+        promotions: (base.promotions || []).map((entry) => (entry.id === promotion.id ? updatedPromotion : entry))
+      });
+      setFeedback({ type: "success", text: `Promocion ${promotion.title} actualizada al instante.` });
+      return;
+    }
+
     try {
       await apiRequest(`/admin/settings/promotions/${promotion.id}`, {
         method: "PUT",
@@ -945,6 +1121,28 @@ function App() {
 
   const createService = async (event) => {
     event.preventDefault();
+
+    if (!API_BASE) {
+      const base = getLocalAdminSettingsSnapshot();
+      const createdService = {
+        id: `srv-${Date.now().toString(36)}`,
+        name: adminServiceForm.name,
+        description: adminServiceForm.description || "",
+        style: adminServiceForm.style,
+        model: adminServiceForm.model,
+        timeMinutes: Number(adminServiceForm.timeMinutes),
+        price: Number(adminServiceForm.price),
+        imageUrl: adminServiceForm.imageUrl || ""
+      };
+      applyAdminSettingsToRuntime({
+        ...base,
+        services: [...(base.services || []), createdService]
+      });
+      setAdminServiceForm({ name: "", description: "", style: "", model: "", timeMinutes: 60, price: 0, imageUrl: "" });
+      setFeedback({ type: "success", text: "Servicio creado y publicado en su categoria." });
+      return;
+    }
+
     try {
       await apiRequest("/admin/settings/services", {
         method: "POST",
@@ -967,6 +1165,26 @@ function App() {
 
   const createProduct = async (event) => {
     event.preventDefault();
+
+    if (!API_BASE) {
+      const base = getLocalAdminSettingsSnapshot();
+      const createdProduct = {
+        id: `prd-${Date.now().toString(36)}`,
+        name: adminProductForm.name,
+        description: adminProductForm.description || "",
+        price: Number(adminProductForm.price),
+        stock: Number(adminProductForm.stock),
+        imageUrl: adminProductForm.imageUrl || ""
+      };
+      applyAdminSettingsToRuntime({
+        ...base,
+        products: [...(base.products || []), createdProduct]
+      });
+      setAdminProductForm({ name: "", description: "", price: 0, stock: 0, imageUrl: "" });
+      setFeedback({ type: "success", text: "Producto creado y visible al instante." });
+      return;
+    }
+
     try {
       await apiRequest("/admin/settings/products", {
         method: "POST",
@@ -989,6 +1207,27 @@ function App() {
 
   const createPromotion = async (event) => {
     event.preventDefault();
+
+    if (!API_BASE) {
+      const base = getLocalAdminSettingsSnapshot();
+      const createdPromotion = {
+        id: `promo-${Date.now().toString(36)}`,
+        title: adminPromotionForm.title,
+        description: adminPromotionForm.description || "",
+        discountType: adminPromotionForm.discountType,
+        value: Number(adminPromotionForm.value),
+        active: Boolean(adminPromotionForm.active),
+        imageUrl: adminPromotionForm.imageUrl || ""
+      };
+      applyAdminSettingsToRuntime({
+        ...base,
+        promotions: [...(base.promotions || []), createdPromotion]
+      });
+      setAdminPromotionForm({ title: "", description: "", discountType: "percentage", value: 0, active: true, imageUrl: "" });
+      setFeedback({ type: "success", text: "Promocion creada y publicada al instante." });
+      return;
+    }
+
     try {
       await apiRequest("/admin/settings/promotions", {
         method: "POST",
@@ -1009,6 +1248,21 @@ function App() {
   };
 
   const saveEmployee = async (employee) => {
+    if (!API_BASE) {
+      const base = getLocalAdminSettingsSnapshot();
+      const updatedEmployee = {
+        ...employee,
+        active: Boolean(employee.active),
+        imageUrl: employee.imageUrl || ""
+      };
+      applyAdminSettingsToRuntime({
+        ...base,
+        employees: (base.employees || []).map((entry) => (entry.id === employee.id ? updatedEmployee : entry))
+      });
+      setFeedback({ type: "success", text: `Empleada ${employee.name} actualizada al instante.` });
+      return;
+    }
+
     try {
       await apiRequest(`/admin/settings/employees/${employee.id}`, {
         method: "PUT",
@@ -1333,6 +1587,27 @@ function App() {
 
   const createEmployee = async (event) => {
     event.preventDefault();
+
+    if (!API_BASE) {
+      const base = getLocalAdminSettingsSnapshot();
+      const createdEmployee = {
+        id: `emp-${Date.now().toString(36)}`,
+        name: adminEmployeeForm.name,
+        role: adminEmployeeForm.role,
+        active: Boolean(adminEmployeeForm.active),
+        imageUrl: adminEmployeeForm.imageUrl || ""
+      };
+
+      applyAdminSettingsToRuntime({
+        ...base,
+        employees: [...(base.employees || []), createdEmployee]
+      });
+
+      setAdminEmployeeForm({ name: "", role: "Nail Artist", active: true, imageUrl: "" });
+      setFeedback({ type: "success", text: "Empleada creada y visible al instante." });
+      return;
+    }
+
     try {
       await apiRequest("/admin/settings/employees", {
         method: "POST",
@@ -1471,10 +1746,28 @@ function App() {
         ownerContact: nextOwnerContact
       };
     });
+
+    if (!API_BASE) {
+      const base = getLocalAdminSettingsSnapshot();
+      applyAdminSettingsToRuntime({
+        ...base,
+        ownerContact: nextOwnerContact
+      });
+    }
   };
 
   const saveOwnerContact = async () => {
     if (!adminSettings?.ownerContact) return;
+
+    if (!API_BASE) {
+      const base = getLocalAdminSettingsSnapshot();
+      applyAdminSettingsToRuntime({
+        ...base,
+        ownerContact: mergeOwnerContactDefaults(adminSettings.ownerContact)
+      });
+      setFeedback({ type: "success", text: "Datos de contacto guardados y publicados al instante." });
+      return;
+    }
 
     try {
       const response = await apiRequest("/admin/settings/owner-contact", {

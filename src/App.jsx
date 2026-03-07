@@ -62,6 +62,8 @@ const ADMIN_LOCAL_SETTINGS_KEY = "esme_admin_settings_local";
 const MENU_CART_STORAGE_KEY = "esme_menu_cart";
 const ASSISTANT_HISTORY_STORAGE_PREFIX = "esme_assistant_history";
 const LOCAL_AUTH_USERS_KEY = "esme_local_auth_users";
+const LOCAL_ADMIN_EMAIL = "admin@esmenails.com";
+const LOCAL_ADMIN_PASSWORD = "admin123";
 
 const getAssistantHistoryStorageKey = (isAuthenticated, sessionUser) => {
   const identity = isAuthenticated ? (sessionUser?.email || "authenticated-user") : "guest";
@@ -71,6 +73,10 @@ const getAssistantHistoryStorageKey = (isAuthenticated, sessionUser) => {
 const createLocalEntityId = (prefix) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 const normalizeAuthEmail = (value) => String(value || "").trim().toLowerCase();
+
+const isLocalAdminCredentials = (email, password) => (
+  normalizeAuthEmail(email) === LOCAL_ADMIN_EMAIL && String(password || "") === LOCAL_ADMIN_PASSWORD
+);
 
 const getLocalAuthUsers = () => {
   try {
@@ -1031,6 +1037,34 @@ function App() {
   };
 
   const loginAsAdminWithCredentials = async ({ email, password, fromMainLogin = false }) => {
+    if (!API_BASE) {
+      if (!isLocalAdminCredentials(email, password)) {
+        throw new Error(`Modo local admin: usa ${LOCAL_ADMIN_EMAIL} / ${LOCAL_ADMIN_PASSWORD}`);
+      }
+
+      const localToken = `local-admin-${Date.now().toString(36)}`;
+      localStorage.setItem("esme_admin_token", localToken);
+      localStorage.removeItem("esme_token");
+      localStorage.removeItem("esme_user");
+
+      setAdminToken(localToken);
+      setSessionUser({ name: "Administrador", email: LOCAL_ADMIN_EMAIL, role: "admin" });
+      setIsAuthenticated(true);
+      setActiveSection("Panel admin");
+      redirectTo("/nails-app");
+
+      if (fromMainLogin) {
+        setFeedback({ type: "success", text: "Acceso admin local concedido. Bienvenido al panel." });
+      } else {
+        setFeedback({ type: "success", text: "Panel admin local activado." });
+      }
+
+      return {
+        token: localToken,
+        admin: { email: LOCAL_ADMIN_EMAIL, localMode: true }
+      };
+    }
+
     const response = await apiRequest("/admin/login", {
       method: "POST",
       body: { email, password }

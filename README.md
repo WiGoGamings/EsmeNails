@@ -100,3 +100,13 @@ git push origin v1.0.1
 ## Variables de entorno
 
 Puedes copiar `.env.example` y ajustar valores en `server/.env` segun necesites (correo SMTP, credenciales admin, etc.).
+
+## Base de datos local (recomendado)
+
+- `server/src/db/database.seed.json`: semilla limpia versionada en Git.
+- `server/src/db/database.json`: base local de ejecucion (ignorada por Git).
+
+Comportamiento:
+
+- Si `database.json` no existe, el servidor copia automaticamente `database.seed.json` en el primer arranque.
+- Tus datos reales locales ya no se suben por accidente al repositorio.

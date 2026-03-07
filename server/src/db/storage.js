@@ -1,4 +1,5 @@
 import path from "node:path";
+import { copyFile, access } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { JSONFilePreset } from "lowdb/node";
 import { defaultData } from "./defaultData.js";
@@ -6,6 +7,21 @@ import { defaultData } from "./defaultData.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const dbPath = path.join(__dirname, "database.json");
+const seedPath = path.join(__dirname, "database.seed.json");
+
+const fileExists = async (targetPath) => {
+  try {
+    await access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// First boot: copy clean seed into runtime DB file if it does not exist.
+if (!(await fileExists(dbPath)) && (await fileExists(seedPath))) {
+  await copyFile(seedPath, dbPath);
+}
 
 export const db = await JSONFilePreset(dbPath, defaultData);
 

@@ -36,25 +36,25 @@ const posSections = [
 ];
 
 const realNailImages = {
-  acrigel: "https://source.unsplash.com/1600x1200/?acrylic,nails,salon&sig=11",
-  polygel: "https://source.unsplash.com/1600x1200/?polygel,nails,beauty&sig=12",
-  gelx: "https://source.unsplash.com/1600x1200/?gel,nails,manicure&sig=13",
-  manicure: "https://source.unsplash.com/1600x1200/?manicure,hand,nails&sig=14",
-  encapsulado: "https://source.unsplash.com/1600x1200/?nail,art,closeup&sig=15",
-  presson: "https://source.unsplash.com/1600x1200/?press,on,nails&sig=16",
-  lashes: "https://source.unsplash.com/1600x1200/?eyelash,beauty,salon&sig=17",
-  artist: "https://source.unsplash.com/1200x1200/?nail,technician,salon&sig=18"
+  acrigel: "https://images.pexels.com/photos/3997391/pexels-photo-3997391.jpeg?auto=compress&cs=tinysrgb&w=1400",
+  polygel: "https://images.pexels.com/photos/939836/pexels-photo-939836.jpeg?auto=compress&cs=tinysrgb&w=1400",
+  gelx: "https://images.pexels.com/photos/704815/pexels-photo-704815.jpeg?auto=compress&cs=tinysrgb&w=1400",
+  manicure: "https://images.pexels.com/photos/853427/pexels-photo-853427.jpeg?auto=compress&cs=tinysrgb&w=1400",
+  encapsulado: "https://images.pexels.com/photos/3993449/pexels-photo-3993449.jpeg?auto=compress&cs=tinysrgb&w=1400",
+  presson: "https://images.pexels.com/photos/7755651/pexels-photo-7755651.jpeg?auto=compress&cs=tinysrgb&w=1400",
+  lashes: "https://images.pexels.com/photos/3997379/pexels-photo-3997379.jpeg?auto=compress&cs=tinysrgb&w=1400",
+  artist: "https://images.pexels.com/photos/1072851/pexels-photo-1072851.jpeg?auto=compress&cs=tinysrgb&w=1400"
 };
 
 const localMenuImages = {
-  acrigel: "/menu/acrigel.svg",
-  polygel: "/menu/polygel.svg",
-  gelx: "/menu/gelx.svg",
-  manicure: "/menu/manicure.svg",
-  encapsulado: "/menu/encapsulado.svg",
-  presson: "/menu/presson.svg",
-  lashes: "/menu/lashes.svg",
-  artist: "/menu/manicure.svg"
+  acrigel: realNailImages.acrigel,
+  polygel: realNailImages.polygel,
+  gelx: realNailImages.gelx,
+  manicure: realNailImages.manicure,
+  encapsulado: realNailImages.encapsulado,
+  presson: realNailImages.presson,
+  lashes: realNailImages.lashes,
+  artist: realNailImages.artist
 };
 
 const menuCategories = [
@@ -3396,9 +3396,7 @@ function App() {
                                     className="admin-image-input"
                                     onChange={(event) => handleAdminImageFileSelected(event, { form: "service" })}
                                   />
-                                  {adminServiceForm.imageUrl && (
-                                    <SmartImage src={adminServiceForm.imageUrl} alt="Preview servicio" className="admin-thumb" fallbackSrc={localMenuImages.acrigel} />
-                                  )}
+                                  <SmartImage src={adminServiceForm.imageUrl} alt="Preview servicio" className="admin-thumb" fallbackSrc={localMenuImages.acrigel} />
                                   <button type="submit" className="primary">Crear</button>
                                 </form>
 
@@ -3431,7 +3429,7 @@ function App() {
                                               className="admin-image-input"
                                               onChange={(event) => handleAdminImageFileSelected(event, { collection: "services", id: service.id })}
                                             />
-                                            {service.imageUrl && <SmartImage src={service.imageUrl} alt={service.name} className="admin-thumb" fallbackSrc={localMenuImages.acrigel} />}
+                                            <SmartImage src={service.imageUrl} alt={service.name} className="admin-thumb" fallbackSrc={localMenuImages.acrigel} />
                                           </td>
                                           <td>
                                             <input value={service.style} onChange={(event) => updateAdminSettingField("services", service.id, "style", event.target.value)} />
@@ -3497,9 +3495,7 @@ function App() {
                                     className="admin-image-input"
                                     onChange={(event) => handleAdminImageFileSelected(event, { form: "product" })}
                                   />
-                                  {adminProductForm.imageUrl && (
-                                    <SmartImage src={adminProductForm.imageUrl} alt="Preview producto" className="admin-thumb" fallbackSrc={localMenuImages.presson} />
-                                  )}
+                                  <SmartImage src={adminProductForm.imageUrl} alt="Preview producto" className="admin-thumb" fallbackSrc={localMenuImages.presson} />
                                   <button type="submit" className="primary">Crear</button>
                                 </form>
 
@@ -3530,7 +3526,7 @@ function App() {
                                               className="admin-image-input"
                                               onChange={(event) => handleAdminImageFileSelected(event, { collection: "products", id: product.id })}
                                             />
-                                            {product.imageUrl && <SmartImage src={product.imageUrl} alt={product.name} className="admin-thumb" fallbackSrc={localMenuImages.presson} />}
+                                            <SmartImage src={product.imageUrl} alt={product.name} className="admin-thumb" fallbackSrc={localMenuImages.presson} />
                                           </td>
                                           <td>
                                             <input type="number" min="0" step="0.01" value={product.price} onChange={(event) => updateAdminSettingField("products", product.id, "price", event.target.value)} />
@@ -3582,9 +3578,7 @@ function App() {
                                     className="admin-image-input"
                                     onChange={(event) => handleAdminImageFileSelected(event, { form: "employee" })}
                                   />
-                                  {adminEmployeeForm.imageUrl && (
-                                    <SmartImage src={adminEmployeeForm.imageUrl} alt="Preview empleada" className="admin-thumb" fallbackSrc={localMenuImages.artist} />
-                                  )}
+                                  <SmartImage src={adminEmployeeForm.imageUrl} alt="Preview empleada" className="admin-thumb" fallbackSrc={localMenuImages.artist} />
                                   <button type="submit" className="primary">Crear</button>
                                 </form>
 
@@ -3614,7 +3608,7 @@ function App() {
                                               className="admin-image-input"
                                               onChange={(event) => handleAdminImageFileSelected(event, { collection: "employees", id: employee.id })}
                                             />
-                                            {employee.imageUrl && <SmartImage src={employee.imageUrl} alt={employee.name} className="admin-thumb" fallbackSrc={localMenuImages.artist} />}
+                                            <SmartImage src={employee.imageUrl} alt={employee.name} className="admin-thumb" fallbackSrc={localMenuImages.artist} />
                                           </td>
                                           <td>
                                             <input value={employee.role} onChange={(event) => updateAdminSettingField("employees", employee.id, "role", event.target.value)} />
@@ -3852,9 +3846,7 @@ function App() {
                                     className="admin-image-input"
                                     onChange={(event) => handleAdminImageFileSelected(event, { form: "promotion" })}
                                   />
-                                  {adminPromotionForm.imageUrl && (
-                                    <SmartImage src={adminPromotionForm.imageUrl} alt="Preview promocion" className="admin-thumb" fallbackSrc={localMenuImages.encapsulado} />
-                                  )}
+                                  <SmartImage src={adminPromotionForm.imageUrl} alt="Preview promocion" className="admin-thumb" fallbackSrc={localMenuImages.encapsulado} />
                                   <button type="submit" className="primary">Crear</button>
                                 </form>
 
@@ -3886,7 +3878,7 @@ function App() {
                                               className="admin-image-input"
                                               onChange={(event) => handleAdminImageFileSelected(event, { collection: "promotions", id: promo.id })}
                                             />
-                                            {promo.imageUrl && <SmartImage src={promo.imageUrl} alt={promo.title} className="admin-thumb" fallbackSrc={localMenuImages.encapsulado} />}
+                                            <SmartImage src={promo.imageUrl} alt={promo.title} className="admin-thumb" fallbackSrc={localMenuImages.encapsulado} />
                                           </td>
                                           <td>
                                             <select value={promo.discountType} onChange={(event) => updateAdminSettingField("promotions", promo.id, "discountType", event.target.value)}>
@@ -4077,9 +4069,7 @@ function App() {
                   <div className="prices-grid">
                     {filteredCatalogServices.map((service) => (
                       <article key={service.id} className="price-card">
-                        {service.imageUrl && (
-                          <SmartImage src={service.imageUrl} alt={service.name} className="price-card-image" fallbackSrc={localMenuImages.acrigel} />
-                        )}
+                        <SmartImage src={service.imageUrl} alt={service.name} className="price-card-image" fallbackSrc={localMenuImages.acrigel} />
                         <header>
                           <h3>{service.name}</h3>
                           <strong>${service.price}</strong>
@@ -4112,9 +4102,7 @@ function App() {
                   <div className="prices-grid">
                     {filteredCatalogProducts.map((product) => (
                       <article key={product.id} className="price-card">
-                        {product.imageUrl && (
-                          <SmartImage src={product.imageUrl} alt={product.name} className="price-card-image" fallbackSrc={localMenuImages.presson} />
-                        )}
+                        <SmartImage src={product.imageUrl} alt={product.name} className="price-card-image" fallbackSrc={localMenuImages.presson} />
                         <header>
                           <h3>{product.name}</h3>
                           <strong>${product.price}</strong>
@@ -4135,9 +4123,7 @@ function App() {
                   <div className="prices-grid">
                     {filteredCatalogPromotions.map((promotion) => (
                       <article key={promotion.id} className="price-card">
-                        {promotion.imageUrl && (
-                          <SmartImage src={promotion.imageUrl} alt={promotion.title} className="price-card-image" fallbackSrc={localMenuImages.encapsulado} />
-                        )}
+                        <SmartImage src={promotion.imageUrl} alt={promotion.title} className="price-card-image" fallbackSrc={localMenuImages.encapsulado} />
                         <header>
                           <h3>{promotion.title}</h3>
                           <strong>
@@ -4198,11 +4184,7 @@ function App() {
                 <div className="promo-grid">
                   {filteredCatalogPromotions.map((promotion) => (
                     <article key={promotion.id} className="promo-card">
-                      {promotion.imageUrl ? (
-                        <SmartImage src={promotion.imageUrl} alt={promotion.title} className="promo-card-image" fallbackSrc={localMenuImages.encapsulado} />
-                      ) : (
-                        <div className="promo-card-image placeholder">Promo</div>
-                      )}
+                      <SmartImage src={promotion.imageUrl} alt={promotion.title} className="promo-card-image" fallbackSrc={localMenuImages.encapsulado} />
                       <div className="promo-card-body">
                         <header>
                           <h3>{promotion.title}</h3>
@@ -4384,15 +4366,13 @@ function App() {
               <section className="home-wrap">
                 <article className="home-cinema-card">
                   <div className="home-cinema-main">
-                    {homeActiveSlide?.imageUrl && (
-                      <SmartImage
-                        key={homeActiveSlide.id}
-                        src={homeActiveSlide.imageUrl}
-                        alt={homeActiveSlide.title}
-                        className="home-cinema-image"
-                        fallbackSrc={localMenuImages.gelx}
-                      />
-                    )}
+                    <SmartImage
+                      key={homeActiveSlide?.id || "home-fallback"}
+                      src={homeActiveSlide?.imageUrl}
+                      alt={homeActiveSlide?.title || "EsmeNails"}
+                      className="home-cinema-image"
+                      fallbackSrc={localMenuImages.gelx}
+                    />
                     <div className="home-cinema-overlay">
                       <p className="menu-detail-kicker">{homeActiveSlide?.kicker || "Inicio"}</p>
                       <h2>{homeActiveSlide?.title || `Hola, ${profileForm.name || sessionUser?.name || "cliente"}`}</h2>

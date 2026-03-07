@@ -9,7 +9,7 @@
       "model": "Liso",
       "timeMinutes": 45,
       "price": 18,
-      "imageUrl": "https://source.unsplash.com/1600x1200/?manicure,hand,nails&sig=14"
+      "imageUrl": "https://images.pexels.com/photos/853427/pexels-photo-853427.jpeg?auto=compress&cs=tinysrgb&w=1400"
     },
     {
       "id": "srv-gel-x",
@@ -19,7 +19,7 @@
       "model": "French",
       "timeMinutes": 90,
       "price": 45,
-      "imageUrl": "https://source.unsplash.com/1600x1200/?gel,nails,manicure&sig=13"
+      "imageUrl": "https://images.pexels.com/photos/704815/pexels-photo-704815.jpeg?auto=compress&cs=tinysrgb&w=1400"
     },
     {
       "id": "srv-acrylic-art",
@@ -29,7 +29,7 @@
       "model": "3D",
       "timeMinutes": 120,
       "price": 62,
-      "imageUrl": "https://source.unsplash.com/1600x1200/?acrylic,nails,salon&sig=11"
+      "imageUrl": "https://images.pexels.com/photos/3997391/pexels-photo-3997391.jpeg?auto=compress&cs=tinysrgb&w=1400"
     },
     {
       "id": "srv-lash-lifting",
@@ -39,7 +39,7 @@
       "model": "Natural",
       "timeMinutes": 70,
       "price": 38,
-      "imageUrl": "https://source.unsplash.com/1600x1200/?eyelash,beauty,salon&sig=17"
+      "imageUrl": "https://images.pexels.com/photos/3997379/pexels-photo-3997379.jpeg?auto=compress&cs=tinysrgb&w=1400"
     }
   ],
   "products": [
@@ -86,7 +86,7 @@
       "discountType": "percentage",
       "value": 12,
       "active": true,
-      "imageUrl": "https://source.unsplash.com/1600x1200/?eyelash,beauty,salon&sig=17"
+      "imageUrl": "https://images.pexels.com/photos/3997379/pexels-photo-3997379.jpeg?auto=compress&cs=tinysrgb&w=1400"
     }
   ],
   "employees": [
@@ -108,11 +108,11 @@
     "facebook": "https://facebook.com/esmenails.oficial",
     "tiktok": "https://tiktok.com/@esmenails.oficial",
     "address": "Calle Belleza 123, Ciudad de Mexico",
-    "homeImageMain": "https://source.unsplash.com/1600x1200/?nail,art,closeup&sig=15",
-    "homeImageOne": "https://source.unsplash.com/1600x1200/?gel,nails,manicure&sig=13",
-    "homeImageTwo": "https://source.unsplash.com/1600x1200/?acrylic,nails,salon&sig=11",
-    "homeImageThree": "https://source.unsplash.com/1600x1200/?polygel,nails,beauty&sig=12",
-    "homeImageFour": "https://source.unsplash.com/1600x1200/?manicure,hand,nails&sig=14"
+    "homeImageMain": "https://images.pexels.com/photos/3993449/pexels-photo-3993449.jpeg?auto=compress&cs=tinysrgb&w=1400",
+    "homeImageOne": "https://images.pexels.com/photos/704815/pexels-photo-704815.jpeg?auto=compress&cs=tinysrgb&w=1400",
+    "homeImageTwo": "https://images.pexels.com/photos/3997391/pexels-photo-3997391.jpeg?auto=compress&cs=tinysrgb&w=1400",
+    "homeImageThree": "https://images.pexels.com/photos/939836/pexels-photo-939836.jpeg?auto=compress&cs=tinysrgb&w=1400",
+    "homeImageFour": "https://images.pexels.com/photos/853427/pexels-photo-853427.jpeg?auto=compress&cs=tinysrgb&w=1400"
   },
   "pointsProgram": {
     "pointsPerAmount": 10,

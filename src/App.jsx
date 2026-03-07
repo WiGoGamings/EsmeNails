@@ -272,6 +272,35 @@ const resolveImageUrl = (rawUrl) => {
   return `${normalizedBase}${trimmed}`;
 };
 
+const mergeOwnerContactDefaults = (ownerContact) => ({
+  ...defaultOwnerContact,
+  ...(ownerContact || {})
+});
+
+const inferServiceImageUrl = (service) => {
+  const text = `${service?.name || ""} ${service?.style || ""} ${service?.model || ""} ${service?.description || ""}`.toLowerCase();
+  if (isLashesContent(text)) return "/menu/lashes.svg";
+  if (text.includes("poly")) return "/menu/polygel.svg";
+  if (text.includes("gel x") || text.includes("gelx")) return "/menu/gelx.svg";
+  if (text.includes("encaps")) return "/menu/encapsulado.svg";
+  if (text.includes("acri")) return "/menu/acrigel.svg";
+  return "/menu/manicure.svg";
+};
+
+const inferProductImageUrl = (product) => {
+  const text = `${product?.name || ""} ${product?.description || ""}`.toLowerCase();
+  if (isLashesContent(text)) return "/menu/lashes.svg";
+  if (text.includes("press")) return "/menu/presson.svg";
+  return "/menu/manicure.svg";
+};
+
+const inferPromotionImageUrl = (promotion) => {
+  const text = `${promotion?.title || ""} ${promotion?.description || ""}`.toLowerCase();
+  if (isLashesContent(text)) return "/menu/lashes.svg";
+  if (text.includes("gel x") || text.includes("gelx")) return "/menu/gelx.svg";
+  return "/menu/encapsulado.svg";
+};
+
 function NavIcon({ type }) {
   const common = { width: 16, height: 16, viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true };
 
@@ -599,7 +628,7 @@ function App() {
     setAdminData(dashboardResponse);
     setAdminSettings(settingsResponse);
     if (settingsResponse?.ownerContact) {
-      setOwnerContact(settingsResponse.ownerContact);
+      setOwnerContact(mergeOwnerContactDefaults(settingsResponse.ownerContact));
     }
   }, [adminToken]);
 
@@ -607,7 +636,7 @@ function App() {
     try {
       const response = await apiRequest("/contact/owner-info");
       if (response?.ownerContact) {
-        setOwnerContact(response.ownerContact);
+        setOwnerContact(mergeOwnerContactDefaults(response.ownerContact));
       }
     } catch {
       // Keep local fallback examples if endpoint is unavailable.
@@ -1314,7 +1343,7 @@ function App() {
           homeImageFour: adminSettings.ownerContact.homeImageFour || ""
         }
       });
-      setOwnerContact(response.ownerContact || adminSettings.ownerContact);
+      setOwnerContact(mergeOwnerContactDefaults(response.ownerContact || adminSettings.ownerContact));
       await refreshAdminPanels();
       setFeedback({ type: "success", text: "Datos de contacto del dueno actualizados." });
     } catch (error) {
@@ -1585,9 +1614,18 @@ function App() {
         historyPromise
       ]);
 
-      const services = catalogResponse.services || [];
-      const products = catalogResponse.products || [];
-      const promotions = catalogResponse.promotions || [];
+      const services = (catalogResponse.services || []).map((service) => ({
+        ...service,
+        imageUrl: (service.imageUrl || "").trim() || inferServiceImageUrl(service)
+      }));
+      const products = (catalogResponse.products || []).map((product) => ({
+        ...product,
+        imageUrl: (product.imageUrl || "").trim() || inferProductImageUrl(product)
+      }));
+      const promotions = (catalogResponse.promotions || []).map((promotion) => ({
+        ...promotion,
+        imageUrl: (promotion.imageUrl || "").trim() || inferPromotionImageUrl(promotion)
+      }));
       const employees = catalogResponse.employees || [];
       const minutesMap = {};
       for (const service of services) {

@@ -2898,17 +2898,25 @@ body.theme-dark .contact-owner-icon-link:hover {
 
 	.pos-shell {
 		grid-template-columns: 1fr;
+		padding-bottom: 5.4rem;
 	}
 
 	.quick-rail {
 		display: flex;
 		align-items: stretch;
 		gap: 0.4rem;
+		position: fixed;
+		left: 0.55rem;
+		right: 0.55rem;
+		bottom: calc(env(safe-area-inset-bottom, 0px) + 0.35rem);
+		z-index: 80;
 		overflow-x: auto;
 		overflow-y: hidden;
 		padding: 0.35rem;
 		border-radius: 14px;
 		scrollbar-width: thin;
+		box-shadow: 0 12px 24px rgba(33, 13, 20, 0.28);
+		backdrop-filter: blur(6px);
 	}
 
 	.quick-rail button {

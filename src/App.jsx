@@ -1610,6 +1610,10 @@ function App() {
 
   const exportCsv = async (period) => {
     try {
+      if (!API_BASE) {
+        throw new Error("Exportacion no disponible: falta configurar VITE_API_URL en esta version web.");
+      }
+
       const response = await fetch(`${API_BASE}/admin/reports/csv?period=${period}`, {
         headers: { Authorization: `Bearer ${adminToken}` }
       });

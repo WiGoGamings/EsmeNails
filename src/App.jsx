@@ -3476,6 +3476,20 @@ function App() {
             }}
           >
             <h1>{activeSection}</h1>
+            <nav className="mobile-quick-nav" aria-label="Navegacion movil">
+              {quickRailSections.map((item) => (
+                <button
+                  key={`mobile-${item}`}
+                  type="button"
+                  className={activeSection === item ? "active" : ""}
+                  onClick={() => navigateToSection(item)}
+                  title={item}
+                >
+                  <NavIcon type={navIconBySection[item]} />
+                  <span>{quickRailLabelBySection[item] || item}</span>
+                </button>
+              ))}
+            </nav>
             {activeSection === "Mi perfil" || activeSection === "Mi cuenta" ? (
               <section className="profile-panel">
                 <article className="profile-hero">

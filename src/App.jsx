@@ -59,6 +59,7 @@ const localMenuImages = {
 };
 
 const ADMIN_LOCAL_SETTINGS_KEY = "esme_admin_settings_local";
+const MENU_CART_STORAGE_KEY = "esme_menu_cart";
 
 const createLocalEntityId = (prefix) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -566,6 +567,15 @@ function App() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("Agendar cita");
   const [selectedMenuCategory, setSelectedMenuCategory] = useState(null);
+  const [selectedMenuServiceId, setSelectedMenuServiceId] = useState("");
+  const [menuCartItems, setMenuCartItems] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(MENU_CART_STORAGE_KEY) || "[]");
+      return Array.isArray(stored) ? stored : [];
+    } catch {
+      return [];
+    }
+  });
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [appointments, setAppointments] = useState([]);
   const [catalogServices, setCatalogServices] = useState([]);
@@ -703,8 +713,6 @@ function App() {
   });
   const profilePhotoInputRef = useRef(null);
   const assistantMessagesEndRef = useRef(null);
-  const menuCtaTimeoutRef = useRef(null);
-  const [menuCtaPulse, setMenuCtaPulse] = useState(false);
   const [homePromoIndex, setHomePromoIndex] = useState(0);
   const [adminSavedMap, setAdminSavedMap] = useState({});
   const [feedback, setFeedback] = useState({ type: "info", text: "Bienvenida a EsmeNails. Inicia sesion o crea tu cuenta para continuar." });
@@ -835,14 +843,60 @@ function App() {
 
   const openMenuCategory = (category) => {
     setActiveSection("Menu");
+    setSelectedMenuServiceId("");
     setSelectedMenuCategory(category);
     redirectTo(`/nails-app/menu/${category.id}`);
     setFeedback({ type: "success", text: `Se abrio la vista: ${category.title}.` });
   };
 
+  const openMenuServiceDetail = (service) => {
+    if (!service?.id) return;
+    setActiveSection("Menu");
+    setSelectedMenuCategory(null);
+    setSelectedMenuServiceId(service.id);
+    redirectTo(`/nails-app/menu/${service.id}`);
+  };
+
   const backToMenuGrid = () => {
     setSelectedMenuCategory(null);
+    setSelectedMenuServiceId("");
     redirectTo("/nails-app");
+  };
+
+  const addServiceToMenuCart = (service) => {
+    if (!service?.id) return;
+
+    setMenuCartItems((prev) => {
+      const existingIndex = prev.findIndex((item) => item.id === service.id);
+      if (existingIndex >= 0) {
+        const next = [...prev];
+        next[existingIndex] = {
+          ...next[existingIndex],
+          quantity: Number(next[existingIndex].quantity || 0) + 1
+        };
+        return next;
+      }
+
+      return [
+        ...prev,
+        {
+          id: service.id,
+          name: service.name,
+          price: Number(service.price) || 0,
+          quantity: 1
+        }
+      ];
+    });
+
+    setFeedback({ type: "success", text: `${service.name} se agrego a tu lista.` });
+  };
+
+  const removeMenuCartItem = (serviceId) => {
+    setMenuCartItems((prev) => prev.filter((item) => item.id !== serviceId));
+  };
+
+  const clearMenuCart = () => {
+    setMenuCartItems([]);
   };
 
   const openAppointmentModal = (prefill = {}) => {
@@ -889,6 +943,7 @@ function App() {
     setProfileMenuOpen(false);
     setActiveSection("Agendar cita");
     setSelectedMenuCategory(null);
+    setSelectedMenuServiceId("");
     setAdminToken("");
     setAdminData(null);
     setAdminSettings(null);
@@ -2117,39 +2172,6 @@ function App() {
     setFeedback({ type: "info", text: "Perfil del cliente abierto." });
   };
 
-  const triggerMenuCta = async (serviceName, contextLabel = "menu") => {
-    setFeedback({ type: "info", text: `Seleccionaste ${serviceName}. Agenda una cita para continuar.` });
-    setMenuCtaPulse(true);
-    if (menuCtaTimeoutRef.current) {
-      clearTimeout(menuCtaTimeoutRef.current);
-    }
-    menuCtaTimeoutRef.current = setTimeout(() => {
-      setMenuCtaPulse(false);
-      menuCtaTimeoutRef.current = null;
-    }, 2200);
-
-    const token = localStorage.getItem("esme_token");
-    if (!token) {
-      return;
-    }
-
-    try {
-      const subjectBase = `Pre-pedido: ${serviceName}`;
-      await apiRequest("/contact/messages", {
-        method: "POST",
-        token,
-        body: {
-          subject: subjectBase.slice(0, 140),
-          message: `La clienta marco "Quiero este producto" para "${serviceName}" desde la vista ${contextLabel}. Favor dar seguimiento y ofrecer agenda de cita.`,
-          preferredContact: profileForm.phone?.trim() ? "phone" : "email"
-        }
-      });
-      setFeedback({ type: "success", text: `Interes registrado para ${serviceName}. Ya se encuentra en Panel admin > Contacto.` });
-    } catch {
-      setFeedback({ type: "error", text: "No fue posible registrar el interes en el panel de administracion. Intenta nuevamente." });
-    }
-  };
-
   const startEditAppointment = (appointment) => {
     setEditingAppointmentId(appointment.id);
     setAdminAppointmentDraft({
@@ -2316,6 +2338,14 @@ function App() {
   }, [assistantMessages]);
 
   useEffect(() => {
+    try {
+      localStorage.setItem(MENU_CART_STORAGE_KEY, JSON.stringify(menuCartItems));
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, [menuCartItems]);
+
+  useEffect(() => {
     const currentPath = getCurrentAppPath();
 
     if (currentPath.startsWith("/nails-app") && !isAuthenticated) {
@@ -2325,9 +2355,18 @@ function App() {
       const match = currentPath.match(/^\/nails-app\/menu\/([a-z0-9-]+)$/i);
 
       if (match?.[1]) {
+        const matchedService = catalogServices.find((service) => service.id === match[1]);
+        if (matchedService) {
+          setActiveSection("Menu");
+          setSelectedMenuCategory(null);
+          setSelectedMenuServiceId(matchedService.id);
+          return;
+        }
+
         const found = findCategoryById(match[1]);
         if (found) {
           setActiveSection("Menu");
+          setSelectedMenuServiceId("");
           setSelectedMenuCategory(found);
           return;
         }
@@ -2335,7 +2374,7 @@ function App() {
 
       redirectTo("/nails-app");
     }
-  }, [isAuthenticated]);
+  }, [catalogServices, isAuthenticated]);
 
   const refreshAgendaData = useCallback(async () => {
     const token = localStorage.getItem("esme_token");
@@ -2775,14 +2814,6 @@ function App() {
 
     loadMyProfile();
   }, [isAuthenticated, adminToken, loadMyProfile]);
-
-  useEffect(() => {
-    return () => {
-      if (menuCtaTimeoutRef.current) {
-        clearTimeout(menuCtaTimeoutRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     const isDark = themeMode === "dark";
@@ -4758,8 +4789,93 @@ function App() {
                 )}
               </section>
             ) : activeSection === "Menu" ? (
-              selectedMenuCategory ? (
-                (() => {
+              (() => {
+                const selectedMenuService = catalogServices.find((service) => service.id === selectedMenuServiceId) || null;
+                const menuListCount = menuCartItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+                const menuListTotal = menuCartItems.reduce(
+                  (sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 0)),
+                  0
+                );
+
+                if (selectedMenuService) {
+                  const selectedServicePrice = Number(selectedMenuService.price);
+                  const hasSelectedServicePrice = Number.isFinite(selectedServicePrice) && selectedServicePrice > 0;
+
+                  return (
+                    <section className="menu-detail-with-list">
+                      <div className="menu-detail">
+                        <SmartImage
+                          src={selectedMenuService.imageUrl}
+                          alt={selectedMenuService.name}
+                          className="menu-detail-image"
+                          fallbackSrc={localMenuImages.manicure}
+                        />
+                        <div className="menu-detail-body">
+                          <p className="menu-detail-kicker">Detalle del servicio</p>
+                          <h2>{selectedMenuService.name}</h2>
+                          <p>{`${selectedMenuService.style || "Estilo"} - ${selectedMenuService.model || "Modelo"}`}</p>
+                          <p className="menu-detail-price">{hasSelectedServicePrice ? `Precio: $${selectedServicePrice}` : "Precio disponible en Precios"}</p>
+                          <p>Duracion estimada: {Number(selectedMenuService.timeMinutes) || 60} min</p>
+                          <p>{selectedMenuService.description || "Descripcion disponible en panel admin."}</p>
+                          <div className="menu-detail-actions">
+                            <button type="button" className="secondary" onClick={backToMenuGrid}>
+                              Volver al menu
+                            </button>
+                            <button
+                              type="button"
+                              className="secondary"
+                              onClick={() => addServiceToMenuCart(selectedMenuService)}
+                            >
+                              Agregar a la lista
+                            </button>
+                            <button
+                              type="button"
+                              className="primary"
+                              onClick={() => {
+                                openAppointmentModal({ serviceId: selectedMenuService.id });
+                                setFeedback({ type: "info", text: `Agenda tu cita para ${selectedMenuService.name}.` });
+                              }}
+                            >
+                              Agendar cita
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <article className="menu-cart-panel">
+                        <header>
+                          <h3>Tu lista</h3>
+                          <span>{menuListCount} item(s)</span>
+                        </header>
+                        <div className="menu-cart-list">
+                          {menuCartItems.map((item) => (
+                            <div key={item.id} className="menu-cart-item">
+                              <div>
+                                <strong>{item.name}</strong>
+                                <p>Cantidad: {item.quantity}</p>
+                                <p>${Number(item.price || 0)} c/u</p>
+                              </div>
+                              <button type="button" className="secondary danger-button" onClick={() => removeMenuCartItem(item.id)}>
+                                Quitar
+                              </button>
+                            </div>
+                          ))}
+                          {menuCartItems.length === 0 && (
+                            <p className="menu-cart-empty">Tu lista esta vacia. Agrega servicios desde Detalles.</p>
+                          )}
+                        </div>
+                        <footer>
+                          <strong>Total estimado: ${menuListTotal.toFixed(2)}</strong>
+                          <button type="button" className="secondary" onClick={clearMenuCart} disabled={menuCartItems.length === 0}>
+                            Vaciar lista
+                          </button>
+                        </footer>
+                      </article>
+                    </section>
+                  );
+                }
+
+                if (selectedMenuCategory) {
                   const selectedServiceId = findSuggestedServiceId(selectedMenuCategory, catalogServices);
                   const selectedService = catalogServices.find((service) => service.id === selectedServiceId);
                   const selectedServicePrice = Number(selectedService?.price);
@@ -4785,7 +4901,19 @@ function App() {
                           </button>
                           <button
                             type="button"
-                            className={`primary ${menuCtaPulse ? "menu-cta-highlight" : ""}`}
+                            className="secondary"
+                            onClick={() => {
+                              if (selectedService) {
+                                addServiceToMenuCart(selectedService);
+                              }
+                            }}
+                            disabled={!selectedService}
+                          >
+                            Agregar a la lista
+                          </button>
+                          <button
+                            type="button"
+                            className="primary"
                             onClick={() => {
                               openAppointmentModal({
                                 serviceId: selectedServiceId
@@ -4795,116 +4923,78 @@ function App() {
                           >
                             Agendar cita
                           </button>
-                          <button
-                            type="button"
-                            className="secondary"
-                            onClick={() => {
-                              triggerMenuCta(selectedService?.name || selectedMenuCategory.title, "detalle de menu");
-                            }}
-                          >
-                            Quiero este producto
-                          </button>
                         </div>
                       </div>
                     </section>
                   );
-                })()
-              ) : (
-                <>
-                  {catalogServices.length > 0 ? (
-                    <>
-                      <p>Servicios publicados desde Panel admin. Los mismos precios tambien aparecen en la seccion Precios.</p>
-                      <div className="menu-grid">
-                        {catalogServices.map((service) => {
-                          const servicePrice = Number(service.price);
-                          const hasServicePrice = Number.isFinite(servicePrice) && servicePrice > 0;
+                }
 
-                          return (
-                            <article key={service.id} className="menu-card">
-                              <SmartImage src={service.imageUrl} alt={service.name} fallbackSrc={localMenuImages.acrigel} />
-                              <div className="menu-card-text">
-                                <strong>{service.name}</strong>
-                                <small>{`${service.style || "Estilo"} - ${service.model || "Modelo"}`}</small>
-                                <p className="menu-card-price">{hasServicePrice ? `$${servicePrice}` : "Precio no definido"}</p>
-                                <p className="menu-card-description">{service.description || "Descripcion editable desde panel admin."}</p>
-                              </div>
-                              <div className="menu-card-actions">
-                                <button
-                                  type="button"
-                                  className={`primary ${menuCtaPulse ? "menu-cta-highlight" : ""}`}
-                                  onClick={() => {
-                                    openAppointmentModal({ serviceId: service.id });
-                                    setFeedback({ type: "info", text: `Agenda tu cita para ${service.name}.` });
-                                  }}
-                                >
-                                  Agendar cita
-                                </button>
-                                <button
-                                  type="button"
-                                  className="secondary"
-                                  onClick={() => {
-                                    triggerMenuCta(service.name, "tarjeta de menu");
-                                  }}
-                                >
-                                  Quiero este producto
-                                </button>
-                              </div>
-                            </article>
-                          );
-                        })}
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <p>Selecciona un estilo de unas para abrir su pagina.</p>
-                      <div className="menu-grid">
-                        {menuCategories.map((category) => {
-                          const suggestedServiceId = findSuggestedServiceId(category, catalogServices);
-                          const matchedService = catalogServices.find((service) => service.id === suggestedServiceId);
-                          const matchedPrice = Number(matchedService?.price);
-                          const hasMatchedPrice = Number.isFinite(matchedPrice) && matchedPrice > 0;
+                return (
+                  <>
+                    {catalogServices.length > 0 ? (
+                      <>
+                        <p>Servicios publicados desde Panel admin. Cada tarjeta incluye acceso a Detalles para agregar a tu lista o agendar cita.</p>
+                        <div className="menu-grid">
+                          {catalogServices.map((service) => {
+                            const servicePrice = Number(service.price);
+                            const hasServicePrice = Number.isFinite(servicePrice) && servicePrice > 0;
 
-                          return (
-                            <article key={category.id} className="menu-card">
-                              <SmartImage src={category.image} alt={category.title} fallbackSrc={localMenuImages.manicure} />
-                              <div className="menu-card-text">
-                                <strong>{category.title}</strong>
-                                <small>{category.subtitle}</small>
-                                <p className="menu-card-price">{hasMatchedPrice ? `Desde $${matchedPrice}` : "Precio en seccion Precios"}</p>
-                                <p className="menu-card-description">
-                                  {matchedService?.description || "Descripcion editable desde panel admin."}
-                                </p>
-                              </div>
-                              <div className="menu-card-actions">
-                                <button type="button" className="secondary" onClick={() => openMenuCategory(category)}>Ver detalle</button>
-                                <button
-                                  type="button"
-                                  className={`primary ${menuCtaPulse ? "menu-cta-highlight" : ""}`}
-                                  onClick={() => {
-                                    openAppointmentModal({ serviceId: suggestedServiceId });
-                                    setFeedback({ type: "info", text: `Agenda tu cita para ${category.title}.` });
-                                  }}
-                                >
-                                  Agendar cita
-                                </button>
-                                <button
-                                  type="button"
-                                  className="secondary"
-                                  onClick={() => {
-                                    triggerMenuCta(matchedService?.name || category.title, "tarjeta de menu");
-                                  }}
-                                >
-                                  Quiero este producto
-                                </button>
-                              </div>
-                            </article>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
-                </>
-              )
+                            return (
+                              <article key={service.id} className="menu-card">
+                                <SmartImage src={service.imageUrl} alt={service.name} fallbackSrc={localMenuImages.acrigel} />
+                                <div className="menu-card-text">
+                                  <strong>{service.name}</strong>
+                                  <small>{`${service.style || "Estilo"} - ${service.model || "Modelo"}`}</small>
+                                  <p className="menu-card-price">{hasServicePrice ? `$${servicePrice}` : "Precio no definido"}</p>
+                                  <p className="menu-card-description">{service.description || "Descripcion editable desde panel admin."}</p>
+                                </div>
+                                <div className="menu-card-actions">
+                                  <button
+                                    type="button"
+                                    className="secondary"
+                                    onClick={() => openMenuServiceDetail(service)}
+                                  >
+                                    Ver detalles
+                                  </button>
+                                </div>
+                              </article>
+                            );
+                          })}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p>Selecciona un estilo de unas para abrir su pagina.</p>
+                        <div className="menu-grid">
+                          {menuCategories.map((category) => {
+                            const suggestedServiceId = findSuggestedServiceId(category, catalogServices);
+                            const matchedService = catalogServices.find((service) => service.id === suggestedServiceId);
+                            const matchedPrice = Number(matchedService?.price);
+                            const hasMatchedPrice = Number.isFinite(matchedPrice) && matchedPrice > 0;
+
+                            return (
+                              <article key={category.id} className="menu-card">
+                                <SmartImage src={category.image} alt={category.title} fallbackSrc={localMenuImages.manicure} />
+                                <div className="menu-card-text">
+                                  <strong>{category.title}</strong>
+                                  <small>{category.subtitle}</small>
+                                  <p className="menu-card-price">{hasMatchedPrice ? `Desde $${matchedPrice}` : "Precio en seccion Precios"}</p>
+                                  <p className="menu-card-description">
+                                    {matchedService?.description || "Descripcion editable desde panel admin."}
+                                  </p>
+                                </div>
+                                <div className="menu-card-actions">
+                                  <button type="button" className="secondary" onClick={() => openMenuCategory(category)}>Ver detalles</button>
+                                </div>
+                              </article>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </>
+                );
+              })()
             ) : activeSection === "Precios" ? (
               <section className="prices-wrap">
                 <article className="prices-hero">

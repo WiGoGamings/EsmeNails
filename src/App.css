@@ -2893,7 +2893,27 @@ body.theme-dark .contact-owner-icon-link:hover {
 	}
 
 	.quick-rail {
-		display: none;
+		display: flex;
+		align-items: stretch;
+		gap: 0.4rem;
+		overflow-x: auto;
+		overflow-y: hidden;
+		padding: 0.35rem;
+		border-radius: 14px;
+		scrollbar-width: thin;
+	}
+
+	.quick-rail button {
+		min-width: 88px;
+		min-height: 42px;
+		padding: 0.35rem 0.3rem;
+		flex: 0 0 auto;
+	}
+
+	.quick-rail-label {
+		max-width: none;
+		white-space: nowrap;
+		word-break: normal;
 	}
 
 	.content-cards {

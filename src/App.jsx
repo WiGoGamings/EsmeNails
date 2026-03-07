@@ -835,6 +835,7 @@ function App() {
   });
   const profilePhotoInputRef = useRef(null);
   const assistantMessagesEndRef = useRef(null);
+  const ownerCarouselFileInputsRef = useRef({});
   const [homePromoIndex, setHomePromoIndex] = useState(0);
   const [adminSavedMap, setAdminSavedMap] = useState({});
   const [feedback, setFeedback] = useState({ type: "info", text: "Bienvenida a EsmeNails. Inicia sesion o crea tu cuenta para continuar." });
@@ -2248,20 +2249,41 @@ function App() {
   };
 
   const updateOwnerContactField = (field, value) => {
+    const normalizedValue = typeof value === "string" ? value : "";
+
     setAdminSettings((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
         ownerContact: {
           ...(prev.ownerContact || {}),
-          [field]: typeof value === "string" ? value : ""
+          [field]: normalizedValue
         }
       };
     });
+
+    // Keep visible preview aligned while editing carousel media.
+    setOwnerContact((prev) => ({
+      ...prev,
+      [field]: normalizedValue
+    }));
   };
 
   const clearOwnerContactField = (field) => {
     updateOwnerContactField(field, "");
+  };
+
+  const registerOwnerCarouselFileInput = (field, node) => {
+    if (!ownerCarouselFileInputsRef.current) return;
+    if (!node) {
+      delete ownerCarouselFileInputsRef.current[field];
+      return;
+    }
+    ownerCarouselFileInputsRef.current[field] = node;
+  };
+
+  const openOwnerCarouselFilePicker = (field) => {
+    ownerCarouselFileInputsRef.current?.[field]?.click();
   };
 
   const hasOwnerCarouselImage = (value) => typeof value === "string" && value.trim().length > 0;
@@ -4499,15 +4521,14 @@ function App() {
                                       placeholder="URL imagen principal"
                                     />
                                     <div className="admin-actions-row">
-                                      <label className="secondary admin-upload-label">
-                                        Subir desde dispositivo
-                                        <input
-                                          type="file"
-                                          accept="image/*"
-                                          hidden
-                                          onChange={(event) => handleAdminImageFileSelected(event, { ownerField: "homeImageMain" })}
-                                        />
-                                      </label>
+                                      <button type="button" className="secondary" onClick={() => openOwnerCarouselFilePicker("homeImageMain")}>Subir archivo</button>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        hidden
+                                        ref={(node) => registerOwnerCarouselFileInput("homeImageMain", node)}
+                                        onChange={(event) => handleAdminImageFileSelected(event, { ownerField: "homeImageMain" })}
+                                      />
                                       <button type="button" className="secondary" onClick={() => pasteOwnerContactField("homeImageMain")}>Pegar y reemplazar</button>
                                       <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageMain")}>Limpiar</button>
                                     </div>
@@ -4519,15 +4540,14 @@ function App() {
                                     <strong>Imagen 1</strong>
                                     <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageOne ?? ""} onChange={(event) => updateOwnerContactField("homeImageOne", event.target.value)} placeholder="URL imagen 1" />
                                     <div className="admin-actions-row">
-                                      <label className="secondary admin-upload-label">
-                                        Subir desde dispositivo
-                                        <input
-                                          type="file"
-                                          accept="image/*"
-                                          hidden
-                                          onChange={(event) => handleAdminImageFileSelected(event, { ownerField: "homeImageOne" })}
-                                        />
-                                      </label>
+                                      <button type="button" className="secondary" onClick={() => openOwnerCarouselFilePicker("homeImageOne")}>Subir archivo</button>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        hidden
+                                        ref={(node) => registerOwnerCarouselFileInput("homeImageOne", node)}
+                                        onChange={(event) => handleAdminImageFileSelected(event, { ownerField: "homeImageOne" })}
+                                      />
                                       <button type="button" className="secondary" onClick={() => pasteOwnerContactField("homeImageOne")}>Pegar y reemplazar</button>
                                       <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageOne")}>Limpiar</button>
                                     </div>
@@ -4539,15 +4559,14 @@ function App() {
                                     <strong>Imagen 2</strong>
                                     <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageTwo ?? ""} onChange={(event) => updateOwnerContactField("homeImageTwo", event.target.value)} placeholder="URL imagen 2" />
                                     <div className="admin-actions-row">
-                                      <label className="secondary admin-upload-label">
-                                        Subir desde dispositivo
-                                        <input
-                                          type="file"
-                                          accept="image/*"
-                                          hidden
-                                          onChange={(event) => handleAdminImageFileSelected(event, { ownerField: "homeImageTwo" })}
-                                        />
-                                      </label>
+                                      <button type="button" className="secondary" onClick={() => openOwnerCarouselFilePicker("homeImageTwo")}>Subir archivo</button>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        hidden
+                                        ref={(node) => registerOwnerCarouselFileInput("homeImageTwo", node)}
+                                        onChange={(event) => handleAdminImageFileSelected(event, { ownerField: "homeImageTwo" })}
+                                      />
                                       <button type="button" className="secondary" onClick={() => pasteOwnerContactField("homeImageTwo")}>Pegar y reemplazar</button>
                                       <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageTwo")}>Limpiar</button>
                                     </div>
@@ -4559,15 +4578,14 @@ function App() {
                                     <strong>Imagen 3</strong>
                                     <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageThree ?? ""} onChange={(event) => updateOwnerContactField("homeImageThree", event.target.value)} placeholder="URL imagen 3" />
                                     <div className="admin-actions-row">
-                                      <label className="secondary admin-upload-label">
-                                        Subir desde dispositivo
-                                        <input
-                                          type="file"
-                                          accept="image/*"
-                                          hidden
-                                          onChange={(event) => handleAdminImageFileSelected(event, { ownerField: "homeImageThree" })}
-                                        />
-                                      </label>
+                                      <button type="button" className="secondary" onClick={() => openOwnerCarouselFilePicker("homeImageThree")}>Subir archivo</button>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        hidden
+                                        ref={(node) => registerOwnerCarouselFileInput("homeImageThree", node)}
+                                        onChange={(event) => handleAdminImageFileSelected(event, { ownerField: "homeImageThree" })}
+                                      />
                                       <button type="button" className="secondary" onClick={() => pasteOwnerContactField("homeImageThree")}>Pegar y reemplazar</button>
                                       <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageThree")}>Limpiar</button>
                                     </div>
@@ -4579,15 +4597,14 @@ function App() {
                                     <strong>Imagen 4</strong>
                                     <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageFour ?? ""} onChange={(event) => updateOwnerContactField("homeImageFour", event.target.value)} placeholder="URL imagen 4" />
                                     <div className="admin-actions-row">
-                                      <label className="secondary admin-upload-label">
-                                        Subir desde dispositivo
-                                        <input
-                                          type="file"
-                                          accept="image/*"
-                                          hidden
-                                          onChange={(event) => handleAdminImageFileSelected(event, { ownerField: "homeImageFour" })}
-                                        />
-                                      </label>
+                                      <button type="button" className="secondary" onClick={() => openOwnerCarouselFilePicker("homeImageFour")}>Subir archivo</button>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        hidden
+                                        ref={(node) => registerOwnerCarouselFileInput("homeImageFour", node)}
+                                        onChange={(event) => handleAdminImageFileSelected(event, { ownerField: "homeImageFour" })}
+                                      />
                                       <button type="button" className="secondary" onClick={() => pasteOwnerContactField("homeImageFour")}>Pegar y reemplazar</button>
                                       <button type="button" className="secondary" onClick={() => clearOwnerContactField("homeImageFour")}>Limpiar</button>
                                     </div>

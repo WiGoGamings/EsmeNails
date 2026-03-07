@@ -61,6 +61,7 @@ const localMenuImages = {
 const ADMIN_LOCAL_SETTINGS_KEY = "esme_admin_settings_local";
 const MENU_CART_STORAGE_KEY = "esme_menu_cart";
 const ASSISTANT_HISTORY_STORAGE_PREFIX = "esme_assistant_history";
+const LOCAL_AUTH_USERS_KEY = "esme_local_auth_users";
 
 const getAssistantHistoryStorageKey = (isAuthenticated, sessionUser) => {
   const identity = isAuthenticated ? (sessionUser?.email || "authenticated-user") : "guest";
@@ -68,6 +69,25 @@ const getAssistantHistoryStorageKey = (isAuthenticated, sessionUser) => {
 };
 
 const createLocalEntityId = (prefix) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+const normalizeAuthEmail = (value) => String(value || "").trim().toLowerCase();
+
+const getLocalAuthUsers = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(LOCAL_AUTH_USERS_KEY) || "[]");
+    return Array.isArray(stored) ? stored : [];
+  } catch {
+    return [];
+  }
+};
+
+const setLocalAuthUsers = (users) => {
+  try {
+    localStorage.setItem(LOCAL_AUTH_USERS_KEY, JSON.stringify(users));
+  } catch {
+    // Ignore storage write failures.
+  }
+};
 
 const legacyMenuToRealImage = {
   "/menu/acrigel.svg": realNailImages.acrigel,
@@ -1612,6 +1632,27 @@ function App() {
     const token = localStorage.getItem("esme_token");
     if (!token) return;
 
+    if (!API_BASE) {
+      setProfileForm((prev) => ({
+        ...prev,
+        name: sessionUser?.name || "",
+        birthDate: sessionUser?.birthDate || "",
+        email: sessionUser?.email || "",
+        phone: sessionUser?.phone || "",
+        description: sessionUser?.description || "",
+        profileImageUrl: sessionUser?.profileImageUrl || "",
+        emailVerified: false,
+        phoneVerified: false,
+        points: Number(sessionUser?.points) || 0,
+        ordersCount: Number(sessionUser?.ordersCount) || 0,
+        appointmentsCount: Number(sessionUser?.appointmentsCount) || 0
+      }));
+      setEmailCodeSent(false);
+      setEmailVerificationCode("");
+      setEmailVerificationLocalMode(false);
+      return;
+    }
+
     try {
       const response = await apiRequest("/users/me", { token });
       setProfileForm((prev) => ({
@@ -1644,7 +1685,7 @@ function App() {
     } catch (error) {
       setFeedback({ type: "error", text: error.message || "No se pudo cargar perfil." });
     }
-  }, []);
+  }, [sessionUser]);
 
   const handleProfileChange = (event) => {
     setProfileForm((prev) => ({
@@ -3007,6 +3048,74 @@ function App() {
     setFeedback({ type: "info", text: "Procesando solicitud..." });
 
     try {
+      if (!API_BASE) {
+        const normalizedEmail = normalizeAuthEmail(authForm.email);
+        if (!normalizedEmail || !authForm.password.trim()) {
+          throw new Error("Ingresa correo y contrasena para continuar.");
+        }
+
+        if (mode === "register") {
+          if (!authForm.name.trim()) {
+            throw new Error("Escribe tu nombre para registrarte.");
+          }
+
+          const users = getLocalAuthUsers();
+          if (users.some((entry) => normalizeAuthEmail(entry?.email) === normalizedEmail)) {
+            throw new Error("Ese correo ya esta registrado en este dispositivo.");
+          }
+
+          const nextUser = {
+            id: createLocalEntityId("local-user"),
+            name: authForm.name.trim(),
+            email: normalizedEmail,
+            password: authForm.password,
+            points: 0,
+            createdAt: new Date().toISOString()
+          };
+
+          setLocalAuthUsers([...users, nextUser]);
+          setAuthForm(defaultAuth);
+          setMode("login");
+          setFeedback({
+            type: "success",
+            text: "Registro local completado. Ahora inicia sesion."
+          });
+          return;
+        }
+
+        const users = getLocalAuthUsers();
+        const localUser = users.find((entry) =>
+          normalizeAuthEmail(entry?.email) === normalizedEmail
+          && String(entry?.password || "") === authForm.password
+        );
+
+        if (!localUser) {
+          throw new Error("Credenciales invalidas en modo local. Registrate primero en este dispositivo.");
+        }
+
+        const sessionLocalUser = {
+          id: localUser.id,
+          name: localUser.name,
+          email: localUser.email,
+          points: Number(localUser.points) || 0
+        };
+
+        localStorage.setItem("esme_token", `local-${Date.now().toString(36)}`);
+        localStorage.setItem("esme_user", JSON.stringify(sessionLocalUser));
+        localStorage.removeItem("esme_admin_token");
+        setAdminToken("");
+        setSessionUser(sessionLocalUser);
+        setIsAuthenticated(true);
+        setActiveSection("Agendar cita");
+        redirectTo("/nails-app");
+        setAuthForm(defaultAuth);
+        setFeedback({
+          type: "success",
+          text: `Bienvenida ${sessionLocalUser.name}. Iniciaste sesion en modo local (sin backend).`
+        });
+        return;
+      }
+
       if (mode === "register") {
         const registerResponse = await apiRequest("/auth/register", {
           method: "POST",

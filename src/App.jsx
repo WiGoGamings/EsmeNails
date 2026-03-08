@@ -4369,13 +4369,23 @@ function App() {
               onClick={() => setMenuFabOpen(false)}
               style={{ display: menuFabOpen ? "block" : "none" }}
             />
-            <button
-              className="menu-fab-btn"
-              onClick={() => setMenuFabOpen(true)}
-              aria-label="Abrir menú"
-            >
-              <NavIcon type="menu" />
-            </button>
+            <div style={{ position: "fixed", left: 18, bottom: 18, zIndex: 131, display: "flex", gap: "0.5rem" }}>
+              <button
+                className="menu-fab-btn"
+                onClick={() => setMenuFabOpen(true)}
+                aria-label="Abrir menú"
+              >
+                <NavIcon type="menu" />
+              </button>
+              <button
+                className="menu-fab-btn"
+                style={{ background: "#ffd9ec", color: "#7a264a", fontSize: "1.2rem" }}
+                onClick={() => setProfileMenuOpen((prev) => !prev)}
+                aria-label="Perfil"
+              >
+                <NavIcon type="profile" />
+              </button>
+            </div>
             <nav
               className={`quick-rail${menuFabOpen ? " menu-fab-open" : ""}`}
               style={{ display: menuFabOpen ? "flex" : "none" }}

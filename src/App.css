@@ -3434,7 +3434,7 @@ body.theme-dark .profile-dropdown .nav-icon svg {
 		   display: flex;
 		   position: fixed;
 		   bottom: 18px;
-		   right: 18px;
+		   left: 18px;
 		   z-index: 130;
 		   width: 54px;
 		   height: 54px;

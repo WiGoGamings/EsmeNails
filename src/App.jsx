@@ -4349,18 +4349,19 @@ function App() {
 
   return (
     isAuthenticated ? (
-      <main className="pos-layout pastel-bg">
-        <header className="pos-topbar pastel-topbar">
+      <main className="pos-layout">
+        <header className="pos-topbar">
           <div className="pos-topbar-left">
             <div>
-              <p className="dashboard-kicker pastel-kicker">EsmeNails</p>
+              <p className="dashboard-kicker">EsmeNails</p>
               <strong>{activeSection}</strong>
             </div>
           </div>
+
           <div className="topbar-actions">
             <button
               type="button"
-              className={`theme-switch pastel-btn ${themeMode === "dark" ? "dark" : ""}`}
+              className={`theme-switch ${themeMode === "dark" ? "dark" : ""}`}
               onClick={() => setThemeMode((prev) => (prev === "dark" ? "light" : "dark"))}
               aria-label="Cambiar modo de color"
               title={themeMode === "dark" ? "Modo noche" : "Modo claro"}
@@ -4370,36 +4371,54 @@ function App() {
               </span>
               <span className="theme-switch-label">{themeMode === "dark" ? "Noche" : "Claro"}</span>
             </button>
+            {/* Floating menu button for mobile only, no profile button */}
+            {/* You can add the menu button here if needed for mobile */}
           </div>
         </header>
+
         <div className="pos-shell">
-          <aside className="sidebar pastel-sidebar" aria-label="Acciones rapidas">
+          <aside className="quick-rail" aria-label="Acciones rapidas">
             {quickRailSections.map((item) => (
-              <button
-                key={item}
-                type="button"
-                className={`sidebar-btn pastel-btn ${activeSection === item ? "active" : ""}`}
-                onClick={() => navigateToSection(item)}
-                title={item}
-              >
-                <NavIcon type={navIconBySection[item]} />
-                <span className="quick-rail-label">{quickRailLabelBySection[item] || item}</span>
-              </button>
+              item === "Mi perfil" ? (
+                <button
+                  key={item}
+                  type="button"
+                  className={`profile-access pastel ${activeSection === item ? "active" : ""}`}
+                  onClick={() => navigateToSection(item)}
+                  title={item}
+                  style={{ background: "var(--card-pink)", color: "#23272f", borderRadius: "1.2rem", boxShadow: "0 2px 8px #f9c6e0" }}
+                >
+                  <NavIcon type="profile" />
+                  <span className="quick-rail-label">Mi perfil</span>
+                </button>
+              ) : (
+                <button
+                  key={item}
+                  type="button"
+                  className={activeSection === item ? "active" : ""}
+                  onClick={() => navigateToSection(item)}
+                  title={item}
+                >
+                  <NavIcon type={navIconBySection[item]} />
+                  <span className="quick-rail-label">{quickRailLabelBySection[item] || item}</span>
+                </button>
+              )
             ))}
           </aside>
+
           <section
-            className="pos-content pastel-content"
+            className="pos-content"
             onClick={() => {
               if (profileMenuOpen) setProfileMenuOpen(false);
             }}
           >
-            <h1 className="pastel-title">{activeSection}</h1>
-            <nav className="mobile-quick-nav pastel-mobile-nav" aria-label="Navegacion movil">
+            <h1>{activeSection}</h1>
+            <nav className="mobile-quick-nav" aria-label="Navegacion movil">
               {quickRailSections.map((item) => (
                 <button
                   key={`mobile-${item}`}
                   type="button"
-                  className={`pastel-btn ${activeSection === item ? "active" : ""}`}
+                  className={activeSection === item ? "active" : ""}
                   onClick={() => navigateToSection(item)}
                   title={item}
                 >
@@ -7612,30 +7631,32 @@ function App() {
         </div>
       </main>
     ) : (
-    <main className="auth-page pastel-auth-page">
-      <header className="welcome-banner pastel-banner">
+    <main className="auth-page">
+      <header className="welcome-banner">
         <p>Hola hermosa,</p>
         <h1>Bienvenida a EsmeNails</h1>
         <small>Tu studio digital de nails</small>
       </header>
-      <section className="auth-card pastel-auth-card">
-        <div className="auth-toggle pastel-auth-toggle">
+
+      <section className="auth-card">
+        <div className="auth-toggle">
           <button
-            className={`pastel-btn ${mode === "login" ? "active" : ""}`}
+            className={mode === "login" ? "active" : ""}
             onClick={() => setMode("login")}
             type="button"
           >
             Login
           </button>
           <button
-            className={`pastel-btn ${mode === "register" ? "active" : ""}`}
+            className={mode === "register" ? "active" : ""}
             onClick={() => setMode("register")}
             type="button"
           >
             Registro
           </button>
         </div>
-        <form onSubmit={submitAuth} className="form-grid pastel-form-grid" noValidate>
+
+        <form onSubmit={submitAuth} className="form-grid" noValidate>
           {mode === "register" && (
             <label>
               Nombre
@@ -7688,7 +7709,7 @@ function App() {
           <button
             type="submit"
             disabled={busy || (mode === "register" && !isPasswordStrong)}
-            className="auth-btn pastel-btn full-width"
+            className="primary full-width"
           >
             {busy ? "Procesando..." : mode === "register" ? "Crear cuenta" : "Entrar"}
           </button>

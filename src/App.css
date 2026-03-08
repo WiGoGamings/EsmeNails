@@ -560,6 +560,30 @@ select {
 }
 
 .quick-rail button {
+	/* Botón pastel de acceso a perfil en sidebar */
+	.profile-access.pastel {
+		background: #f9c6e0 !important;
+		color: #23272f !important;
+		border-radius: 1.2rem !important;
+		box-shadow: 0 2px 8px #f9c6e0 !important;
+		font-weight: 600;
+		margin: 0.5rem 0;
+		padding: 0.7rem 1.2rem;
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		transition: background 0.2s, box-shadow 0.2s;
+	}
+	.profile-access.pastel.active {
+		background: #f7b6d6 !important;
+		box-shadow: 0 4px 12px #f7b6d6 !important;
+	}
+	@media (max-width: 600px) {
+		.profile-access.pastel {
+			padding: 0.5rem 0.7rem;
+			font-size: 1rem;
+		}
+	}
 	background: rgba(255, 245, 252, 0.25);
 }
 

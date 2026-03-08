@@ -73,6 +73,11 @@ if (JSON.stringify(pointsProgramWithDefaults) !== JSON.stringify(db.data.pointsP
   await db.write();
 }
 
+if (!Array.isArray(db.data.pointsGameAchievements)) {
+  db.data.pointsGameAchievements = defaultData.pointsGameAchievements.map((item) => ({ ...item }));
+  await db.write();
+}
+
 const ensureImageField = async (collection) => {
   if (!Array.isArray(db.data[collection])) return;
 

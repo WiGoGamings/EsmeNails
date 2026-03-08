@@ -18,6 +18,7 @@ import {
   updateAdminContactMessage,
   updateAdminEmployee,
   updateAdminOwnerContact,
+  updateAdminPointsGameAchievements,
   updateAdminPointsProgram,
   updateAdminProduct,
   updateAdminPromotion,
@@ -45,6 +46,7 @@ router.put("/settings/employees/:id", requireAdmin, updateAdminEmployee);
 router.delete("/settings/employees/:id", requireAdmin, deleteAdminEmployee);
 router.put("/settings/owner-contact", requireAdmin, updateAdminOwnerContact);
 router.put("/settings/points-program", requireAdmin, updateAdminPointsProgram);
+router.put("/settings/points-game-achievements", requireAdmin, updateAdminPointsGameAchievements);
 router.put("/appointments/:id", requireAdmin, updateAdminAppointment);
 router.post("/appointments/:id/restore", requireAdmin, restoreCompletedAdminAppointment);
 router.delete("/appointments/:id", requireAdmin, deleteAdminAppointment);

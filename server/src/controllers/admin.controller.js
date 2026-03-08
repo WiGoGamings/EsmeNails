@@ -10,6 +10,7 @@ import {
   adminEmployeeSchema,
   adminLoginSchema,
   adminOwnerContactSchema,
+  adminPointsGameAchievementsSchema,
   adminPointsProgramSchema,
   adminProductSchema,
   adminPromotionSchema,
@@ -283,11 +284,36 @@ export const getAdminSettings = (_req, res) => {
     promotions: db.data.promotions,
     employees: db.data.employees || [],
     ownerContact: db.data.ownerContact || {},
+    pointsGameAchievements: db.data.pointsGameAchievements || [],
     pointsProgram: db.data.pointsProgram || {
       pointsPerAmount: 10,
       pointsPerUnit: 1,
       rewards: []
     }
+  });
+};
+
+export const updateAdminPointsGameAchievements = async (req, res) => {
+  const parsed = adminPointsGameAchievementsSchema.safeParse(req.body?.achievements ?? req.body);
+  if (!parsed.success) {
+    return res.status(400).json(parseValidationError(parsed.error));
+  }
+
+  const achievements = parsed.data;
+  const ids = new Set();
+  for (const achievement of achievements) {
+    if (ids.has(achievement.id)) {
+      return res.status(400).json({ error: `ID repetido en logros: ${achievement.id}` });
+    }
+    ids.add(achievement.id);
+  }
+
+  db.data.pointsGameAchievements = achievements;
+  await persist();
+
+  return res.status(200).json({
+    message: "Logros del juego actualizados",
+    pointsGameAchievements: db.data.pointsGameAchievements
   });
 };
 

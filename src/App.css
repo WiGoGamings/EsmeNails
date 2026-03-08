@@ -466,6 +466,7 @@ select {
 	display: grid;
 	grid-template-columns: 74px 1fr;
 	gap: 0.7rem;
+	align-items: start;
 }
 
 .quick-rail {
@@ -477,6 +478,9 @@ select {
 	display: grid;
 	gap: 0.45rem;
 	align-content: start;
+	position: sticky;
+	top: 0.65rem;
+	max-height: calc(100vh - 1.3rem);
 	overflow-y: auto;
 }
 
@@ -2560,6 +2564,29 @@ select {
 	gap: 0.55rem;
 }
 
+.admin-quick-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	padding: 0.55rem;
+	border: 1px solid #efcdbf;
+	border-radius: 12px;
+	background: linear-gradient(135deg, #fff5ef 0%, #ffe8df 100%);
+	position: sticky;
+	top: 0.55rem;
+	z-index: 12;
+}
+
+.admin-quick-links button {
+	min-height: 44px;
+	font-weight: 800;
+}
+
+.admin-quick-links button.is-active {
+	outline: 2px solid rgba(239, 77, 131, 0.45);
+	outline-offset: 1px;
+}
+
 .admin-overview-grid article,
 .period-card,
 .history-card {
@@ -2658,18 +2685,18 @@ select {
 
 .admin-detail-tabs {
 	display: grid;
-	grid-template-columns: repeat(5, minmax(0, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 	gap: 0.45rem;
 }
 
 .admin-detail-tabs button {
-	min-height: 44px;
+	min-height: 48px;
 	border: 1px solid #efcec0;
 	border-radius: 10px;
 	background: #fff4ec;
 	color: #5a2314;
 	font-family: inherit;
-	font-weight: 700;
+	font-weight: 800;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -2973,6 +3000,11 @@ body.theme-dark .admin-table-wrap,
 body.theme-dark .contact-link-marquee {
 	background: var(--surface-1);
 	border-color: var(--border-main);
+}
+
+body.theme-dark .admin-quick-links {
+	border-color: #55324c;
+	background: linear-gradient(135deg, #2c1b2b 0%, #3d2334 100%);
 }
 
 body.theme-dark .home-kpi-grid article strong,
@@ -3595,6 +3627,10 @@ body.theme-dark .profile-dropdown .nav-icon svg {
 	.admin-period-grid,
 	.admin-history-list {
 		grid-template-columns: 1fr;
+	}
+
+	.admin-quick-links {
+		position: static;
 	}
 
 	.inline-form-grid,

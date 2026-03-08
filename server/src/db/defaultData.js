@@ -144,6 +144,64 @@
       }
     ]
   },
+  pointsGameAchievements: [
+    {
+      id: "play-180",
+      title: "Maraton Beauty I",
+      description: "Juega 3 minutos acumulados en adivinanzas.",
+      rewardPoints: 0.3,
+      metric: "totalPlaySeconds",
+      targetValue: 180
+    },
+    {
+      id: "play-600",
+      title: "Maraton Beauty II",
+      description: "Juega 10 minutos acumulados.",
+      rewardPoints: 0.8,
+      metric: "totalPlaySeconds",
+      targetValue: 600
+    },
+    {
+      id: "rounds-40",
+      title: "Constancia de Salon",
+      description: "Completa 40 rondas de adivinanzas.",
+      rewardPoints: 0.6,
+      metric: "roundsPlayed",
+      targetValue: 40
+    },
+    {
+      id: "wins-25",
+      title: "Mente Tecnica",
+      description: "Acumula 25 respuestas correctas.",
+      rewardPoints: 1.2,
+      metric: "winsTotal",
+      targetValue: 25
+    },
+    {
+      id: "points-25",
+      title: "Coleccionista Glow",
+      description: "Alcanza 25 puntos acumulados.",
+      rewardPoints: 1.5,
+      metric: "pointsBalance",
+      targetValue: 25
+    },
+    {
+      id: "points-60",
+      title: "Elite Pink Club",
+      description: "Alcanza 60 puntos acumulados.",
+      rewardPoints: 2.5,
+      metric: "pointsBalance",
+      targetValue: 60
+    },
+    {
+      id: "points-120",
+      title: "Diamante Beauty",
+      description: "Alcanza 120 puntos acumulados.",
+      rewardPoints: 4,
+      metric: "pointsBalance",
+      targetValue: 120
+    }
+  ],
   appointments: [],
   completedAppointments: [],
   contactMessages: [],

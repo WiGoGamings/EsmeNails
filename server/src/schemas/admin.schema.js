@@ -95,3 +95,14 @@ export const adminPointsProgramSchema = z.object({
   pointsPerUnit: z.number().int().min(1).max(1000),
   rewards: z.array(adminPointsRewardSchema).max(24).default([])
 });
+
+export const adminPointsGameAchievementSchema = z.object({
+  id: z.string().trim().min(1, "ID de logro invalido").max(80),
+  title: z.string().trim().min(2, "Titulo de logro invalido").max(120),
+  description: z.string().trim().max(400).optional().default(""),
+  rewardPoints: z.number().min(0).max(100000),
+  metric: z.enum(["totalPlaySeconds", "roundsPlayed", "winsTotal", "pointsBalance"]),
+  targetValue: z.number().min(1).max(1000000)
+});
+
+export const adminPointsGameAchievementsSchema = z.array(adminPointsGameAchievementSchema).max(100).default([]);

@@ -67,6 +67,7 @@ const LOCAL_ADMIN_EMAIL = "admin.esme@esmenails.com";
 const LOCAL_ADMIN_PASSWORD_HASH = "53ac1385fa6a18d0e617c52423c17abd61ab1f39b2093f0fb4e37a1bd14736f3";
 const API_POINTS_LEDGER_KEY = "esme_points_ledger_v1";
 const POINTS_GAME_STATS_LEDGER_KEY = "esme_points_game_stats_v1";
+const POINTS_GAME_ACHIEVEMENTS_CONFIG_KEY = "esme_points_game_achievements_config_v1";
 
 const getAssistantHistoryStorageKey = (isAuthenticated, sessionUser) => {
   const identity = isAuthenticated ? (sessionUser?.email || "authenticated-user") : "guest";
@@ -553,6 +554,174 @@ const defaultPointsProgram = {
   rewards: defaultLoyaltyRewards
 };
 
+const pointsGameAchievementMetricOptions = [
+  { value: "totalPlaySeconds", label: "Tiempo jugado (minutos)" },
+  { value: "roundsPlayed", label: "Rondas jugadas" },
+  { value: "winsTotal", label: "Respuestas correctas" },
+  { value: "pointsBalance", label: "Puntos acumulados" }
+];
+
+const pointsGameAchievementMetricSet = new Set(pointsGameAchievementMetricOptions.map((item) => item.value));
+
+const defaultPointsGameAchievements = [
+  {
+    id: "play-180",
+    title: "Maraton Beauty I",
+    description: "Juega 3 minutos acumulados en adivinanzas.",
+    rewardPoints: 0.3,
+    metric: "totalPlaySeconds",
+    targetValue: 180
+  },
+  {
+    id: "play-600",
+    title: "Maraton Beauty II",
+    description: "Juega 10 minutos acumulados.",
+    rewardPoints: 0.8,
+    metric: "totalPlaySeconds",
+    targetValue: 600
+  },
+  {
+    id: "rounds-40",
+    title: "Constancia de Salon",
+    description: "Completa 40 rondas de adivinanzas.",
+    rewardPoints: 0.6,
+    metric: "roundsPlayed",
+    targetValue: 40
+  },
+  {
+    id: "wins-25",
+    title: "Mente Tecnica",
+    description: "Acumula 25 respuestas correctas.",
+    rewardPoints: 1.2,
+    metric: "winsTotal",
+    targetValue: 25
+  },
+  {
+    id: "points-25",
+    title: "Coleccionista Glow",
+    description: "Alcanza 25 puntos acumulados.",
+    rewardPoints: 1.5,
+    metric: "pointsBalance",
+    targetValue: 25
+  },
+  {
+    id: "points-60",
+    title: "Elite Pink Club",
+    description: "Alcanza 60 puntos acumulados.",
+    rewardPoints: 2.5,
+    metric: "pointsBalance",
+    targetValue: 60
+  },
+  {
+    id: "points-120",
+    title: "Diamante Beauty",
+    description: "Alcanza 120 puntos acumulados.",
+    rewardPoints: 4,
+    metric: "pointsBalance",
+    targetValue: 120
+  }
+];
+
+const defaultAdminPointsGameAchievementDraft = {
+  title: "",
+  description: "",
+  metric: "totalPlaySeconds",
+  targetValue: 25,
+  rewardPoints: 2.5
+};
+
+const adminPointsGameAchievementPresets = [
+  {
+    label: "Jugar 3 rondas -> +0.5",
+    draft: {
+      title: "Ritmo inicial",
+      description: "Juega 3 rondas y desbloquea 0.5 pts.",
+      metric: "roundsPlayed",
+      targetValue: 3,
+      rewardPoints: 0.5
+    }
+  },
+  {
+    label: "Jugar 25 min -> +2.5",
+    draft: {
+      title: "Maraton 25 minutos",
+      description: "Juega 25 minutos acumulados y desbloquea 2.5 pts.",
+      metric: "totalPlaySeconds",
+      targetValue: 25,
+      rewardPoints: 2.5
+    }
+  },
+  {
+    label: "Ganar 10 -> +1.2",
+    draft: {
+      title: "Racha de 10",
+      description: "Acumula 10 respuestas correctas y desbloquea 1.2 pts.",
+      metric: "winsTotal",
+      targetValue: 10,
+      rewardPoints: 1.2
+    }
+  }
+];
+
+const sanitizePointsGameAchievementsConfig = (rawList) => {
+  if (!Array.isArray(rawList)) return [];
+
+  const seenIds = new Set();
+
+  return rawList
+    .map((entry, index) => {
+      const source = entry && typeof entry === "object" ? entry : {};
+      const baseId = String(source.id || `achievement-${index + 1}`).trim() || `achievement-${index + 1}`;
+      let uniqueId = baseId;
+      let suffix = 2;
+
+      while (seenIds.has(uniqueId)) {
+        uniqueId = `${baseId}-${suffix}`;
+        suffix += 1;
+      }
+      seenIds.add(uniqueId);
+
+      const metric = pointsGameAchievementMetricSet.has(source.metric)
+        ? source.metric
+        : "winsTotal";
+
+      const parsedTarget = Number(source.targetValue);
+      const parsedReward = Number(source.rewardPoints);
+
+      return {
+        id: uniqueId,
+        title: String(source.title || "").trim(),
+        description: String(source.description || "").trim(),
+        rewardPoints: normalizePointsValue(Math.max(0, Number.isFinite(parsedReward) ? parsedReward : 0)),
+        metric,
+        targetValue: Math.max(0, Number.isFinite(parsedTarget) ? parsedTarget : 0)
+      };
+    })
+    .filter((item) => item.id && item.title && item.targetValue > 0);
+};
+
+const getStoredPointsGameAchievementsConfig = () => {
+  try {
+    const raw = localStorage.getItem(POINTS_GAME_ACHIEVEMENTS_CONFIG_KEY);
+    if (!raw) return defaultPointsGameAchievements;
+    const parsed = JSON.parse(raw);
+    return sanitizePointsGameAchievementsConfig(parsed);
+  } catch {
+    return defaultPointsGameAchievements;
+  }
+};
+
+const setStoredPointsGameAchievementsConfig = (achievements) => {
+  try {
+    localStorage.setItem(
+      POINTS_GAME_ACHIEVEMENTS_CONFIG_KEY,
+      JSON.stringify(sanitizePointsGameAchievementsConfig(achievements))
+    );
+  } catch {
+    // Ignore storage write failures.
+  }
+};
+
 const lashesKeywords = ["pestan", "lash", "lifting", "volumen"];
 
 const isLashesContent = (value) => {
@@ -921,7 +1090,7 @@ function App() {
   const [adminBusy, setAdminBusy] = useState(false);
   const [adminData, setAdminData] = useState(null);
   const [adminSettings, setAdminSettings] = useState(null);
-  const [adminDetailView, setAdminDetailView] = useState("appointments");
+  const [adminDetailView, setAdminDetailView] = useState("settings");
   const [adminAppointmentFilter, setAdminAppointmentFilter] = useState("all");
   const [selectedClientId, setSelectedClientId] = useState("");
   const [editingAppointmentId, setEditingAppointmentId] = useState("");
@@ -964,7 +1133,12 @@ function App() {
     active: true,
     imageUrl: ""
   });
-  const [profileForm, setProfileForm] = useState(defaultProfileForm);
+  const [profileForm, setProfileForm] = useState(() => ({
+    ...defaultProfileForm,
+    name: sessionUser?.name || "",
+    email: sessionUser?.email || "",
+    points: normalizePointsValue(Number(sessionUser?.points) || 0)
+  }));
   const [profileBusy, setProfileBusy] = useState(false);
   const [pointsGameOpen, setPointsGameOpen] = useState(false);
   const [pointsGameRiddleIndex, setPointsGameRiddleIndex] = useState(0);
@@ -976,6 +1150,8 @@ function App() {
   const [pointsGameHintVisible, setPointsGameHintVisible] = useState(false);
   const [pointsGameHintPaidQuestionId, setPointsGameHintPaidQuestionId] = useState("");
   const [pointsGameStats, setPointsGameStats] = useState(defaultPointsGameStats);
+  const [pointsGameAchievementsConfig, setPointsGameAchievementsConfig] = useState(() => getStoredPointsGameAchievementsConfig());
+  const [adminPointsGameAchievementDraft, setAdminPointsGameAchievementDraft] = useState(defaultAdminPointsGameAchievementDraft);
   const [contactForm, setContactForm] = useState({
     subject: "",
     message: "",
@@ -1091,7 +1267,10 @@ function App() {
           promotions: Array.isArray(stored.promotions) ? stored.promotions : [],
           employees: Array.isArray(stored.employees) ? stored.employees : [],
           ownerContact: mergeOwnerContactDefaults(stored.ownerContact),
-          pointsProgram: stored.pointsProgram || defaultPointsProgram
+          pointsProgram: stored.pointsProgram || defaultPointsProgram,
+          pointsGameAchievements: sanitizePointsGameAchievementsConfig(
+            stored.pointsGameAchievements || getStoredPointsGameAchievementsConfig()
+          )
         };
       }
     } catch {
@@ -1104,7 +1283,8 @@ function App() {
       promotions: [],
       employees: [],
       ownerContact: mergeOwnerContactDefaults(defaultOwnerContact),
-      pointsProgram: defaultPointsProgram
+      pointsProgram: defaultPointsProgram,
+      pointsGameAchievements: defaultPointsGameAchievements
     };
   }, []);
 
@@ -1133,6 +1313,9 @@ function App() {
     const employees = Array.isArray(nextSettings?.employees) ? nextSettings.employees : [];
     const owner = mergeOwnerContactDefaults(nextSettings?.ownerContact);
     const pointsProgram = nextSettings?.pointsProgram || defaultPointsProgram;
+    const pointsGameAchievements = sanitizePointsGameAchievementsConfig(
+      nextSettings?.pointsGameAchievements || getStoredPointsGameAchievementsConfig()
+    );
 
     const normalizedSettings = {
       services,
@@ -1140,7 +1323,8 @@ function App() {
       promotions,
       employees,
       ownerContact: owner,
-      pointsProgram
+      pointsProgram,
+      pointsGameAchievements
     };
 
     setAdminSettings(normalizedSettings);
@@ -1149,6 +1333,8 @@ function App() {
     setCatalogPromotions(promotions);
     setCatalogEmployees(employees);
     setCatalogPointsProgram(pointsProgram);
+    setPointsGameAchievementsConfig(pointsGameAchievements);
+    setStoredPointsGameAchievementsConfig(pointsGameAchievements);
     setOwnerContact(owner);
     persistLocalAdminSettings(normalizedSettings);
 
@@ -1523,6 +1709,129 @@ function App() {
     } catch (error) {
       setFeedback({ type: "error", text: error.message || "No se pudo actualizar programa de puntos." });
     }
+  };
+
+  const updateAdminPointsGameAchievementField = (achievementId, field, value) => {
+    setPointsGameAchievementsConfig((prev) => prev.map((achievement) => (
+      achievement.id === achievementId ? { ...achievement, [field]: value } : achievement
+    )));
+  };
+
+  const createAdminPointsGameAchievementFromDraft = (draft, options = {}) => {
+    const sourceDraft = draft || {};
+    const metric = pointsGameAchievementMetricSet.has(sourceDraft.metric)
+      ? sourceDraft.metric
+      : "winsTotal";
+    const rawTarget = Number(sourceDraft.targetValue);
+    const rawReward = Number(sourceDraft.rewardPoints);
+    const targetValue = metric === "totalPlaySeconds"
+      ? Math.max(1, Math.round((Number.isFinite(rawTarget) ? rawTarget : 0) * 60))
+      : Math.max(1, Math.round(Number.isFinite(rawTarget) ? rawTarget : 0));
+    const rewardPoints = normalizePointsValue(Math.max(0.001, Number.isFinite(rawReward) ? rawReward : 0));
+
+    if (targetValue <= 0) {
+      setFeedback({ type: "error", text: "Define un objetivo valido para el logro." });
+      return;
+    }
+
+    const metricLabelMap = {
+      totalPlaySeconds: "minutos jugados",
+      roundsPlayed: "rondas jugadas",
+      winsTotal: "respuestas correctas",
+      pointsBalance: "puntos acumulados"
+    };
+    const targetText = metric === "totalPlaySeconds"
+      ? `${Math.max(1, Number(sourceDraft.targetValue) || 0)} minutos`
+      : `${targetValue}`;
+    const fallbackTitle = `Logro ${targetText}`;
+    const fallbackDescription = `Si completas ${targetText} en ${metricLabelMap[metric]}, desbloqueas ${formatPointsValue(rewardPoints)} pts.`;
+
+    const nextId = `game-achievement-${Date.now().toString(36)}`;
+    setPointsGameAchievementsConfig((prev) => ([
+      ...prev,
+      {
+        id: nextId,
+        title: String(sourceDraft.title || "").trim() || fallbackTitle,
+        description: String(sourceDraft.description || "").trim() || fallbackDescription,
+        rewardPoints,
+        metric,
+        targetValue
+      }
+    ]));
+
+    if (options.resetDraft !== false) {
+      setAdminPointsGameAchievementDraft(defaultAdminPointsGameAchievementDraft);
+    }
+    setFeedback({ type: "success", text: "Logro agregado. Guarda el panel para publicarlo en Mis puntos." });
+  };
+
+  const addAdminPointsGameAchievement = () => {
+    createAdminPointsGameAchievementFromDraft(adminPointsGameAchievementDraft, { resetDraft: true });
+  };
+
+  const addPresetAdminPointsGameAchievement = (preset) => {
+    createAdminPointsGameAchievementFromDraft(preset?.draft || {}, { resetDraft: false });
+  };
+
+  const removeAdminPointsGameAchievement = (achievementId) => {
+    setPointsGameAchievementsConfig((prev) => prev.filter((achievement) => achievement.id !== achievementId));
+  };
+
+  const getAdminAchievementTargetDisplay = (achievement) => {
+    const targetValue = Number(achievement?.targetValue) || 0;
+    if (achievement?.metric === "totalPlaySeconds") {
+      return normalizePointsValue(targetValue / 60);
+    }
+    return targetValue;
+  };
+
+  const handleAdminAchievementTargetChange = (achievement, rawValue) => {
+    const parsed = Number(rawValue);
+    if (!Number.isFinite(parsed)) {
+      updateAdminPointsGameAchievementField(achievement.id, "targetValue", 0);
+      return;
+    }
+
+    const storedTarget = achievement.metric === "totalPlaySeconds"
+      ? Math.max(1, Math.round(parsed * 60))
+      : Math.max(1, Math.round(parsed));
+
+    updateAdminPointsGameAchievementField(achievement.id, "targetValue", storedTarget);
+  };
+
+  const savePointsGameAchievements = () => {
+    const normalized = sanitizePointsGameAchievementsConfig(pointsGameAchievementsConfig);
+
+    if (!API_BASE) {
+      const base = getLocalAdminSettingsSnapshot();
+      applyAdminSettingsToRuntime({
+        ...base,
+        pointsGameAchievements: normalized
+      });
+      markAdminSaved("points-game-achievements");
+      setFeedback({ type: "success", text: "Panel de logros del juego actualizado." });
+      return;
+    }
+
+    const saveRemote = async () => {
+      try {
+        await apiRequest("/admin/settings/points-game-achievements", {
+          method: "PUT",
+          token: adminToken,
+          body: {
+            achievements: normalized
+          }
+        });
+        await refreshAdminPanels();
+        await refreshAgendaData();
+        markAdminSaved("points-game-achievements");
+        setFeedback({ type: "success", text: "Panel de logros del juego actualizado." });
+      } catch (error) {
+        setFeedback({ type: "error", text: error.message || "No se pudo actualizar panel de logros." });
+      }
+    };
+
+    saveRemote();
   };
 
   const saveService = async (service) => {
@@ -1982,6 +2291,13 @@ function App() {
       setEmailVerificationCode("");
       setEmailVerificationLocalMode(false);
     } catch (error) {
+      const sessionPoints = normalizePointsValue(Number(sessionUser?.points) || 0);
+      setProfileForm((prev) => ({
+        ...prev,
+        name: sessionUser?.name || prev.name,
+        email: sessionUser?.email || prev.email,
+        points: Math.max(normalizePointsValue(Number(prev.points) || 0), sessionPoints)
+      }));
       setFeedback({ type: "error", text: error.message || "No se pudo cargar perfil." });
     }
   }, [sessionUser]);
@@ -2659,6 +2975,10 @@ function App() {
     setFeedback({ type: "info", text: "Perfil del cliente abierto." });
   };
 
+  const openAdminGameAchievementsPanel = () => {
+    setAdminDetailView("game-achievements");
+  };
+
   const startEditAppointment = (appointment) => {
     setEditingAppointmentId(appointment.id);
     setAdminAppointmentDraft({
@@ -3148,9 +3468,13 @@ function App() {
 
   const pointsBalance = useMemo(() => {
     const fromProfile = Number(profileForm.points);
-    if (Number.isFinite(fromProfile)) return Math.max(0, fromProfile);
     const fromSession = Number(sessionUser?.points);
-    return Number.isFinite(fromSession) ? Math.max(0, fromSession) : 0;
+    const candidates = [fromProfile, fromSession]
+      .filter((value) => Number.isFinite(value))
+      .map((value) => Math.max(0, value));
+
+    if (candidates.length === 0) return 0;
+    return Math.max(...candidates);
   }, [profileForm.points, sessionUser?.points]);
 
   const pointsTier = useMemo(() => {
@@ -3240,57 +3564,16 @@ function App() {
     });
   }, [sessionUser]);
 
-  const pointsGameAchievements = useMemo(() => ([
-    {
-      id: "play-180",
-      title: "Maraton Beauty I",
-      description: "Juega 3 minutos acumulados en adivinanzas.",
-      rewardPoints: 0.3,
-      unlockedWhen: (metrics) => metrics.totalPlaySeconds >= 180
-    },
-    {
-      id: "play-600",
-      title: "Maraton Beauty II",
-      description: "Juega 10 minutos acumulados.",
-      rewardPoints: 0.8,
-      unlockedWhen: (metrics) => metrics.totalPlaySeconds >= 600
-    },
-    {
-      id: "rounds-40",
-      title: "Constancia de Salon",
-      description: "Completa 40 rondas de adivinanzas.",
-      rewardPoints: 0.6,
-      unlockedWhen: (metrics) => metrics.roundsPlayed >= 40
-    },
-    {
-      id: "wins-25",
-      title: "Mente Tecnica",
-      description: "Acumula 25 respuestas correctas.",
-      rewardPoints: 1.2,
-      unlockedWhen: (metrics) => metrics.winsTotal >= 25
-    },
-    {
-      id: "points-25",
-      title: "Coleccionista Glow",
-      description: "Alcanza 25 puntos acumulados.",
-      rewardPoints: 1.5,
-      unlockedWhen: (metrics) => metrics.pointsBalance >= 25
-    },
-    {
-      id: "points-60",
-      title: "Elite Pink Club",
-      description: "Alcanza 60 puntos acumulados.",
-      rewardPoints: 2.5,
-      unlockedWhen: (metrics) => metrics.pointsBalance >= 60
-    },
-    {
-      id: "points-120",
-      title: "Diamante Beauty",
-      description: "Alcanza 120 puntos acumulados.",
-      rewardPoints: 4,
-      unlockedWhen: (metrics) => metrics.pointsBalance >= 120
-    }
-  ]), []);
+  const pointsGameAchievements = useMemo(() => {
+    const normalized = sanitizePointsGameAchievementsConfig(pointsGameAchievementsConfig);
+    return normalized.map((achievement) => ({
+      ...achievement,
+      unlockedWhen: (metrics) => {
+        const metricValue = Number(metrics?.[achievement.metric]);
+        return Number.isFinite(metricValue) && metricValue >= Number(achievement.targetValue);
+      }
+    }));
+  }, [pointsGameAchievementsConfig]);
 
   const unlockedAchievementIdsSet = useMemo(
     () => new Set(pointsGameStats.unlockedAchievementIds || []),
@@ -3455,8 +3738,8 @@ function App() {
 
       if (isCorrect) {
         setPointsGameWins((prev) => prev + 1);
-        creditPointsFromGame(0.1);
-        setFeedback({ type: "success", text: "Respuesta correcta. +0.1 puntos agregados." });
+        creditPointsFromGame(1);
+        setFeedback({ type: "success", text: "Respuesta correcta. +1 punto agregado." });
       } else {
         creditPointsFromGame(-0.001);
         setFeedback({ type: "info", text: "Respuesta incorrecta. -0.001 puntos aplicados." });
@@ -3500,7 +3783,7 @@ function App() {
     }
 
     const names = newAchievements.map((item) => item.title).join(", ");
-    setFeedback({ type: "success", text: `Logro desbloqueado: ${names}. +${formatPointsValue(rewardTotal)} puntos.` });
+    setFeedback({ type: "success", text: `Logro confirmado: ${names}. Premio entregado: +${formatPointsValue(rewardTotal)} puntos.` });
   }, [
     isAuthenticated,
     adminToken,
@@ -4458,7 +4741,6 @@ function App() {
                     <div>
                       <small>Mini juego</small>
                       <h3>Adivinanzas para ganar puntos</h3>
-                      <p>Banco intermedio con mas de 200 preguntas de uñas, estilo y belleza. Acierto: +0.1 | Error: -0.001.</p>
                     </div>
                     <button
                       type="button"
@@ -4552,7 +4834,7 @@ function App() {
                         {pointsGameRound.result && pointsGameRound.result !== "pending" && (
                           <span className={`points-game-result-pill ${pointsGameRound.result}`}>
                             {pointsGameRound.result === "win"
-                              ? "Victoria: +0.1 pts"
+                              ? "Victoria: +1 pts"
                               : "Derrota: -0.001 pts"}
                           </span>
                         )}
@@ -4809,6 +5091,30 @@ function App() {
 
                     {adminData && (
                       <>
+                        <section className="admin-quick-links" aria-label="Accesos rapidos de administracion">
+                          <button
+                            type="button"
+                            className={`primary ${adminDetailView === "game-achievements" ? "is-active" : ""}`}
+                            onClick={openAdminGameAchievementsPanel}
+                          >
+                            Ir a logros de juego
+                          </button>
+                          <button
+                            type="button"
+                            className={`secondary ${adminDetailView === "settings" ? "is-active" : ""}`}
+                            onClick={() => setAdminDetailView("settings")}
+                          >
+                            Ir a configuracion
+                          </button>
+                          <button
+                            type="button"
+                            className={`secondary ${adminDetailView === "appointments" ? "is-active" : ""}`}
+                            onClick={() => setAdminDetailView("appointments")}
+                          >
+                            Ir a citas
+                          </button>
+                        </section>
+
                         <div className="admin-overview-grid">
                           <article>
                             <small>Clientes registrados</small>
@@ -4898,6 +5204,14 @@ function App() {
                             >
                               <span className="nav-icon" aria-hidden="true"><NavIcon type="settings" /></span>
                               Menus de configuracion
+                            </button>
+                            <button
+                              type="button"
+                              className={adminDetailView === "game-achievements" ? "active" : ""}
+                              onClick={openAdminGameAchievementsPanel}
+                            >
+                              <span className="nav-icon" aria-hidden="true"><NavIcon type="points" /></span>
+                              Logros juego
                             </button>
                           </div>
                         </section>
@@ -5796,7 +6110,7 @@ function App() {
                               </article>
 
                               <article className="admin-editor-card">
-                                <h4>Programa de puntos</h4>
+                                <h4>Programa de compras (separado de logros de juego)</h4>
                                 <div className="inline-form-grid three">
                                   <label>
                                     Cada monto ($)
@@ -5820,8 +6134,8 @@ function App() {
                                 </div>
 
                                 <p>
-                                  Esta cantidad es editable desde admin y define la regla: por cada ${adminSettings.pointsProgram?.pointsPerAmount || 10}
-                                  se otorgan {adminSettings.pointsProgram?.pointsPerUnit || 1} punto{Number(adminSettings.pointsProgram?.pointsPerUnit || 1) === 1 ? "" : "s"}.
+                                  Esta seccion aplica a compras: por cada ${adminSettings.pointsProgram?.pointsPerAmount || 10}
+                                  se otorgan {adminSettings.pointsProgram?.pointsPerUnit || 1} punto{Number(adminSettings.pointsProgram?.pointsPerUnit || 1) === 1 ? "" : "s"}. Los logros del juego se configuran abajo.
                                 </p>
 
                                 <div className="admin-actions-row">
@@ -5997,7 +6311,304 @@ function App() {
                                   </table>
                                 </div>
                               </article>
+
+                              <article className="admin-editor-card" id="admin-game-achievements-panel">
+                                <h4>Panel de logros del juego</h4>
+                                <p>Crea logros por condicion de juego. Ejemplo: si juegas 25 minutos, desbloqueas 2.5 pts.</p>
+
+                                <div className="admin-actions-row">
+                                  {adminPointsGameAchievementPresets.map((preset) => (
+                                    <button
+                                      key={preset.label}
+                                      type="button"
+                                      className="secondary"
+                                      onClick={() => addPresetAdminPointsGameAchievement(preset)}
+                                    >
+                                      {preset.label}
+                                    </button>
+                                  ))}
+                                </div>
+
+                                <div className="inline-form-grid four">
+                                  <input
+                                    value={adminPointsGameAchievementDraft.title}
+                                    onChange={(event) => setAdminPointsGameAchievementDraft((prev) => ({ ...prev, title: event.target.value }))}
+                                    placeholder="Titulo del logro (opcional)"
+                                  />
+                                  <input
+                                    value={adminPointsGameAchievementDraft.description}
+                                    onChange={(event) => setAdminPointsGameAchievementDraft((prev) => ({ ...prev, description: event.target.value }))}
+                                    placeholder="Descripcion (opcional)"
+                                  />
+                                  <select
+                                    value={adminPointsGameAchievementDraft.metric}
+                                    onChange={(event) => setAdminPointsGameAchievementDraft((prev) => ({
+                                      ...prev,
+                                      metric: event.target.value,
+                                      targetValue: event.target.value === "totalPlaySeconds" ? 25 : 10
+                                    }))}
+                                  >
+                                    {pointsGameAchievementMetricOptions.map((option) => (
+                                      <option key={option.value} value={option.value}>{option.label}</option>
+                                    ))}
+                                  </select>
+                                  <input
+                                    type="number"
+                                    min="0.1"
+                                    step={adminPointsGameAchievementDraft.metric === "totalPlaySeconds" ? "0.5" : "1"}
+                                    value={adminPointsGameAchievementDraft.targetValue}
+                                    onChange={(event) => setAdminPointsGameAchievementDraft((prev) => ({ ...prev, targetValue: event.target.value }))}
+                                    placeholder={adminPointsGameAchievementDraft.metric === "totalPlaySeconds" ? "Objetivo en minutos" : "Objetivo"}
+                                  />
+                                  <input
+                                    type="number"
+                                    min="0.001"
+                                    step="0.001"
+                                    value={adminPointsGameAchievementDraft.rewardPoints}
+                                    onChange={(event) => setAdminPointsGameAchievementDraft((prev) => ({ ...prev, rewardPoints: event.target.value }))}
+                                    placeholder="Premio en puntos"
+                                  />
+                                </div>
+
+                                <div className="admin-actions-row">
+                                  <button type="button" className="secondary" onClick={addAdminPointsGameAchievement}>Crear logro por condicion</button>
+                                </div>
+
+                                <div className="admin-table-wrap">
+                                  <table className="admin-table compact">
+                                    <thead>
+                                      <tr>
+                                        <th>ID</th>
+                                        <th>Titulo</th>
+                                        <th>Descripcion</th>
+                                        <th>Meta</th>
+                                        <th>Objetivo</th>
+                                        <th>Premio (pts)</th>
+                                        <th>Accion</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {pointsGameAchievementsConfig.map((achievement) => (
+                                        <tr key={achievement.id}>
+                                          <td>
+                                            <input
+                                              value={achievement.id}
+                                              onChange={(event) => updateAdminPointsGameAchievementField(achievement.id, "id", event.target.value)}
+                                            />
+                                          </td>
+                                          <td>
+                                            <input
+                                              value={achievement.title}
+                                              onChange={(event) => updateAdminPointsGameAchievementField(achievement.id, "title", event.target.value)}
+                                            />
+                                          </td>
+                                          <td>
+                                            <input
+                                              value={achievement.description || ""}
+                                              onChange={(event) => updateAdminPointsGameAchievementField(achievement.id, "description", event.target.value)}
+                                            />
+                                          </td>
+                                          <td>
+                                            <select
+                                              value={achievement.metric}
+                                              onChange={(event) => updateAdminPointsGameAchievementField(achievement.id, "metric", event.target.value)}
+                                            >
+                                              {pointsGameAchievementMetricOptions.map((option) => (
+                                                <option key={option.value} value={option.value}>{option.label}</option>
+                                              ))}
+                                            </select>
+                                          </td>
+                                          <td>
+                                            <input
+                                              type="number"
+                                              min="0.1"
+                                              step={achievement.metric === "totalPlaySeconds" ? "0.5" : "1"}
+                                              value={getAdminAchievementTargetDisplay(achievement)}
+                                              onChange={(event) => handleAdminAchievementTargetChange(achievement, event.target.value)}
+                                            />
+                                            <small>{achievement.metric === "totalPlaySeconds" ? "minutos" : "objetivo"}</small>
+                                          </td>
+                                          <td>
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              step="0.001"
+                                              value={achievement.rewardPoints}
+                                              onChange={(event) => updateAdminPointsGameAchievementField(achievement.id, "rewardPoints", event.target.value)}
+                                            />
+                                          </td>
+                                          <td>
+                                            <button type="button" className="secondary" onClick={() => removeAdminPointsGameAchievement(achievement.id)}>Quitar</button>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                      {pointsGameAchievementsConfig.length === 0 && (
+                                        <tr>
+                                          <td colSpan={7}>No hay logros configurados para el juego.</td>
+                                        </tr>
+                                      )}
+                                    </tbody>
+                                  </table>
+                                </div>
+
+                                <div className="admin-actions-row">
+                                  <button type="button" className="primary" onClick={savePointsGameAchievements}>Guardar panel de logros</button>
+                                  {adminSavedMap["points-game-achievements"] && <span className="saved-pill">Guardado</span>}
+                                </div>
+                              </article>
                             </div>
+                          </section>
+                        )}
+
+                        {adminSettings && adminDetailView === "game-achievements" && (
+                          <section className="admin-block">
+                            <h3>Logros del juego</h3>
+                            <p>Edita y crea logros sin entrar a todos los menus de configuracion.</p>
+
+                            <article className="admin-editor-card" id="admin-game-achievements-panel">
+                              <h4>Panel de logros del juego</h4>
+                              <p>Crea logros por condicion de juego. Ejemplo: si juegas 25 minutos, desbloqueas 2.5 pts.</p>
+
+                              <div className="admin-actions-row">
+                                {adminPointsGameAchievementPresets.map((preset) => (
+                                  <button
+                                    key={`standalone-${preset.label}`}
+                                    type="button"
+                                    className="secondary"
+                                    onClick={() => addPresetAdminPointsGameAchievement(preset)}
+                                  >
+                                    {preset.label}
+                                  </button>
+                                ))}
+                              </div>
+
+                              <div className="inline-form-grid four">
+                                <input
+                                  value={adminPointsGameAchievementDraft.title}
+                                  onChange={(event) => setAdminPointsGameAchievementDraft((prev) => ({ ...prev, title: event.target.value }))}
+                                  placeholder="Titulo del logro (opcional)"
+                                />
+                                <input
+                                  value={adminPointsGameAchievementDraft.description}
+                                  onChange={(event) => setAdminPointsGameAchievementDraft((prev) => ({ ...prev, description: event.target.value }))}
+                                  placeholder="Descripcion (opcional)"
+                                />
+                                <select
+                                  value={adminPointsGameAchievementDraft.metric}
+                                  onChange={(event) => setAdminPointsGameAchievementDraft((prev) => ({
+                                    ...prev,
+                                    metric: event.target.value,
+                                    targetValue: event.target.value === "totalPlaySeconds" ? 25 : 10
+                                  }))}
+                                >
+                                  {pointsGameAchievementMetricOptions.map((option) => (
+                                    <option key={`standalone-option-${option.value}`} value={option.value}>{option.label}</option>
+                                  ))}
+                                </select>
+                                <input
+                                  type="number"
+                                  min="0.1"
+                                  step={adminPointsGameAchievementDraft.metric === "totalPlaySeconds" ? "0.5" : "1"}
+                                  value={adminPointsGameAchievementDraft.targetValue}
+                                  onChange={(event) => setAdminPointsGameAchievementDraft((prev) => ({ ...prev, targetValue: event.target.value }))}
+                                  placeholder={adminPointsGameAchievementDraft.metric === "totalPlaySeconds" ? "Objetivo en minutos" : "Objetivo"}
+                                />
+                                <input
+                                  type="number"
+                                  min="0.001"
+                                  step="0.001"
+                                  value={adminPointsGameAchievementDraft.rewardPoints}
+                                  onChange={(event) => setAdminPointsGameAchievementDraft((prev) => ({ ...prev, rewardPoints: event.target.value }))}
+                                  placeholder="Premio en puntos"
+                                />
+                              </div>
+
+                              <div className="admin-actions-row">
+                                <button type="button" className="secondary" onClick={addAdminPointsGameAchievement}>Crear logro por condicion</button>
+                              </div>
+
+                              <div className="admin-table-wrap">
+                                <table className="admin-table compact">
+                                  <thead>
+                                    <tr>
+                                      <th>ID</th>
+                                      <th>Titulo</th>
+                                      <th>Descripcion</th>
+                                      <th>Meta</th>
+                                      <th>Objetivo</th>
+                                      <th>Premio (pts)</th>
+                                      <th>Accion</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {pointsGameAchievementsConfig.map((achievement) => (
+                                      <tr key={`standalone-row-${achievement.id}`}>
+                                        <td>
+                                          <input
+                                            value={achievement.id}
+                                            onChange={(event) => updateAdminPointsGameAchievementField(achievement.id, "id", event.target.value)}
+                                          />
+                                        </td>
+                                        <td>
+                                          <input
+                                            value={achievement.title}
+                                            onChange={(event) => updateAdminPointsGameAchievementField(achievement.id, "title", event.target.value)}
+                                          />
+                                        </td>
+                                        <td>
+                                          <input
+                                            value={achievement.description || ""}
+                                            onChange={(event) => updateAdminPointsGameAchievementField(achievement.id, "description", event.target.value)}
+                                          />
+                                        </td>
+                                        <td>
+                                          <select
+                                            value={achievement.metric}
+                                            onChange={(event) => updateAdminPointsGameAchievementField(achievement.id, "metric", event.target.value)}
+                                          >
+                                            {pointsGameAchievementMetricOptions.map((option) => (
+                                              <option key={`standalone-metric-${option.value}`} value={option.value}>{option.label}</option>
+                                            ))}
+                                          </select>
+                                        </td>
+                                        <td>
+                                          <input
+                                            type="number"
+                                            min="0.1"
+                                            step={achievement.metric === "totalPlaySeconds" ? "0.5" : "1"}
+                                            value={getAdminAchievementTargetDisplay(achievement)}
+                                            onChange={(event) => handleAdminAchievementTargetChange(achievement, event.target.value)}
+                                          />
+                                          <small>{achievement.metric === "totalPlaySeconds" ? "minutos" : "objetivo"}</small>
+                                        </td>
+                                        <td>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            step="0.001"
+                                            value={achievement.rewardPoints}
+                                            onChange={(event) => updateAdminPointsGameAchievementField(achievement.id, "rewardPoints", event.target.value)}
+                                          />
+                                        </td>
+                                        <td>
+                                          <button type="button" className="secondary" onClick={() => removeAdminPointsGameAchievement(achievement.id)}>Quitar</button>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                    {pointsGameAchievementsConfig.length === 0 && (
+                                      <tr>
+                                        <td colSpan={7}>No hay logros configurados para el juego.</td>
+                                      </tr>
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+
+                              <div className="admin-actions-row">
+                                <button type="button" className="primary" onClick={savePointsGameAchievements}>Guardar panel de logros</button>
+                                {adminSavedMap["points-game-achievements"] && <span className="saved-pill">Guardado</span>}
+                              </div>
+                            </article>
                           </section>
                         )}
                       </>

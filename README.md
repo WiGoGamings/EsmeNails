@@ -2,6 +2,11 @@
 
 Aplicacion de gestion para salon (agenda, clientes, promociones, puntos, contacto y panel admin).
 
+## Titular legal
+
+- Nombre: Maria Esmeradla Guillen
+- Pais: Venezuela
+
 ## Requisitos
 
 - Node.js 20+

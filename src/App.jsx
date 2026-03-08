@@ -4370,6 +4370,15 @@ function App() {
               </span>
               <span className="theme-switch-label">{themeMode === "dark" ? "Noche" : "Claro"}</span>
             </button>
+            <button
+              type="button"
+              className="profile-icon-btn pastel-btn"
+              aria-label="Mi perfil"
+              title="Mi perfil"
+              onClick={() => navigateToSection("Mi perfil")}
+            >
+              <NavIcon type="user" />
+            </button>
           </div>
         </header>
         <div className="pos-shell">

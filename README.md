@@ -101,6 +101,20 @@ git push origin v1.0.1
 
 Puedes copiar `.env.example` y ajustar valores en `server/.env` segun necesites (correo SMTP, credenciales admin, etc.).
 
+## Activar conexion real en GitHub Pages
+
+Si en la web publicada aparece `Cita guardada en modo local (sin conexion al servidor)`, falta una API publica.
+
+1. Despliega el backend con Render usando `render.yaml` (raiz del repo).
+2. Copia la URL publica de tu backend (ejemplo: `https://esmenails-api.onrender.com`).
+3. Ejecuta el script para registrar `VITE_API_URL` en GitHub Actions:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\deploy\set-gh-actions-var.ps1 -GitHubToken "TU_TOKEN_GITHUB" -ApiBaseUrl "https://esmenails-api.onrender.com"
+```
+
+4. Haz push a `main` (o ejecuta manualmente `Deploy Web (GitHub Pages)`) para reconstruir la web con esa variable.
+
 ## Base de datos local (recomendado)
 
 - `server/src/db/database.seed.json`: semilla limpia versionada en Git.

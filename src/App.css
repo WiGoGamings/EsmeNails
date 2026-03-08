@@ -648,12 +648,15 @@ select {
 }
 
 @keyframes cinemaReveal {
-	0% {
-		opacity: 0.45;
-		transform: scale(1.07);
-	}
 	100% {
 		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+/* llaves extra eliminadas */
+
+.home-hero-card {
 		transform: scale(1);
 			/* llaves extra eliminadas */
 
@@ -3506,6 +3509,7 @@ body.theme-dark .profile-dropdown .nav-icon svg {
 			width: min(100%, 368px);
 			padding: clamp(0.25rem, 0.5vw, 0.56rem);
 		}
+		
 		.auth-card {
 			width: min(100%, 174px);
 			border-radius: 9px;
@@ -3933,4 +3937,6 @@ body.theme-dark .profile-dropdown .nav-icon svg {
 		align-items: start;
 		flex-direction: column;
 	}
-}
+	.admin-table {
+		font-size: 0.82rem;
+	}	

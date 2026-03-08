@@ -4361,99 +4361,98 @@ function App() {
   return (
     isAuthenticated ? (
       <main className="pos-layout">
-        {/* Overlay para menú flotante en móvil */}
-        <div
-          className={`menu-fab-overlay${menuFabOpen ? " active" : ""}`}
-          onClick={() => setMenuFabOpen(false)}
-          style={{ display: menuFabOpen ? "block" : "none" }}
-        />
-        {/* Botón flotante para abrir menú en móvil */}
-        <button
-          className="menu-fab-btn"
-          style={{ display: window.innerWidth <= 760 ? "flex" : "none" }}
-          onClick={() => setMenuFabOpen(true)}
-          aria-label="Abrir menú"
-        >
-          <NavIcon type="menu" />
-        </button>
-        {/* Menú lateral flotante */}
-        <nav
-          className={`quick-rail${menuFabOpen ? " menu-fab-open" : ""}`}
-          style={{ display: menuFabOpen ? "flex" : "" }}
-        >
-          {quickRailSections.map((section) => (
+        {/* Overlay y botón flotante solo en móvil */}
+        {window.innerWidth <= 760 && (
+          <>
+            <div
+              className={`menu-fab-overlay${menuFabOpen ? " active" : ""}`}
+              onClick={() => setMenuFabOpen(false)}
+              style={{ display: menuFabOpen ? "block" : "none" }}
+            />
             <button
-              key={section}
-              className={`nav-icon${activeSection === section ? " active" : ""}`}
-              onClick={() => {
-                navigateToSection(section);
-                setMenuFabOpen(false);
-              }}
-              aria-label={quickRailLabelBySection[section] || section}
+              className="menu-fab-btn"
+              onClick={() => setMenuFabOpen(true)}
+              aria-label="Abrir menú"
             >
-              <NavIcon type={navIconBySection[section]} />
-              <span className="quick-rail-label">{quickRailLabelBySection[section] || section}</span>
+              <NavIcon type="menu" />
             </button>
-          ))}
-        </nav>
-        {/* ...existing code... */
-              </button>
+            <nav
+              className={`quick-rail${menuFabOpen ? " menu-fab-open" : ""}`}
+              style={{ display: menuFabOpen ? "flex" : "none" }}
+            >
+              {quickRailSections.map((section) => (
+                <button
+                  key={section}
+                  className={`nav-icon${activeSection === section ? " active" : ""}`}
+                  onClick={() => {
+                    navigateToSection(section);
+                    setMenuFabOpen(false);
+                  }}
+                  aria-label={quickRailLabelBySection[section] || section}
+                >
+                  <NavIcon type={navIconBySection[section]} />
+                  <span className="quick-rail-label">{quickRailLabelBySection[section] || section}</span>
+                </button>
+              ))}
+            </nav>
+          </>
+        )}
 
-              {profileMenuOpen && (
-                <div className="profile-dropdown">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveSection("Mi perfil");
-                      setProfileMenuOpen(false);
-                      setFeedback({ type: "success", text: "Abriendo perfil de usuario." });
-                    }}
-                  >
-                    <span className="nav-icon" aria-hidden="true">
-                      <NavIcon type="profile" />
-                    </span>
-                    Mi perfil
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveSection("Mi cuenta");
-                      setProfileMenuOpen(false);
-                      setFeedback({ type: "success", text: "Abriendo informacion de cuenta." });
-                    }}
-                  >
-                    <span className="nav-icon" aria-hidden="true">
-                      <NavIcon type="account" />
-                    </span>
-                    Mi cuenta
-                  </button>
-                  <button type="button" onClick={logout}>
-                    <span className="nav-icon" aria-hidden="true">
-                      <NavIcon type="security" />
-                    </span>
-                    Cerrar sesion
-                  </button>
-                </div>
-              )}
-            </div>
+        {profileMenuOpen && (
+          <div className="profile-dropdown">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSection("Mi perfil");
+                setProfileMenuOpen(false);
+                setFeedback({ type: "success", text: "Abriendo perfil de usuario." });
+              }}
+            >
+              <span className="nav-icon" aria-hidden="true">
+                <NavIcon type="profile" />
+              </span>
+              Mi perfil
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSection("Mi cuenta");
+                setProfileMenuOpen(false);
+                setFeedback({ type: "success", text: "Abriendo informacion de cuenta." });
+              }}
+            >
+              <span className="nav-icon" aria-hidden="true">
+                <NavIcon type="account" />
+              </span>
+              Mi cuenta
+            </button>
+            <button type="button" onClick={logout}>
+              <span className="nav-icon" aria-hidden="true">
+                <NavIcon type="security" />
+              </span>
+              Cerrar sesion
+            </button>
           </div>
-        </header>
+        )}
 
         <div className="pos-shell">
-          <aside className="quick-rail" aria-label="Acciones rapidas">
-            {quickRailSections.map((item) => (
-              <button
-                key={item}
-                type="button"
-                className={activeSection === item ? "active" : ""}
-                onClick={() => navigateToSection(item)}
-                title={item}
-              >
-                <NavIcon type={navIconBySection[item]} />
-                <span className="quick-rail-label">{quickRailLabelBySection[item] || item}</span>
-              </button>
-            ))}
-          </aside>
+          {/* Menú lateral solo en desktop */}
+          {window.innerWidth > 760 && (
+            <aside className="quick-rail" aria-label="Acciones rapidas">
+              {quickRailSections.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className={activeSection === item ? "active" : ""}
+                  onClick={() => navigateToSection(item)}
+                  title={item}
+                >
+                  <NavIcon type={navIconBySection[item]} />
+                  <span className="quick-rail-label">{quickRailLabelBySection[item] || item}</span>
+                </button>
+              ))}
+            </aside>
+          )}
 
           <section
             className="pos-content"

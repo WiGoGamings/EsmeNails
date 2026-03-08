@@ -86,6 +86,21 @@ Notas:
 - El workflow web usa `VITE_API_URL` desde **Settings > Secrets and variables > Actions > Variables**.
 - Si no defines `VITE_API_URL`, la app web compilara igual, pero necesitara que el backend este disponible para iniciar sesion y usar funciones de datos.
 
+### Opcion 3: Publicar frontend en Netlify (gratis + HTTPS)
+
+1. Entra a Netlify y elige **Add new site > Import an existing project**.
+2. Conecta tu repo `WiGoGamings/EsmeNails`.
+3. Build settings:
+	- Build command: `npm run build`
+	- Publish directory: `dist`
+4. En **Site configuration > Environment variables**, agrega:
+	- `VITE_API_URL=https://esmenails-api.onrender.com/api`
+5. Haz deploy.
+
+Notas:
+- Este repo ya incluye `netlify.toml` con fallback SPA (`/* -> /index.html`) para que funcionen las rutas del frontend.
+- La URL gratis quedara tipo `https://tu-sitio.netlify.app` con HTTPS automatico.
+
 ## Automatizacion incluida (GitHub Actions)
 
 Este repo ya incluye:

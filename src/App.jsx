@@ -4349,19 +4349,18 @@ function App() {
 
   return (
     isAuthenticated ? (
-      <main className="pos-layout">
-        <header className="pos-topbar">
+      <main className="pos-layout pastel-bg">
+        <header className="pos-topbar pastel-topbar">
           <div className="pos-topbar-left">
             <div>
-              <p className="dashboard-kicker">EsmeNails</p>
+              <p className="dashboard-kicker pastel-kicker">EsmeNails</p>
               <strong>{activeSection}</strong>
             </div>
           </div>
-
           <div className="topbar-actions">
             <button
               type="button"
-              className={`theme-switch ${themeMode === "dark" ? "dark" : ""}`}
+              className={`theme-switch pastel-btn ${themeMode === "dark" ? "dark" : ""}`}
               onClick={() => setThemeMode((prev) => (prev === "dark" ? "light" : "dark"))}
               aria-label="Cambiar modo de color"
               title={themeMode === "dark" ? "Modo noche" : "Modo claro"}
@@ -4371,18 +4370,15 @@ function App() {
               </span>
               <span className="theme-switch-label">{themeMode === "dark" ? "Noche" : "Claro"}</span>
             </button>
-            {/* Floating menu button for mobile only, no profile button */}
-            {/* You can add the menu button here if needed for mobile */}
           </div>
         </header>
-
         <div className="pos-shell">
-          <aside className="quick-rail" aria-label="Acciones rapidas">
+          <aside className="sidebar pastel-sidebar" aria-label="Acciones rapidas">
             {quickRailSections.map((item) => (
               <button
                 key={item}
                 type="button"
-                className={activeSection === item ? "active" : ""}
+                className={`sidebar-btn pastel-btn ${activeSection === item ? "active" : ""}`}
                 onClick={() => navigateToSection(item)}
                 title={item}
               >
@@ -4391,20 +4387,19 @@ function App() {
               </button>
             ))}
           </aside>
-
           <section
-            className="pos-content"
+            className="pos-content pastel-content"
             onClick={() => {
               if (profileMenuOpen) setProfileMenuOpen(false);
             }}
           >
-            <h1>{activeSection}</h1>
-            <nav className="mobile-quick-nav" aria-label="Navegacion movil">
+            <h1 className="pastel-title">{activeSection}</h1>
+            <nav className="mobile-quick-nav pastel-mobile-nav" aria-label="Navegacion movil">
               {quickRailSections.map((item) => (
                 <button
                   key={`mobile-${item}`}
                   type="button"
-                  className={activeSection === item ? "active" : ""}
+                  className={`pastel-btn ${activeSection === item ? "active" : ""}`}
                   onClick={() => navigateToSection(item)}
                   title={item}
                 >
@@ -7617,32 +7612,30 @@ function App() {
         </div>
       </main>
     ) : (
-    <main className="auth-page">
-      <header className="welcome-banner">
+    <main className="auth-page pastel-auth-page">
+      <header className="welcome-banner pastel-banner">
         <p>Hola hermosa,</p>
         <h1>Bienvenida a EsmeNails</h1>
         <small>Tu studio digital de nails</small>
       </header>
-
-      <section className="auth-card">
-        <div className="auth-toggle">
+      <section className="auth-card pastel-auth-card">
+        <div className="auth-toggle pastel-auth-toggle">
           <button
-            className={mode === "login" ? "active" : ""}
+            className={`pastel-btn ${mode === "login" ? "active" : ""}`}
             onClick={() => setMode("login")}
             type="button"
           >
             Login
           </button>
           <button
-            className={mode === "register" ? "active" : ""}
+            className={`pastel-btn ${mode === "register" ? "active" : ""}`}
             onClick={() => setMode("register")}
             type="button"
           >
             Registro
           </button>
         </div>
-
-        <form onSubmit={submitAuth} className="form-grid" noValidate>
+        <form onSubmit={submitAuth} className="form-grid pastel-form-grid" noValidate>
           {mode === "register" && (
             <label>
               Nombre
@@ -7695,7 +7688,7 @@ function App() {
           <button
             type="submit"
             disabled={busy || (mode === "register" && !isPasswordStrong)}
-            className="primary full-width"
+            className="auth-btn pastel-btn full-width"
           >
             {busy ? "Procesando..." : mode === "register" ? "Crear cuenta" : "Entrar"}
           </button>

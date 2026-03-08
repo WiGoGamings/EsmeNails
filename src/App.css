@@ -3490,8 +3490,9 @@ body.theme-dark .profile-dropdown .nav-icon svg {
 			}
 			select {
 				border-radius: 3px;
-				min-height: 14px;
-				padding: 0.11rem 0.13rem;
+				min-height: 15.4px;
+				padding: 0.12rem 0.14rem;
+				font-size: 0.47rem;
 			}
 			.pos-layout {
 				gap: 0.13rem;
@@ -3509,10 +3510,10 @@ body.theme-dark .profile-dropdown .nav-icon svg {
 			}
 			.mobile-agenda-time-btn,
 			.slot-chip {
-				font-size: 0.83rem;
-				min-width: 54px;
-				min-height: 14px;
-				padding: 0.09rem 0.13rem;
+				font-size: 0.75rem;
+				min-width: 48.6px;
+				min-height: 12.6px;
+				padding: 0.08rem 0.12rem;
 			}
 		body {
 			font-size: clamp(0.43rem, 0.6vw, 0.48rem);

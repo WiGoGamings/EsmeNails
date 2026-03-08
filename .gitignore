@@ -31,3 +31,6 @@ dist-ssr
 # Runtime local DB (keep seed tracked)
 server/src/db/database.json
 !server/src/db/database.seed.json
+
+# Generated backup snapshots
+backups/

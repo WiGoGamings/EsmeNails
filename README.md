@@ -124,3 +124,16 @@ Comportamiento:
 
 - Si `database.json` no existe, el servidor copia automaticamente `database.seed.json` en el primer arranque.
 - Tus datos reales locales ya no se suben por accidente al repositorio.
+
+### Backup en un comando
+
+Para crear respaldo rapido de la base local:
+
+```bash
+npm run backup:db
+```
+
+Salida:
+
+- `backups/database-backup-YYYYMMDD-HHMMSS.json`
+- `backups/database-backup-latest.json`

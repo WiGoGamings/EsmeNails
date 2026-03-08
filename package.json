@@ -15,6 +15,7 @@
     "desktop:build:portable": "npm run build && electron-builder --win portable",
     "desktop:build:installer": "npm run build && electron-builder --win nsis",
     "start:server": "npm --prefix server run start",
+    "backup:db": "node scripts/backup/backup-db.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

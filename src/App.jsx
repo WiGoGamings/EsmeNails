@@ -4579,7 +4579,11 @@ function App() {
                         key={slot}
                         className="ghost-chip mobile-agenda-time-btn"
                         style={{ margin: "0.1rem" }}
-                        onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()))}
+                        onClick={() => {
+                          setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()));
+                          setAppointmentDraft((prev) => ({ ...prev, time: slot }));
+                          setAppointmentModalOpen(true);
+                        }}
                       >
                         {slot}
                       </button>

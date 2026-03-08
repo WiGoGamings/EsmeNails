@@ -4361,16 +4361,6 @@ function App() {
           <div className="topbar-actions">
             <button
               type="button"
-              className="topbar-btn"
-              onClick={openStoreGps}
-              disabled={!storeMapsDirectionsUrl && !storeMapsSearchUrl}
-              title="Abrir la ubicacion de la tienda en Google Maps"
-            >
-              Maps
-            </button>
-
-            <button
-              type="button"
               className={`theme-switch ${themeMode === "dark" ? "dark" : ""}`}
               onClick={() => setThemeMode((prev) => (prev === "dark" ? "light" : "dark"))}
               aria-label="Cambiar modo de color"
@@ -4381,53 +4371,8 @@ function App() {
               </span>
               <span className="theme-switch-label">{themeMode === "dark" ? "Noche" : "Claro"}</span>
             </button>
-
-            <div className="profile-menu-wrap">
-              <button
-                className="topbar-btn"
-                type="button"
-                onClick={() => setProfileMenuOpen((prev) => !prev)}
-              >
-                {sessionUser?.name || "Mi cuenta"} v
-              </button>
-
-              {profileMenuOpen && (
-                <div className="profile-dropdown">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveSection("Mi perfil");
-                      setProfileMenuOpen(false);
-                      setFeedback({ type: "success", text: "Abriendo perfil de usuario." });
-                    }}
-                  >
-                    <span className="nav-icon" aria-hidden="true">
-                      <NavIcon type="profile" />
-                    </span>
-                    Mi perfil
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveSection("Mi cuenta");
-                      setProfileMenuOpen(false);
-                      setFeedback({ type: "success", text: "Abriendo informacion de cuenta." });
-                    }}
-                  >
-                    <span className="nav-icon" aria-hidden="true">
-                      <NavIcon type="account" />
-                    </span>
-                    Mi cuenta
-                  </button>
-                  <button type="button" onClick={logout}>
-                    <span className="nav-icon" aria-hidden="true">
-                      <NavIcon type="security" />
-                    </span>
-                    Cerrar sesion
-                  </button>
-                </div>
-              )}
-            </div>
+            {/* Floating menu button for mobile only, no profile button */}
+            {/* You can add the menu button here if needed for mobile */}
           </div>
         </header>
 

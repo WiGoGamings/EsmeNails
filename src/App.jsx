@@ -3998,6 +3998,12 @@ function App() {
     window.open(targetUrl, "_blank", "noopener,noreferrer");
   }, [storeMapsDirectionsUrl, storeMapsSearchUrl]);
 
+  const openLegalDoc = useCallback((fileName) => {
+    if (!fileName) return;
+    const docUrl = `${import.meta.env.BASE_URL}legal/${fileName}`;
+    window.open(docUrl, "_blank", "noopener,noreferrer");
+  }, []);
+
   const contactIconLinks = useMemo(() => {
     return [
       { key: "website", type: "web", href: ownerContact.website, label: "Website" },
@@ -7405,6 +7411,19 @@ function App() {
                         }}
                       >
                         Cerrar sesion
+                      </button>
+                    </div>
+                  </article>
+
+                  <article className="privacy-card-client">
+                    <h3>Documentos legales</h3>
+                    <p>Consulta terminos de uso y politica de privacidad antes de reservar o comprar.</p>
+                    <div className="settings-actions-row">
+                      <button type="button" className="secondary" onClick={() => openLegalDoc("terms.html")}>
+                        Ver terminos
+                      </button>
+                      <button type="button" className="secondary" onClick={() => openLegalDoc("privacy.html")}>
+                        Ver privacidad
                       </button>
                     </div>
                   </article>

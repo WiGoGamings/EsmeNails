@@ -101,6 +101,11 @@ git push origin v1.0.1
 
 Puedes copiar `.env.example` y ajustar valores en `server/.env` segun necesites (correo SMTP, credenciales admin, etc.).
 
+Importante en produccion:
+
+- `JWT_SECRET`, `ENCRYPTION_SECRET` y `ADMIN_PASSWORD` deben ser seguros y no usar valores por defecto.
+- Si falta alguno en produccion, el backend ahora detiene el arranque para evitar despliegues inseguros.
+
 ## Activar conexion real en GitHub Pages
 
 Si en la web publicada aparece `Cita guardada en modo local (sin conexion al servidor)`, falta una API publica.
@@ -137,3 +142,12 @@ Salida:
 
 - `backups/database-backup-YYYYMMDD-HHMMSS.json`
 - `backups/database-backup-latest.json`
+
+## Documentos legales para clientes
+
+La app incluye accesos directos desde `Privacidad y seguridad` a:
+
+- `public/legal/terms.html`
+- `public/legal/privacy.html`
+
+Puedes personalizar estos textos con tus condiciones comerciales y legales finales antes de vender.

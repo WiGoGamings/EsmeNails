@@ -3427,29 +3427,30 @@ body.theme-dark .profile-dropdown .nav-icon svg {
 		padding-bottom: 5.4rem;
 	}
 
-	.quick-rail {
-		display: flex !important;
-		visibility: visible !important;
-		opacity: 1 !important;
-		align-items: stretch;
-		gap: 0.4rem;
-		position: fixed;
-		left: 0.55rem;
-		right: 0.55rem;
-		bottom: calc(env(safe-area-inset-bottom, 0px) + 0.35rem);
-		z-index: 80;
-		overflow-x: auto;
-		overflow-y: hidden;
-		scroll-snap-type: x mandatory;
-		overscroll-behavior-x: contain;
-		-webkit-overflow-scrolling: touch;
-		padding: 0.35rem;
-		border-radius: 14px;
-		scrollbar-width: thin;
-		background: linear-gradient(95deg, rgba(239, 79, 131, 0.95) 0%, rgba(239, 127, 86, 0.95) 100%);
-		box-shadow: 0 12px 24px rgba(33, 13, 20, 0.28);
-		backdrop-filter: blur(6px);
-	}
+	   .quick-rail {
+		   display: flex !important;
+		   visibility: visible !important;
+		   opacity: 1 !important;
+		   align-items: stretch;
+		   gap: 0.4rem;
+		   position: fixed;
+		   left: 0;
+		   top: 0;
+		   width: 64px;
+		   min-width: 56px;
+		   max-width: 80px;
+		   height: 100vh;
+		   z-index: 100;
+		   box-shadow: 0 0 24px rgba(84, 28, 13, 0.18);
+		   border-radius: 0 16px 16px 0;
+		   padding: 0.4rem 0.2rem;
+		   background: linear-gradient(180deg, #ef7f56 0%, #ef4d83 100%);
+		   overflow-y: auto;
+	   }
+	   .pos-shell {
+		   grid-template-columns: 64px 1fr;
+		   padding-bottom: 5.4rem;
+	   }
 
 	.quick-rail button {
 		min-width: 88px;

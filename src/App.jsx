@@ -4544,50 +4544,58 @@ function App() {
                 </form>
               </section>
             ) : activeSection === "Agendar cita" ? (
-              <section className="agenda-wrap mobile-agenda-card">
-                <div className="mobile-agenda-header">
-                  <strong>Agendar cita</strong>
-                  <span>{selectedDateLabel}</span>
+              <section className="agenda-wrap">
+                <div className="agenda-headbar">
+                  <div className="agenda-headbar-left">
+                    <strong>Agendar cita</strong>
+                    <span>{selectedDateLabel}</span>
+                  </div>
+                  <div className="agenda-headbar-right">
+                    <button
+                      type="button"
+                      className="primary-chip"
+                      onClick={() => openAppointmentModal()}
+                    >
+                      Agendar cita
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-chip"
+                      onClick={openStoreGps}
+                      disabled={!storeMapsDirectionsUrl && !storeMapsSearchUrl}
+                    >
+                      Abrir GPS
+                    </button>
+                  </div>
                 </div>
-                <div className="mobile-agenda-info">
-                  <span>Cliente: {profileForm.name || sessionUser?.name || "Sin nombre"}</span>
-                  <span>Tel: {profileForm.phone || "Sin telefono"}</span>
-                </div>
-                <div className="mobile-agenda-actions">
-                  <button
-                    type="button"
-                    className="primary-chip mobile-agenda-btn"
-                    onClick={() => openAppointmentModal()}
-                  >
-                    Agendar cita
-                  </button>
-                  <button
-                    type="button"
-                    className="ghost-chip mobile-agenda-btn"
-                    onClick={openStoreGps}
-                    disabled={!storeMapsDirectionsUrl && !storeMapsSearchUrl}
-                  >
-                    Abrir GPS
-                  </button>
-                </div>
-                {/* Opcional: mostrar horarios disponibles en lista compacta */}
-                <div className="mobile-agenda-times">
-                  <strong>Horarios:</strong>
-                  <div className="mobile-agenda-times-list">
-                    {daySlots.map((slot) => (
-                      <button
-                        key={slot}
-                        className="ghost-chip mobile-agenda-time-btn"
-                        style={{ margin: "0.1rem" }}
-                        onClick={() => {
-                          setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()));
-                          setAppointmentDraft((prev) => ({ ...prev, time: slot }));
-                          setAppointmentModalOpen(true);
-                        }}
-                      >
-                        {slot}
-                      </button>
-                    ))}
+                <div className="agenda-columns-wrap">
+                  <div className="agenda-columns-head">
+                    <div className="agenda-column-title">Horarios</div>
+                    <div className="agenda-column-title">Citas</div>
+                  </div>
+                  <div className="agenda-columns-body">
+                    <div className="agenda-time-column">
+                      {daySlots.map((slot) => (
+                        <div className="agenda-time-cell" key={slot}>
+                          <button
+                            className="slot-chip"
+                            type="button"
+                            onClick={() => setAppointmentDraft((prev) => ({ ...prev, time: slot }))}
+                          >
+                            {slot}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="agenda-column-bg">
+                      {scheduleCards.map((card) => (
+                        <div className={`schedule-card ${card.color}`} key={card.id}>
+                          <strong>{card.serviceName}</strong>
+                          <small>{card.employeeName}</small>
+                          <small>{card.time}</small>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </section>

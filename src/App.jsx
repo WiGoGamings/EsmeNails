@@ -4129,11 +4129,10 @@ function App() {
     } catch (error) {
       const message = error.message || "No se pudo agendar la cita.";
 
-      const shouldUseLocalFallback = (
-        !API_BASE
-        || message.includes("API no configurada")
-        || message.includes("No hay conexion con la API")
-      );
+      // Only allow local appointment persistence when running explicitly without API.
+      // If API is configured but unavailable, we should not create client-only records
+      // that the admin panel cannot see.
+      const shouldUseLocalFallback = !API_BASE;
 
       if (shouldUseLocalFallback) {
         const selectedService = catalogServices.find((service) => service.id === appointmentDraft.serviceId);
@@ -4172,8 +4171,12 @@ function App() {
         return;
       }
 
-      setAppointmentFormFeedback({ type: "error", text: message });
-      setFeedback({ type: "error", text: message });
+      const normalizedMessage = message.includes("No hay conexion con la API")
+        ? "No se pudo guardar en el servidor. Verifica la conexion e intenta nuevamente."
+        : message;
+
+      setAppointmentFormFeedback({ type: "error", text: normalizedMessage });
+      setFeedback({ type: "error", text: normalizedMessage });
     } finally {
       setAppointmentBusy(false);
     }

@@ -1108,8 +1108,6 @@ function NavIcon({ type }) {
 }
 
 function App() {
-    // Estado para menú flotante en móvil
-    const [menuFabOpen, setMenuFabOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(
     Boolean(localStorage.getItem("esme_token") || localStorage.getItem("esme_admin_token"))
   );
@@ -4000,12 +3998,6 @@ function App() {
     window.open(targetUrl, "_blank", "noopener,noreferrer");
   }, [storeMapsDirectionsUrl, storeMapsSearchUrl]);
 
-  const openLegalDoc = useCallback((fileName) => {
-    if (!fileName) return;
-    const docUrl = `${import.meta.env.BASE_URL}legal/${fileName}`;
-    window.open(docUrl, "_blank", "noopener,noreferrer");
-  }, []);
-
   const contactIconLinks = useMemo(() => {
     return [
       { key: "website", type: "web", href: ownerContact.website, label: "Website" },
@@ -4131,10 +4123,11 @@ function App() {
     } catch (error) {
       const message = error.message || "No se pudo agendar la cita.";
 
-      // Only allow local appointment persistence when running explicitly without API.
-      // If API is configured but unavailable, we should not create client-only records
-      // that the admin panel cannot see.
-      const shouldUseLocalFallback = !API_BASE;
+      const shouldUseLocalFallback = (
+        !API_BASE
+        || message.includes("API no configurada")
+        || message.includes("No hay conexion con la API")
+      );
 
       if (shouldUseLocalFallback) {
         const selectedService = catalogServices.find((service) => service.id === appointmentDraft.serviceId);
@@ -4173,12 +4166,8 @@ function App() {
         return;
       }
 
-      const normalizedMessage = message.includes("No hay conexion con la API")
-        ? "No se pudo guardar en el servidor. Verifica la conexion e intenta nuevamente."
-        : message;
-
-      setAppointmentFormFeedback({ type: "error", text: normalizedMessage });
-      setFeedback({ type: "error", text: normalizedMessage });
+      setAppointmentFormFeedback({ type: "error", text: message });
+      setFeedback({ type: "error", text: message });
     } finally {
       setAppointmentBusy(false);
     }
@@ -4361,108 +4350,102 @@ function App() {
   return (
     isAuthenticated ? (
       <main className="pos-layout">
-        {/* Overlay y botón flotante solo en móvil */}
-        {window.innerWidth <= 760 && (
-          <>
-            <div
-              className={`menu-fab-overlay${menuFabOpen ? " active" : ""}`}
-              onClick={() => setMenuFabOpen(false)}
-              style={{ display: menuFabOpen ? "block" : "none" }}
-            />
-            <div style={{ position: "fixed", left: 18, bottom: 18, zIndex: 131, display: "flex", gap: "0.5rem" }}>
-              <button
-                className="menu-fab-btn"
-                onClick={() => setMenuFabOpen(true)}
-                aria-label="Abrir menú"
-              >
-                <NavIcon type="menu" />
-              </button>
-              <button
-                className="menu-fab-btn"
-                style={{ background: "#ffd9ec", color: "#7a264a", fontSize: "1.2rem" }}
-                onClick={() => setProfileMenuOpen((prev) => !prev)}
-                aria-label="Perfil"
-              >
-                <NavIcon type="profile" />
-              </button>
+        <header className="pos-topbar">
+          <div className="pos-topbar-left">
+            <div>
+              <p className="dashboard-kicker">EsmeNails</p>
+              <strong>{activeSection}</strong>
             </div>
-            <nav
-              className={`quick-rail${menuFabOpen ? " menu-fab-open" : ""}`}
-              style={{ display: menuFabOpen ? "flex" : "none" }}
-            >
-              {quickRailSections.map((section) => (
-                <button
-                  key={section}
-                  className={`nav-icon${activeSection === section ? " active" : ""}`}
-                  onClick={() => {
-                    navigateToSection(section);
-                    setMenuFabOpen(false);
-                  }}
-                  aria-label={quickRailLabelBySection[section] || section}
-                >
-                  <NavIcon type={navIconBySection[section]} />
-                  <span className="quick-rail-label">{quickRailLabelBySection[section] || section}</span>
-                </button>
-              ))}
-            </nav>
-          </>
-        )}
-
-        {profileMenuOpen && (
-          <div className="profile-dropdown">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveSection("Mi perfil");
-                setProfileMenuOpen(false);
-                setFeedback({ type: "success", text: "Abriendo perfil de usuario." });
-              }}
-            >
-              <span className="nav-icon" aria-hidden="true">
-                <NavIcon type="profile" />
-              </span>
-              Mi perfil
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveSection("Mi cuenta");
-                setProfileMenuOpen(false);
-                setFeedback({ type: "success", text: "Abriendo informacion de cuenta." });
-              }}
-            >
-              <span className="nav-icon" aria-hidden="true">
-                <NavIcon type="account" />
-              </span>
-              Mi cuenta
-            </button>
-            <button type="button" onClick={logout}>
-              <span className="nav-icon" aria-hidden="true">
-                <NavIcon type="security" />
-              </span>
-              Cerrar sesion
-            </button>
           </div>
-        )}
+
+          <div className="topbar-actions">
+            <button
+              type="button"
+              className="topbar-btn"
+              onClick={openStoreGps}
+              disabled={!storeMapsDirectionsUrl && !storeMapsSearchUrl}
+              title="Abrir la ubicacion de la tienda en Google Maps"
+            >
+              Maps
+            </button>
+
+            <button
+              type="button"
+              className={`theme-switch ${themeMode === "dark" ? "dark" : ""}`}
+              onClick={() => setThemeMode((prev) => (prev === "dark" ? "light" : "dark"))}
+              aria-label="Cambiar modo de color"
+              title={themeMode === "dark" ? "Modo noche" : "Modo claro"}
+            >
+              <span className="theme-switch-track">
+                <span className="theme-switch-thumb" />
+              </span>
+              <span className="theme-switch-label">{themeMode === "dark" ? "Noche" : "Claro"}</span>
+            </button>
+
+            <div className="profile-menu-wrap">
+              <button
+                className="topbar-btn"
+                type="button"
+                onClick={() => setProfileMenuOpen((prev) => !prev)}
+              >
+                {sessionUser?.name || "Mi cuenta"} v
+              </button>
+
+              {profileMenuOpen && (
+                <div className="profile-dropdown">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveSection("Mi perfil");
+                      setProfileMenuOpen(false);
+                      setFeedback({ type: "success", text: "Abriendo perfil de usuario." });
+                    }}
+                  >
+                    <span className="nav-icon" aria-hidden="true">
+                      <NavIcon type="profile" />
+                    </span>
+                    Mi perfil
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveSection("Mi cuenta");
+                      setProfileMenuOpen(false);
+                      setFeedback({ type: "success", text: "Abriendo informacion de cuenta." });
+                    }}
+                  >
+                    <span className="nav-icon" aria-hidden="true">
+                      <NavIcon type="account" />
+                    </span>
+                    Mi cuenta
+                  </button>
+                  <button type="button" onClick={logout}>
+                    <span className="nav-icon" aria-hidden="true">
+                      <NavIcon type="security" />
+                    </span>
+                    Cerrar sesion
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
 
         <div className="pos-shell">
-          {/* Menú lateral solo en desktop */}
-          {window.innerWidth > 760 && (
-            <aside className="quick-rail" aria-label="Acciones rapidas">
-              {quickRailSections.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className={activeSection === item ? "active" : ""}
-                  onClick={() => navigateToSection(item)}
-                  title={item}
-                >
-                  <NavIcon type={navIconBySection[item]} />
-                  <span className="quick-rail-label">{quickRailLabelBySection[item] || item}</span>
-                </button>
-              ))}
-            </aside>
-          )}
+          <aside className="quick-rail" aria-label="Acciones rapidas">
+            {quickRailSections.map((item) => (
+              <button
+                key={item}
+                type="button"
+                className={activeSection === item ? "active" : ""}
+                onClick={() => navigateToSection(item)}
+                title={item}
+              >
+                <NavIcon type={navIconBySection[item]} />
+                <span className="quick-rail-label">{quickRailLabelBySection[item] || item}</span>
+              </button>
+            ))}
+          </aside>
 
           <section
             className="pos-content"
@@ -7422,19 +7405,6 @@ function App() {
                         }}
                       >
                         Cerrar sesion
-                      </button>
-                    </div>
-                  </article>
-
-                  <article className="privacy-card-client">
-                    <h3>Documentos legales</h3>
-                    <p>Consulta terminos de uso y politica de privacidad antes de reservar o comprar.</p>
-                    <div className="settings-actions-row">
-                      <button type="button" className="secondary" onClick={() => openLegalDoc("terms.html")}>
-                        Ver terminos
-                      </button>
-                      <button type="button" className="secondary" onClick={() => openLegalDoc("privacy.html")}>
-                        Ver privacidad
                       </button>
                     </div>
                   </article>

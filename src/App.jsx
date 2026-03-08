@@ -68,6 +68,7 @@ const LOCAL_ADMIN_PASSWORD_HASH = "53ac1385fa6a18d0e617c52423c17abd61ab1f39b2093
 const API_POINTS_LEDGER_KEY = "esme_points_ledger_v1";
 const POINTS_GAME_STATS_LEDGER_KEY = "esme_points_game_stats_v1";
 const POINTS_GAME_ACHIEVEMENTS_CONFIG_KEY = "esme_points_game_achievements_config_v1";
+const LOCAL_APPOINTMENTS_LEDGER_KEY = "esme_local_appointments_ledger_v1";
 
 const getAssistantHistoryStorageKey = (isAuthenticated, sessionUser) => {
   const identity = isAuthenticated ? (sessionUser?.email || "authenticated-user") : "guest";
@@ -335,6 +336,71 @@ const resolvePointsLedgerIdentity = (userLike) => {
   if (id) return `id:${id}`;
   return "";
 };
+
+const sanitizeLocalAppointmentEntry = (rawEntry) => {
+  const entry = rawEntry && typeof rawEntry === "object" ? rawEntry : {};
+  return {
+    id: String(entry.id || createLocalEntityId("appointment-local")),
+    serviceId: String(entry.serviceId || ""),
+    serviceName: String(entry.serviceName || "Servicio"),
+    employeeId: String(entry.employeeId || ""),
+    employeeName: String(entry.employeeName || "Sin asignar"),
+    scheduledAt: new Date(entry.scheduledAt || Date.now()).toISOString(),
+    notes: String(entry.notes || ""),
+    status: String(entry.status || "scheduled"),
+    createdAt: new Date(entry.createdAt || Date.now()).toISOString()
+  };
+};
+
+const sortAppointmentsByDate = (appointments) => [...appointments].sort(
+  (a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt)
+);
+
+const getLocalAppointmentsLedger = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(LOCAL_APPOINTMENTS_LEDGER_KEY) || "{}");
+    return stored && typeof stored === "object" ? stored : {};
+  } catch {
+    return {};
+  }
+};
+
+const setLocalAppointmentsLedger = (ledger) => {
+  try {
+    localStorage.setItem(LOCAL_APPOINTMENTS_LEDGER_KEY, JSON.stringify(ledger));
+  } catch {
+    // Ignore storage write failures.
+  }
+};
+
+const getStoredLocalAppointmentsForUser = (userLike) => {
+  const identity = resolvePointsLedgerIdentity(userLike);
+  if (!identity) return [];
+  const ledger = getLocalAppointmentsLedger();
+  const entries = Array.isArray(ledger[identity]) ? ledger[identity] : [];
+  return sortAppointmentsByDate(entries.map((entry) => sanitizeLocalAppointmentEntry(entry)));
+};
+
+const setStoredLocalAppointmentsForUser = (userLike, appointments) => {
+  const identity = resolvePointsLedgerIdentity(userLike);
+  if (!identity) return;
+  const ledger = getLocalAppointmentsLedger();
+  ledger[identity] = sortAppointmentsByDate((appointments || []).map((entry) => sanitizeLocalAppointmentEntry(entry)));
+  setLocalAppointmentsLedger(ledger);
+};
+
+const createLocalHistorySnapshotFromAppointments = (appointments) => ({
+  appointments: sortAppointmentsByDate(appointments || []),
+  orders: [],
+  summary: {
+    appointments: (appointments || []).length,
+    completedAppointments: (appointments || []).filter((entry) => entry.status === "completed").length,
+    cancelledAppointments: (appointments || []).filter((entry) => entry.status === "cancelled").length,
+    orders: 0,
+    totalSpent: 0,
+    totalPointsEarned: 0
+  }
+});
 
 const defaultPointsGameStats = {
   roundsPlayed: 0,
@@ -1085,6 +1151,7 @@ function App() {
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
   const [appointmentBusy, setAppointmentBusy] = useState(false);
   const [appointmentDraft, setAppointmentDraft] = useState(() => createAppointmentDraft(new Date()));
+  const [appointmentFormFeedback, setAppointmentFormFeedback] = useState({ type: "info", text: "" });
   const [adminAuth, setAdminAuth] = useState({ email: "", password: "" });
   const [adminToken, setAdminToken] = useState(localStorage.getItem("esme_admin_token") || "");
   const [adminBusy, setAdminBusy] = useState(false);
@@ -1439,12 +1506,14 @@ function App() {
     };
 
     setAppointmentDraft(nextDraft);
+    setAppointmentFormFeedback({ type: "info", text: "" });
     setAppointmentModalOpen(true);
   };
 
   const closeAppointmentModal = () => {
     setAppointmentModalOpen(false);
     setAppointmentBusy(false);
+    setAppointmentFormFeedback({ type: "info", text: "" });
   };
 
   const handleAppointmentDraftChange = (event) => {
@@ -3250,8 +3319,13 @@ function App() {
           minutesMap[service.id] = Number(service.timeMinutes) || 60;
         }
 
-        setAppointments([]);
-        setHistoryData({ appointments: [], orders: [], summary: null });
+        const localAppointments = getStoredLocalAppointmentsForUser({
+          id: sessionUser?.id || "",
+          email: sessionUser?.email || ""
+        });
+
+        setAppointments(localAppointments);
+        setHistoryData(createLocalHistorySnapshotFromAppointments(localAppointments));
         setServiceMinutesById(minutesMap);
         return;
       }
@@ -3303,7 +3377,7 @@ function App() {
       setAgendaLoading(false);
       setHistoryLoading(false);
     }
-  }, [applyAdminSettingsToRuntime, getLocalAdminSettingsSnapshot, isAuthenticated]);
+  }, [applyAdminSettingsToRuntime, getLocalAdminSettingsSnapshot, isAuthenticated, sessionUser?.id, sessionUser?.email]);
 
   useEffect(() => {
     refreshAgendaData();
@@ -3904,11 +3978,27 @@ function App() {
     return [...homeShowcaseItems, ...homeShowcaseItems];
   }, [homeShowcaseItems]);
 
-  const contactIconLinks = useMemo(() => {
-    const mapUrl = ownerContact.address
-      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ownerContact.address)}`
-      : "";
+  const storeMapsSearchUrl = useMemo(() => {
+    if (!ownerContact.address) return "";
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ownerContact.address)}`;
+  }, [ownerContact.address]);
 
+  const storeMapsDirectionsUrl = useMemo(() => {
+    if (!ownerContact.address) return "";
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(ownerContact.address)}&travelmode=driving`;
+  }, [ownerContact.address]);
+
+  const openStoreGps = useCallback(() => {
+    const targetUrl = storeMapsDirectionsUrl || storeMapsSearchUrl;
+    if (!targetUrl) {
+      setFeedback({ type: "error", text: "No hay direccion configurada para abrir Maps." });
+      return;
+    }
+
+    window.open(targetUrl, "_blank", "noopener,noreferrer");
+  }, [storeMapsDirectionsUrl, storeMapsSearchUrl]);
+
+  const contactIconLinks = useMemo(() => {
     return [
       { key: "website", type: "web", href: ownerContact.website, label: "Website" },
       { key: "email", type: "mail", href: ownerContact.email ? `mailto:${ownerContact.email}` : "", label: "Correo" },
@@ -3917,21 +4007,17 @@ function App() {
       { key: "instagram", type: "instagram", href: ownerContact.instagram, label: "Instagram" },
       { key: "facebook", type: "facebook", href: ownerContact.facebook, label: "Facebook" },
       { key: "tiktok", type: "tiktok", href: ownerContact.tiktok, label: "TikTok" },
-      { key: "address", type: "map", href: mapUrl, label: "Ubicacion" }
+      { key: "address", type: "map", href: storeMapsDirectionsUrl || storeMapsSearchUrl, label: "Ubicacion" }
     ].filter((entry) => Boolean(entry.href));
-  }, [ownerContact]);
+  }, [ownerContact, storeMapsDirectionsUrl, storeMapsSearchUrl]);
 
   const contactTickerLinks = useMemo(() => {
-    const mapUrl = ownerContact.address
-      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ownerContact.address)}`
-      : "";
-
-    const links = [ownerContact.website, ownerContact.instagram, ownerContact.facebook, ownerContact.tiktok, mapUrl]
+    const links = [ownerContact.website, ownerContact.instagram, ownerContact.facebook, ownerContact.tiktok, storeMapsDirectionsUrl || storeMapsSearchUrl]
       .filter((value) => Boolean(value));
 
     if (links.length === 0) return [];
     return [...links, ...links];
-  }, [ownerContact]);
+  }, [ownerContact, storeMapsDirectionsUrl, storeMapsSearchUrl]);
 
   useEffect(() => {
     if (!adminToken && activeSection === "Panel admin") {
@@ -3985,27 +4071,36 @@ function App() {
 
     const token = localStorage.getItem("esme_token");
     if (!token) {
-      setFeedback({ type: "error", text: "Debes iniciar sesion como clienta para agendar." });
+      const message = "Debes iniciar sesion como clienta para agendar.";
+      setAppointmentFormFeedback({ type: "error", text: message });
+      setFeedback({ type: "error", text: message });
       return;
     }
 
     if (!appointmentDraft.serviceId || !appointmentDraft.employeeId || !appointmentDraft.date || !appointmentDraft.time) {
-      setFeedback({ type: "error", text: "Completa servicio, profesional, fecha y hora para continuar." });
+      const message = "Completa servicio, profesional, fecha y hora para continuar.";
+      setAppointmentFormFeedback({ type: "error", text: message });
+      setFeedback({ type: "error", text: message });
       return;
     }
 
     const scheduledDate = new Date(`${appointmentDraft.date}T${appointmentDraft.time}:00`);
     if (Number.isNaN(scheduledDate.getTime())) {
-      setFeedback({ type: "error", text: "La fecha u hora no es valida." });
+      const message = "La fecha u hora no es valida.";
+      setAppointmentFormFeedback({ type: "error", text: message });
+      setFeedback({ type: "error", text: message });
       return;
     }
 
     if (occupiedAppointmentSlots.has(appointmentDraft.time)) {
-      setFeedback({ type: "error", text: "Ese bloque ya esta ocupado. Selecciona otra hora." });
+      const message = "Ese bloque ya esta ocupado. Selecciona otra hora.";
+      setAppointmentFormFeedback({ type: "error", text: message });
+      setFeedback({ type: "error", text: message });
       return;
     }
 
     setAppointmentBusy(true);
+    setAppointmentFormFeedback({ type: "info", text: "Guardando cita..." });
     try {
       const response = await apiRequest("/appointments", {
         method: "POST",
@@ -4026,7 +4121,53 @@ function App() {
         text: response.message || "Cita agendada correctamente."
       });
     } catch (error) {
-      setFeedback({ type: "error", text: error.message || "No se pudo agendar la cita." });
+      const message = error.message || "No se pudo agendar la cita.";
+
+      const shouldUseLocalFallback = (
+        !API_BASE
+        || message.includes("API no configurada")
+        || message.includes("No hay conexion con la API")
+      );
+
+      if (shouldUseLocalFallback) {
+        const selectedService = catalogServices.find((service) => service.id === appointmentDraft.serviceId);
+        const selectedEmployee = catalogEmployees.find((employee) => employee.id === appointmentDraft.employeeId);
+
+        const localAppointment = {
+          id: createLocalEntityId("appointment-local"),
+          serviceId: appointmentDraft.serviceId,
+          serviceName: selectedService?.name || "Servicio",
+          employeeId: appointmentDraft.employeeId,
+          employeeName: selectedEmployee?.name || "Sin asignar",
+          scheduledAt: scheduledDate.toISOString(),
+          notes: appointmentDraft.notes.trim(),
+          status: "scheduled",
+          createdAt: new Date().toISOString()
+        };
+
+        const identity = {
+          id: sessionUser?.id || "",
+          email: sessionUser?.email || ""
+        };
+
+        const currentStored = getStoredLocalAppointmentsForUser(identity);
+        const nextStored = [...currentStored, localAppointment];
+        setStoredLocalAppointmentsForUser(identity, nextStored);
+        const normalizedNext = sortAppointmentsByDate(nextStored);
+
+        setAppointments(normalizedNext);
+        setHistoryData(createLocalHistorySnapshotFromAppointments(normalizedNext));
+        setSelectedDate(new Date(scheduledDate));
+        closeAppointmentModal();
+
+        const fallbackMessage = "Cita guardada en modo local (sin conexion al servidor).";
+        setAppointmentFormFeedback({ type: "success", text: fallbackMessage });
+        setFeedback({ type: "success", text: fallbackMessage });
+        return;
+      }
+
+      setAppointmentFormFeedback({ type: "error", text: message });
+      setFeedback({ type: "error", text: message });
     } finally {
       setAppointmentBusy(false);
     }
@@ -4218,6 +4359,16 @@ function App() {
           </div>
 
           <div className="topbar-actions">
+            <button
+              type="button"
+              className="topbar-btn"
+              onClick={openStoreGps}
+              disabled={!storeMapsDirectionsUrl && !storeMapsSearchUrl}
+              title="Abrir la ubicacion de la tienda en Google Maps"
+            >
+              Maps
+            </button>
+
             <button
               type="button"
               className={`theme-switch ${themeMode === "dark" ? "dark" : ""}`}
@@ -4455,6 +4606,23 @@ function App() {
                   <p>{profileForm.email || sessionUser?.email || "Sin correo"}</p>
                   <p>{profileForm.phone || "Sin telefono"}</p>
                 </article>
+
+                <article className="agenda-location-card">
+                  <div>
+                    <strong>Llegar a la tienda</strong>
+                    <p>{ownerContact.address || "Direccion pendiente en panel admin."}</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="primary-chip agenda-maps-cta"
+                    onClick={openStoreGps}
+                    disabled={!storeMapsDirectionsUrl && !storeMapsSearchUrl}
+                    title="Abrir navegacion GPS a la tienda"
+                  >
+                    Abrir GPS en Maps
+                  </button>
+                </article>
+
                 <div className="agenda-headbar">
                   <div className="agenda-headbar-left">
                     <button
@@ -4483,6 +4651,14 @@ function App() {
                   <div className="agenda-headbar-right">
                     <span>Semana</span>
                     <span>2 Calendars</span>
+                    <button
+                      type="button"
+                      className="ghost-chip"
+                      onClick={openStoreGps}
+                      title="Abrir navegacion GPS a la tienda"
+                    >
+                      Ir con Maps
+                    </button>
                     <button
                       type="button"
                       className="primary-chip"
@@ -7447,6 +7623,12 @@ function App() {
                       })}
                     </div>
 
+                    <p className={`feedback ${appointmentDraft.time ? "success" : "info"}`}>
+                      {appointmentDraft.time
+                        ? `Hora seleccionada: ${appointmentDraft.time}`
+                        : "Selecciona una hora disponible para habilitar Confirmar cita."}
+                    </p>
+
                     <label>
                       Notas
                       <textarea
@@ -7463,11 +7645,15 @@ function App() {
                       <button
                         type="submit"
                         className="primary"
-                        disabled={appointmentBusy || catalogServices.length === 0 || catalogEmployees.length === 0}
+                        disabled={appointmentBusy || catalogServices.length === 0 || catalogEmployees.length === 0 || !appointmentDraft.time}
                       >
                         {appointmentBusy ? "Agendando..." : "Confirmar cita"}
                       </button>
                     </div>
+
+                    {appointmentFormFeedback.text && (
+                      <p className={`feedback ${appointmentFormFeedback.type}`}>{appointmentFormFeedback.text}</p>
+                    )}
                   </form>
                 </section>
               </div>

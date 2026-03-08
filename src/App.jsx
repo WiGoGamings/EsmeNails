@@ -1108,6 +1108,8 @@ function NavIcon({ type }) {
 }
 
 function App() {
+    // Estado para menú flotante en móvil
+    const [menuFabOpen, setMenuFabOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(
     Boolean(localStorage.getItem("esme_token") || localStorage.getItem("esme_admin_token"))
   );
@@ -4359,45 +4361,42 @@ function App() {
   return (
     isAuthenticated ? (
       <main className="pos-layout">
-        <header className="pos-topbar">
-          <div className="pos-topbar-left">
-            <div>
-              <p className="dashboard-kicker">EsmeNails</p>
-              <strong>{activeSection}</strong>
-            </div>
-          </div>
-
-          <div className="topbar-actions">
+        {/* Overlay para menú flotante en móvil */}
+        <div
+          className={`menu-fab-overlay${menuFabOpen ? " active" : ""}`}
+          onClick={() => setMenuFabOpen(false)}
+          style={{ display: menuFabOpen ? "block" : "none" }}
+        />
+        {/* Botón flotante para abrir menú en móvil */}
+        <button
+          className="menu-fab-btn"
+          style={{ display: window.innerWidth <= 760 ? "flex" : "none" }}
+          onClick={() => setMenuFabOpen(true)}
+          aria-label="Abrir menú"
+        >
+          <NavIcon type="menu" />
+        </button>
+        {/* Menú lateral flotante */}
+        <nav
+          className={`quick-rail${menuFabOpen ? " menu-fab-open" : ""}`}
+          style={{ display: menuFabOpen ? "flex" : "" }}
+        >
+          {quickRailSections.map((section) => (
             <button
-              type="button"
-              className="topbar-btn"
-              onClick={openStoreGps}
-              disabled={!storeMapsDirectionsUrl && !storeMapsSearchUrl}
-              title="Abrir la ubicacion de la tienda en Google Maps"
+              key={section}
+              className={`nav-icon${activeSection === section ? " active" : ""}`}
+              onClick={() => {
+                navigateToSection(section);
+                setMenuFabOpen(false);
+              }}
+              aria-label={quickRailLabelBySection[section] || section}
             >
-              Maps
+              <NavIcon type={navIconBySection[section]} />
+              <span className="quick-rail-label">{quickRailLabelBySection[section] || section}</span>
             </button>
-
-            <button
-              type="button"
-              className={`theme-switch ${themeMode === "dark" ? "dark" : ""}`}
-              onClick={() => setThemeMode((prev) => (prev === "dark" ? "light" : "dark"))}
-              aria-label="Cambiar modo de color"
-              title={themeMode === "dark" ? "Modo noche" : "Modo claro"}
-            >
-              <span className="theme-switch-track">
-                <span className="theme-switch-thumb" />
-              </span>
-              <span className="theme-switch-label">{themeMode === "dark" ? "Noche" : "Claro"}</span>
-            </button>
-
-            <div className="profile-menu-wrap">
-              <button
-                className="topbar-btn"
-                type="button"
-                onClick={() => setProfileMenuOpen((prev) => !prev)}
-              >
-                {sessionUser?.name || "Mi cuenta"} v
+          ))}
+        </nav>
+        {/* ...existing code... */
               </button>
 
               {profileMenuOpen && (

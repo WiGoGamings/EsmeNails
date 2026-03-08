@@ -3428,24 +3428,60 @@ body.theme-dark .profile-dropdown .nav-icon svg {
 	}
 
 	   .quick-rail {
+		   display: none !important;
+	   }
+	   .menu-fab-btn {
+		   display: flex;
+		   position: fixed;
+		   bottom: 18px;
+		   right: 18px;
+		   z-index: 130;
+		   width: 54px;
+		   height: 54px;
+		   border-radius: 50%;
+		   background: linear-gradient(135deg, #ef7f56 0%, #ef4d83 100%);
+		   box-shadow: 0 6px 18px rgba(84, 28, 13, 0.18);
+		   align-items: center;
+		   justify-content: center;
+		   border: none;
+		   color: #fff;
+		   font-size: 1.6rem;
+		   cursor: pointer;
+		   transition: background 0.2s, box-shadow 0.2s;
+	   }
+	   .menu-fab-btn:active {
+		   background: #ef4d83;
+		   box-shadow: 0 2px 8px rgba(84, 28, 13, 0.22);
+	   }
+	   .menu-fab-overlay {
+		   display: none;
+		   position: fixed;
+		   inset: 0;
+		   background: rgba(0,0,0,0.18);
+		   z-index: 129;
+	   }
+	   .menu-fab-overlay.active {
+		   display: block;
+	   }
+	   .quick-rail.menu-fab-open {
 		   display: flex !important;
-		   visibility: visible !important;
-		   opacity: 1 !important;
-		   align-items: stretch;
-		   gap: 0.2rem;
+		   flex-direction: column;
 		   position: fixed;
 		   left: 0;
 		   top: 0;
-		   width: 56px;
-		   min-width: 44px;
-		   max-width: 64px;
+		   width: 220px;
 		   height: 100vh;
-		   z-index: 120;
+		   z-index: 131;
 		   box-shadow: 0 0 24px rgba(84, 28, 13, 0.18);
 		   border-radius: 0 12px 12px 0;
-		   padding: 0.2rem 0.1rem;
+		   padding: 0.4rem 0.2rem;
 		   background: linear-gradient(180deg, #ef7f56 0%, #ef4d83 100%);
 		   overflow-y: auto;
+		   animation: menuFabSlideIn 0.22s ease;
+	   }
+	   @keyframes menuFabSlideIn {
+		   0% { transform: translateX(-100%); opacity: 0; }
+		   100% { transform: translateX(0); opacity: 1; }
 	   }
 	   .pos-shell {
 		   display: block !important;

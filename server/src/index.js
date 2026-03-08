@@ -16,6 +16,28 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get("/", (_req, res) => {
+  res.status(200).json({
+    ok: true,
+    service: "esmenails-api",
+    message: "API activa. Usa las rutas bajo /api",
+    docs: {
+      health: "/api/health",
+      adminLogin: "/api/admin/login",
+      userLogin: "/api/auth/login"
+    }
+  });
+});
+
+app.get("/api", (_req, res) => {
+  res.status(200).json({
+    ok: true,
+    service: "esmenails-api",
+    message: "Prefijo base de la API",
+    health: "/api/health"
+  });
+});
+
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "esmenails-api" });
 });

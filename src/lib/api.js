@@ -5,7 +5,9 @@ const explicitApiBase = typeof import.meta.env.VITE_API_URL === "string"
 const isLocalFrontend = typeof window !== "undefined"
   && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
 
-export const API_BASE = explicitApiBase || (isLocalFrontend ? "http://localhost:4000/api" : "");
+const productionApiFallback = "https://esmenails-api.onrender.com/api";
+
+export const API_BASE = explicitApiBase || (isLocalFrontend ? "http://localhost:4000/api" : productionApiFallback);
 
 export async function apiRequest(path, { method = "GET", body, token } = {}) {
   if (!API_BASE) {

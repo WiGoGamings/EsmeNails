@@ -1,63 +1,48 @@
+
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Syne:wght@600;700;800&display=swap");
 
 :root {
-	color-scheme: light;
-	--app-bg: linear-gradient(135deg, #ffe7f3 0%, #ffd5ea 35%, #fff7fb 100%);
-	--auth-login-bg-1: url("/login-real-bg.jpg");
-	--auth-login-bg-2: url("https://images.pexels.com/photos/853427/pexels-photo-853427.jpeg?auto=compress&cs=tinysrgb&w=1800");
-	--auth-login-bg-3: url("https://images.pexels.com/photos/704815/pexels-photo-704815.jpeg?auto=compress&cs=tinysrgb&w=1800");
-	--auth-login-bg: var(--auth-login-bg-1);
-	--surface-1: #fff8fd;
-	--surface-2: #fff1f9;
-	--surface-3: #ffe7f3;
-	--text-main: #4d1732;
-	--text-soft: #7a3056;
-	--border-main: #f4b8d9;
-	--accent-main: #ff4fa4;
-	--accent-strong: #e53d92;
-	--accent-soft: #ffd1e9;
-	--success-soft: #e8fbf4;
-	--danger-soft: #ffe8ee;
-	--success-text: #0f5e46;
-	--danger-text: #6f1e3f;
-
-body.theme-dark {
-	color-scheme: dark;
-	--app-bg: linear-gradient(135deg, #1d1020 0%, #2b1230 46%, #3a1742 100%);
-	--surface-1: #2a1830;
-	--surface-2: #341d3a;
-	--surface-3: #42204b;
-	--text-main: #ffe7f5;
-	--text-soft: #ffd0e8;
-	--border-main: #693777;
-	--accent-main: #ff4fa4;
-	--accent-strong: #ff7abf;
-	--accent-soft: #4f2a5a;
-	--success-soft: #1f3d34;
-	--danger-soft: #4a2530;
-	--success-text: #c8ffe7;
-	--danger-text: #ffdce9;
+  color-scheme: light;
+  --app-bg: linear-gradient(135deg, #ffe7f3 0%, #ffd5ea 35%, #fff7fb 100%);
+  --auth-login-bg-1: url("/login-real-bg.jpg");
+  --auth-login-bg-2: url("https://images.pexels.com/photos/853427/pexels-photo-853427.jpeg?auto=compress&cs=tinysrgb&w=1800");
+  --auth-login-bg-3: url("https://images.pexels.com/photos/704815/pexels-photo-704815.jpeg?auto=compress&cs=tinysrgb&w=1800");
+  --auth-login-bg: var(--auth-login-bg-1);
+  --surface-1: #fff8fd;
+  --surface-2: #fff1f9;
+  --surface-3: #ffe7f3;
+  --text-main: #4d1732;
+  --text-soft: #7a3056;
+  --border-main: #f4b8d9;
+  --accent-main: #ff4fa4;
+  --accent-strong: #e53d92;
+  --accent-soft: #ffd1e9;
+  --success-soft: #e8fbf4;
+  --danger-soft: #ffe8ee;
+  --success-text: #0f5e46;
+  --danger-text: #6f1e3f;
+}
 
 body {
-	margin: 0;
-	background: var(--app-bg);
-	color: var(--text-main);
-	font-family: "Outfit", sans-serif;
-	font-size: clamp(0.82rem, 1vw, 0.92rem);
-	overflow-x: hidden;
+  margin: 0;
+  background: var(--app-bg);
+  color: var(--text-main);
+  font-family: "Outfit", sans-serif;
+  font-size: clamp(0.82rem, 1vw, 0.92rem);
+  overflow-x: hidden;
 }
 
 html {
-	overflow-x: hidden;
+  overflow-x: hidden;
 }
 
 .auth-page {
-	width: min(100%, 900px);
-	margin: 0 auto;
-	min-height: 100vh;
-	display: flex;
-	align-items: center;
-	justify-content: center;
+  width: min(100%, 900px);
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 	padding: clamp(0.5rem, 1.5vw, 1.2rem);
 	position: relative;
 }
@@ -670,8 +655,7 @@ select {
 	100% {
 		opacity: 1;
 		transform: scale(1);
-	}
-}
+			/* llaves extra eliminadas */
 
 .home-hero-card {
 	border: 1px solid #efcec0;

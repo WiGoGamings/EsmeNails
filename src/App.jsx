@@ -5660,7 +5660,7 @@ function App() {
                                   {renderOwnerCarouselThumb(adminSettings.ownerContact?.homeImageOne, localMenuImages.gelx, "Carrusel 1")}
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen 1</strong>
-                                    <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageOne ?? ""} onChange={(event) => updateOwnerContactField("homeImageOne", event.target.value)} placeholder="URL imagen 1" />
+                                    <input type="text" name="homeImageOne" autoComplete="off" value={adminSettings.ownerContact?.homeImageOne ?? ""} onChange={(event) => updateOwnerContactField("homeImageOne", event.target.value)} placeholder="URL imagen 1" />
                                     <div className="admin-actions-row">
                                       <button type="button" className="secondary" onClick={() => openOwnerCarouselFilePicker("homeImageOne")}>Subir archivo</button>
                                       <input
@@ -5679,7 +5679,7 @@ function App() {
                                   {renderOwnerCarouselThumb(adminSettings.ownerContact?.homeImageTwo, localMenuImages.acrigel, "Carrusel 2")}
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen 2</strong>
-                                    <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageTwo ?? ""} onChange={(event) => updateOwnerContactField("homeImageTwo", event.target.value)} placeholder="URL imagen 2" />
+                                    <input type="text" name="homeImageTwo" autoComplete="off" value={adminSettings.ownerContact?.homeImageTwo ?? ""} onChange={(event) => updateOwnerContactField("homeImageTwo", event.target.value)} placeholder="URL imagen 2" />
                                     <div className="admin-actions-row">
                                       <button type="button" className="secondary" onClick={() => openOwnerCarouselFilePicker("homeImageTwo")}>Subir archivo</button>
                                       <input
@@ -5698,7 +5698,7 @@ function App() {
                                   {renderOwnerCarouselThumb(adminSettings.ownerContact?.homeImageThree, localMenuImages.polygel, "Carrusel 3")}
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen 3</strong>
-                                    <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageThree ?? ""} onChange={(event) => updateOwnerContactField("homeImageThree", event.target.value)} placeholder="URL imagen 3" />
+                                    <input type="text" name="homeImageThree" autoComplete="off" value={adminSettings.ownerContact?.homeImageThree ?? ""} onChange={(event) => updateOwnerContactField("homeImageThree", event.target.value)} placeholder="URL imagen 3" />
                                     <div className="admin-actions-row">
                                       <button type="button" className="secondary" onClick={() => openOwnerCarouselFilePicker("homeImageThree")}>Subir archivo</button>
                                       <input
@@ -5717,7 +5717,7 @@ function App() {
                                   {renderOwnerCarouselThumb(adminSettings.ownerContact?.homeImageFour, localMenuImages.manicure, "Carrusel 4")}
                                   <div className="admin-image-editor-fields">
                                     <strong>Imagen 4</strong>
-                                    <input type="text" autoComplete="off" value={adminSettings.ownerContact?.homeImageFour ?? ""} onChange={(event) => updateOwnerContactField("homeImageFour", event.target.value)} placeholder="URL imagen 4" />
+                                    <input type="text" name="homeImageFour" autoComplete="off" value={adminSettings.ownerContact?.homeImageFour ?? ""} onChange={(event) => updateOwnerContactField("homeImageFour", event.target.value)} placeholder="URL imagen 4" />
                                     <div className="admin-actions-row">
                                       <button type="button" className="secondary" onClick={() => openOwnerCarouselFilePicker("homeImageFour")}>Subir archivo</button>
                                       <input

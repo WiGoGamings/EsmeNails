@@ -8,6 +8,6 @@ const base = process.env.VITE_APP_BASE
 
 // https://vite.dev/config/
 export default defineConfig({
-  base,
+  base: '/EsmeNails/',
   plugins: [react()],
 })

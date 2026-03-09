@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Syne:wght@600;700;800&display=swap");
 /* Estilos para login y registro */
 .auth-page {
 	background: #fff;
@@ -879,7 +880,8 @@ select {
 
 .home-hero-card {
 		transform: scale(1);
-			/* llaves extra eliminadas */
+		animation: heroPop 0.6s ease;
+}
 
 .home-hero-card {
 	border: 1px solid #efcec0;
@@ -3667,14 +3669,11 @@ body.theme-dark .profile-dropdown .nav-icon svg {
 	filter: drop-shadow(0 0 0.45px rgba(13, 5, 15, 0.8));
 }
 
-@media (max-width: 760px) {
+@media (max-width: 500px) {
 			body {
 				font-size: clamp(0.82rem, 1vw, 0.92rem);
 			}
-			.auth-page {
-				width: min(100%, 430px);
-				padding: clamp(0.7rem, 2vw, 1.2rem);
-			}
+
 			.auth-card {
 				width: min(100%, 340px);
 				border-radius: 18px;
@@ -3721,14 +3720,8 @@ body.theme-dark .profile-dropdown .nav-icon svg {
 				min-height: 32px;
 				padding: 0.12rem 0.18rem;
 			}
-			}
-			}
 		body {
 			font-size: clamp(0.43rem, 0.6vw, 0.48rem);
-		}
-		.auth-page {
-			width: min(100%, 368px);
-			padding: clamp(0.25rem, 0.5vw, 0.56rem);
 		}
 		
 		.auth-card {
@@ -3752,9 +3745,9 @@ body.theme-dark .profile-dropdown .nav-icon svg {
 		}
 		select {
 			border-radius: 4px;
-			min-height: 16px;
-			padding: 0.12rem 0.14rem;
 		}
+	
+		
 		.pos-layout {
 			gap: 0.14rem;
 			padding: 0.14rem;
@@ -3950,6 +3943,7 @@ body.theme-dark .profile-dropdown .nav-icon svg {
 		white-space: nowrap;
 		word-break: normal;
 	}
+
 
 	.mobile-quick-nav {
 		display: flex;
@@ -4161,3 +4155,5 @@ body.theme-dark .profile-dropdown .nav-icon svg {
 	.admin-table {
 		font-size: 0.82rem;
 	}	
+
+ }

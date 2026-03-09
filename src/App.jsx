@@ -1776,7 +1776,15 @@ function App() {
       markAdminSaved("points-program");
       setFeedback({ type: "success", text: "Programa de puntos actualizado." });
     } catch (error) {
-      setFeedback({ type: "error", text: error.message || "No se pudo actualizar programa de puntos." });
+      let errorMsg = error.message || "No se pudo actualizar programa de puntos.";
+      if (errorMsg.includes("401")) {
+        errorMsg = "Tu sesión de administrador expiró. Por favor, inicia sesión de nuevo.";
+      } else if (errorMsg.toLowerCase().includes("no autorizado")) {
+        errorMsg = "No tienes permisos para actualizar el programa de puntos.";
+      } else if (errorMsg.toLowerCase().includes("network")) {
+        errorMsg = "No hay conexión con la API. Verifica tu red o el backend.";
+      }
+      setFeedback({ type: "error", text: errorMsg });
     }
   };
 

@@ -15,7 +15,6 @@ export async function apiRequest(path, { method = "GET", body, token } = {}) {
   }
 
   let response;
-
   try {
     response = await fetch(`${API_BASE}${path}`, {
       method,
@@ -32,7 +31,13 @@ export async function apiRequest(path, { method = "GET", body, token } = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const message = data?.error || "Request failed";
+    // Manejo automático de error 401
+    if (response.status === 401) {
+      localStorage.removeItem("esme_token");
+      localStorage.removeItem("esme_admin_token");
+      localStorage.removeItem("esme_user");
+    }
+    const message = data?.error || `Error ${response.status}: ${response.statusText}`;
     throw new Error(typeof message === "string" ? message : JSON.stringify(message));
   }
 

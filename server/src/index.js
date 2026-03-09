@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import path from "path";
 import { env } from "./config/env.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import authRoutes from "./routes/auth.routes.js";
@@ -13,8 +14,28 @@ import assistantRoutes from "./routes/assistant.routes.js";
 
 const app = express();
 
-app.use(cors());
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://wigogamings.github.io",
+  "https://esmenails.com"
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Permitir requests sin origin (como Postman) o si está en la lista
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("No permitido por CORS"));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
+
+// Servir archivos estáticos desde /public
+app.use("/static", express.static(path.resolve("../public")));
 
 app.get("/", (_req, res) => {
   res.status(200).json({

@@ -9,7 +9,10 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 )
 
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+const isElectronDesktop =
+  typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('electron')
+
+if (!isElectronDesktop && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {
       // Service worker is optional; app still works without registration.

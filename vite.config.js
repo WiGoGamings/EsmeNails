@@ -15,6 +15,6 @@ const base = isNetlify
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/EsmeNails/',
+  base,
   plugins: [react()],
 })

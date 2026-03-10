@@ -9,6 +9,14 @@ const productionApiFallback = "https://esmenails-api.onrender.com/api";
 
 export const API_BASE = explicitApiBase || (isLocalFrontend ? "http://localhost:4000/api" : productionApiFallback);
 
+const getApiConnectionErrorMessage = () => {
+  if (isLocalFrontend) {
+    return "No hay conexion con la API local. Ejecuta npm run dev y verifica que el puerto 4000 este activo.";
+  }
+
+  return `No hay conexion con la API (${API_BASE}). Verifica que el backend este en linea y que VITE_API_URL este configurada correctamente en Netlify.`;
+};
+
 export async function apiRequest(path, { method = "GET", body, token } = {}) {
   if (!API_BASE) {
     throw new Error("API no configurada para esta version web. Define VITE_API_URL para conectar el backend.");
@@ -25,7 +33,7 @@ export async function apiRequest(path, { method = "GET", body, token } = {}) {
       ...(body ? { body: JSON.stringify(body) } : {})
     });
   } catch {
-    throw new Error("No hay conexion con la API. Ejecuta npm run dev y verifica que el puerto 4000 este activo.");
+    throw new Error(getApiConnectionErrorMessage());
   }
 
   const data = await response.json().catch(() => ({}));

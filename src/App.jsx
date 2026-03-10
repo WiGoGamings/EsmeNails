@@ -63,8 +63,8 @@ const MENU_CART_STORAGE_KEY = "esme_menu_cart";
 const ASSISTANT_HISTORY_STORAGE_PREFIX = "esme_assistant_history";
 const LOCAL_AUTH_USERS_KEY = "esme_local_auth_users";
 const LOCAL_AUTH_PASSWORD_SALT = "esme-local-auth-v1";
-const LOCAL_ADMIN_EMAIL = "admin.esme@esmenails.com";
-const LOCAL_ADMIN_PASSWORD_HASH = "53ac1385fa6a18d0e617c52423c17abd61ab1f39b2093f0fb4e37a1bd14736f3";
+const LOCAL_ADMIN_EMAIL = "admin@esmenails.com";
+const LOCAL_ADMIN_PASSWORD_HASH = "95ff4ba993639d1eaf3a2f81676ef314d1eb7343dd8b4548765f53054717cdf5";
 const API_POINTS_LEDGER_KEY = "esme_points_ledger_v1";
 const POINTS_GAME_STATS_LEDGER_KEY = "esme_points_game_stats_v1";
 const POINTS_GAME_ACHIEVEMENTS_CONFIG_KEY = "esme_points_game_achievements_config_v1";
@@ -4047,6 +4047,13 @@ function App() {
     document.body.classList.toggle("theme-dark", isDark);
     localStorage.setItem("esme_theme_mode", themeMode);
   }, [themeMode]);
+
+  useEffect(() => {
+    document.body.classList.toggle("modal-open", appointmentModalOpen);
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, [appointmentModalOpen]);
 
   useEffect(() => {
     localStorage.setItem("esme_app_preferences", JSON.stringify(appPreferences));

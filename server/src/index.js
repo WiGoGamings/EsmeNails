@@ -19,15 +19,18 @@ const allowedOrigins = [
   "http://localhost:5174",
   "http://localhost:3000",
   "https://wigogamings.github.io",
-  "https://esmenails.com"
+  "https://esmenails.com",
+  "https://beautypossystem.netlify.app"
 ];
 
 const isAllowedOrigin = (origin) => {
   if (!origin) return true;
-  if (allowedOrigins.includes(origin)) return true;
+
+  const normalizedOrigin = origin.trim().toLowerCase();
+  if (allowedOrigins.includes(normalizedOrigin)) return true;
 
   try {
-    const { hostname } = new URL(origin);
+    const { hostname } = new URL(normalizedOrigin);
     return hostname.endsWith(".netlify.app") || hostname.endsWith(".netlify.live");
   } catch {
     return false;

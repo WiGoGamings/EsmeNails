@@ -24,6 +24,7 @@ const defaultProfileForm = {
 
 const posSections = [
   "Home",
+  "Pago",
   "Menu",
   "Precios",
   "Agendar cita",
@@ -587,6 +588,7 @@ const toDayKey = (dateValue) => {
 
 const navIconBySection = {
   Home: "home",
+  Pago: "pos",
   Menu: "menu",
   Precios: "prices",
   "Agendar cita": "calendar",
@@ -604,6 +606,7 @@ const navIconBySection = {
 
 const quickRailLabelBySection = {
   Home: "Home",
+  Pago: "Pago",
   Menu: "Menu",
   Precios: "Precio",
   "Agendar cita": "Cita",
@@ -1193,6 +1196,8 @@ function NavIcon({ type }) {
   switch (type) {
     case "home":
       return <svg {...common}><path d="M2 7.2L8 2l6 5.2" /><path d="M3.5 6.5V14h9V6.5" /></svg>;
+    case "pos":
+      return <svg {...common}><rect x="2.6" y="3" width="10.8" height="10" rx="1.4" /><path d="M4.8 6.2h6.4" /><path d="M4.8 8.6h6.4" /><path d="M4.8 11h3.1" /><path d="M9.4 11h1.8" /></svg>;
     case "menu":
       return <svg {...common}><path d="M2.5 4h11" /><path d="M2.5 8h11" /><path d="M2.5 12h11" /></svg>;
     case "prices":
@@ -4797,6 +4802,7 @@ function App() {
               <span className="topbar-brand-pill">EsmeNails</span>
               <p className="topbar-brand-subtitle">Bienvenida a Cuidar de tu belleza cariño</p>
               <span className="topbar-section-chip">{activeSection}</span>
+              <button type="button" className="topbar-pos-btn" onClick={() => navigateToSection("Pago")}>Pago</button>
               </div>
             </div>
           </div>
@@ -4839,32 +4845,37 @@ function App() {
             }}
           >
             <h1>{activeSection}</h1>
-            {activeSection === "Panel admin" && adminToken && adminData && (
+            {activeSection === "Pago" && (
               <section className="admin-pos-payment-strip" aria-label="Panel de pago rapido estilo POS">
                 <div className="admin-pos-payment-column">
-                  <h3>POS Pagos Rapidos</h3>
-                  <p>Selecciona una cita confirmada y confirma metodo de pago.</p>
-                  <label>
-                    Cita confirmada
-                    <select
-                      value={adminPaymentDraft.appointmentId}
-                      onChange={(event) => setAdminPaymentDraft((prev) => ({
-                        ...prev,
-                        appointmentId: event.target.value,
-                        step: "select",
-                        signatureName: "",
-                        tipOption: "none",
-                        customTipAmount: ""
-                      }))}
-                    >
-                      <option value="">Seleccionar cita</option>
-                      {confirmedAdminAppointments.map((appointment) => (
-                        <option key={`quick-payment-${appointment.id}`} value={appointment.id}>
-                          {appointment.clientName} - {appointment.serviceName} - {new Date(appointment.scheduledAt).toLocaleString()}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <h3>Pago Rapido</h3>
+                  <p>Selecciona la forma de pago al instante.</p>
+
+                  {adminToken && adminData ? (
+                    <label>
+                      Cita confirmada
+                      <select
+                        value={adminPaymentDraft.appointmentId}
+                        onChange={(event) => setAdminPaymentDraft((prev) => ({
+                          ...prev,
+                          appointmentId: event.target.value,
+                          step: "select",
+                          signatureName: "",
+                          tipOption: "none",
+                          customTipAmount: ""
+                        }))}
+                      >
+                        <option value="">Seleccionar cita</option>
+                        {confirmedAdminAppointments.map((appointment) => (
+                          <option key={`quick-payment-${appointment.id}`} value={appointment.id}>
+                            {appointment.clientName} - {appointment.serviceName} - {new Date(appointment.scheduledAt).toLocaleString()}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : (
+                    <p className="admin-payment-summary">Para cobrar citas confirmadas inicia sesion en Panel admin.</p>
+                  )}
 
                   <div className="admin-payment-methods" role="group" aria-label="Metodo de pago rapido">
                     {adminPaymentMethodOptions.map((method) => (
@@ -4883,7 +4894,7 @@ function App() {
                     type="button"
                     className="secondary"
                     onClick={() => setAdminPaymentDraft((prev) => ({ ...prev, step: "sign" }))}
-                    disabled={!adminPaymentDraft.appointmentId}
+                    disabled={!adminToken || !adminData || !adminPaymentDraft.appointmentId}
                   >
                     Firmar y continuar
                   </button>
@@ -4891,12 +4902,12 @@ function App() {
 
                 <div className="admin-pos-payment-column">
                   <h4>Firma + tips</h4>
-                  {selectedAdminPaymentAppointment ? (
+                  {adminToken && adminData && selectedAdminPaymentAppointment ? (
                     <p className="admin-payment-summary">
                       {selectedAdminPaymentAppointment.clientName} - {selectedAdminPaymentAppointment.serviceName} ({adminPaymentMethodLabelByValue[adminPaymentDraft.paymentMethod] || adminPaymentDraft.paymentMethod})
                     </p>
                   ) : (
-                    <p className="admin-payment-summary">No hay cita seleccionada.</p>
+                    <p className="admin-payment-summary">Opciones activas. Inicia admin para confirmar cobro y generar PDF.</p>
                   )}
 
                   {adminPaymentDraft.step === "sign" && (
@@ -4965,7 +4976,7 @@ function App() {
                     type="button"
                     className="primary"
                     onClick={processSelectedAdminPayment}
-                    disabled={adminPaymentBusy || !adminPaymentDraft.appointmentId || adminPaymentDraft.step !== "sign"}
+                    disabled={!adminToken || !adminData || adminPaymentBusy || !adminPaymentDraft.appointmentId || adminPaymentDraft.step !== "sign"}
                   >
                     {adminPaymentBusy ? "Procesando pago..." : "Print: generar PDF y enviar correo"}
                   </button>
@@ -5724,6 +5735,32 @@ function App() {
                       )}
                     </article>
                   </div>
+                )}
+              </section>
+            ) : activeSection === "Pago" ? (
+              <section className="meevo-section pos-center-panel">
+                <article className="pos-center-hero">
+                  <h2>Sistema de Pago</h2>
+                  <p>Panel directo de pagos: elige la forma de pago al instante y continua con el flujo de cobro.</p>
+                  <div className="admin-actions-row">
+                    <button type="button" className="primary" onClick={() => navigateToSection("Menu")}>Ir a ventas</button>
+                    <button type="button" className="secondary" onClick={() => navigateToSection("Agendar cita")}>Ir a agenda</button>
+                    <button type="button" className="secondary" onClick={() => navigateToSection("Panel admin")}>Abrir admin</button>
+                  </div>
+                </article>
+
+                {!adminToken && (
+                  <article className="admin-payment-box">
+                    <h4>Caja rapida disponible</h4>
+                    <p className="admin-payment-summary">Para procesar cobros con firma, tips y envio de PDF por correo, inicia sesion en Panel admin.</p>
+                  </article>
+                )}
+
+                {adminToken && (
+                  <article className="admin-payment-box">
+                    <h4>Modo pago administrador activo</h4>
+                    <p className="admin-payment-summary">Usa la franja horizontal superior para seleccionar cita, forma de pago, firmar, agregar tip y finalizar.</p>
+                  </article>
                 )}
               </section>
             ) : activeSection === "Panel admin" ? (

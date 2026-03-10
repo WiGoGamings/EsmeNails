@@ -596,6 +596,18 @@ select {
 	color: #7d2a57;
 }
 
+.topbar-pos-btn {
+	min-height: 32px;
+	padding: 0.25rem 0.65rem;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 218, 238, 0.9);
+	background: rgba(255, 240, 249, 0.94);
+	color: #7d2a57;
+	font-family: inherit;
+	font-size: 0.74rem;
+	font-weight: 800;
+}
+
 .topbar-btn {
 	min-height: 42px;
 	border: 0;
@@ -4144,6 +4156,25 @@ body.modal-open {
 	width: 100%;
 }
 
+.pos-center-panel {
+	display: grid;
+	gap: 0.6rem;
+}
+
+.pos-center-hero {
+	border: 1px solid #efcec0;
+	border-radius: 12px;
+	background: linear-gradient(160deg, #fff6f0 0%, #ffece3 100%);
+	padding: 0.65rem;
+	display: grid;
+	gap: 0.35rem;
+}
+
+.pos-center-hero h2,
+.pos-center-hero p {
+	margin: 0;
+}
+
 .admin-quick-tip-row {
 	display: flex;
 	flex-wrap: wrap;
@@ -4433,6 +4464,12 @@ body.theme-dark .topbar-section-chip {
 	color: #d9efff;
 }
 
+body.theme-dark .topbar-pos-btn {
+	background: rgba(22, 59, 86, 0.92);
+	border-color: #3f6b91;
+	color: #d9efff;
+}
+
 body.theme-dark .topbar-home-carousel {
 	border-color: #3f6b91;
 	box-shadow: 0 8px 18px rgba(6, 16, 29, 0.4);
@@ -4477,6 +4514,7 @@ body.theme-dark .admin-quick-reschedule,
 body.theme-dark .admin-payment-box,
 body.theme-dark .admin-payment-sign-panel,
 body.theme-dark .admin-pos-payment-strip,
+body.theme-dark .pos-center-hero,
 body.theme-dark .admin-recent-completed,
 body.theme-dark .admin-editor-card,
 body.theme-dark .admin-table-wrap,

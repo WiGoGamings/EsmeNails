@@ -66,6 +66,16 @@ export const adminContactMessageUpdateSchema = z
     message: "Debes enviar al menos un campo para actualizar"
   });
 
+export const adminPaymentProcessSchema = z.object({
+  appointmentId: z.string().trim().min(1, "La cita es obligatoria"),
+  paymentMethod: z.enum(["cash", "card", "paypal", "transfer"], {
+    errorMap: () => ({ message: "Metodo de pago invalido" })
+  }),
+  notes: z.string().trim().max(300).optional().default(""),
+  signatureName: z.string().trim().min(2, "La firma es obligatoria").max(120),
+  tipAmount: z.number().min(0).max(10000).optional().default(0)
+});
+
 export const adminOwnerContactSchema = z.object({
   ownerName: z.string().trim().min(2, "Nombre del dueno invalido").max(120),
   website: z.string().trim().url("Website invalido").max(250),

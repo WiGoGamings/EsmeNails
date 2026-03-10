@@ -5,6 +5,10 @@ services:
     rootDir: server
     plan: free
     autoDeploy: true
+    disks:
+      - name: esmenails-data
+        mountPath: /var/data
+        sizeGB: 1
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /api/health
@@ -13,6 +17,8 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: DB_FILE_PATH
+        value: /var/data/database.json
       - key: JWT_SECRET
         generateValue: true
       - key: ENCRYPTION_SECRET

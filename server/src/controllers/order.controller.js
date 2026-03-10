@@ -10,7 +10,7 @@ export const createOrder = async (req, res) => {
     return res.status(400).json({ error: parsed.error.flatten() });
   }
 
-  const { items, promotionId, donationAmount } = parsed.data;
+  const { items, promotionId, donationAmount, paymentMethod } = parsed.data;
   const normalizedItems = [];
 
   for (const item of items) {
@@ -66,6 +66,7 @@ export const createOrder = async (req, res) => {
   const order = {
     id: randomUUID(),
     userId: user.id,
+    paymentMethod,
     items: normalizedItems,
     subtotal,
     discount,

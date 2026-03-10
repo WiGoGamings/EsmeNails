@@ -91,6 +91,7 @@ export const getMyHistory = (req, res) => {
     .map((entry) => ({
       id: entry.id,
       type: "order",
+      paymentMethod: String(entry.paymentMethod || "cash"),
       subtotal: Number(entry.subtotal || 0),
       discount: Number(entry.discount || 0),
       donationAmount: Number(entry.donationAmount || 0),

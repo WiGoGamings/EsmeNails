@@ -31,6 +31,9 @@ const isAllowedOrigin = (origin) => {
 
   try {
     const { hostname } = new URL(normalizedOrigin);
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return true;
+    }
     return hostname.endsWith(".netlify.app") || hostname.endsWith(".netlify.live");
   } catch {
     return false;

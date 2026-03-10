@@ -36,6 +36,42 @@ const posSections = [
   "Privacidad y seguridad"
 ];
 
+const paymentMethodOptions = [
+  { value: "cash", label: "Efectivo" },
+  { value: "card", label: "Tarjeta" },
+  { value: "transfer", label: "Transferencia" }
+];
+
+const paymentMethodLabelByValue = {
+  cash: "Efectivo",
+  card: "Tarjeta",
+  transfer: "Transferencia"
+};
+
+const adminPaymentMethodOptions = [
+  { value: "cash", label: "Pago con cash" },
+  { value: "card", label: "Pago con tarjeta" },
+  { value: "paypal", label: "Pago con PayPal" },
+  { value: "transfer", label: "Pago por transferencia" }
+];
+
+const adminPaymentMethodLabelByValue = {
+  cash: "Efectivo",
+  card: "Tarjeta",
+  paypal: "PayPal",
+  transfer: "Transferencia"
+};
+
+const adminTipOptions = [
+  { value: "none", label: "Sin tip", percent: 0 },
+  { value: "tip10", label: "Tip 10%", percent: 10 },
+  { value: "tip15", label: "Tip 15%", percent: 15 },
+  { value: "tip20", label: "Tip 20%", percent: 20 },
+  { value: "custom", label: "Tip personalizado", percent: null }
+];
+
+const adminQuickTipAmounts = [2, 5, 10];
+
 const realNailImages = {
   acrigel: "https://images.pexels.com/photos/3997391/pexels-photo-3997391.jpeg?auto=compress&cs=tinysrgb&w=1400",
   polygel: "https://images.pexels.com/photos/939836/pexels-photo-939836.jpeg?auto=compress&cs=tinysrgb&w=1400",
@@ -65,6 +101,7 @@ const LOCAL_AUTH_USERS_KEY = "esme_local_auth_users";
 const LOCAL_AUTH_PASSWORD_SALT = "esme-local-auth-v1";
 const LOCAL_ADMIN_EMAIL = "admin@esmenails.com";
 const LOCAL_ADMIN_PASSWORD_HASH = "95ff4ba993639d1eaf3a2f81676ef314d1eb7343dd8b4548765f53054717cdf5";
+const LAST_ACTIVE_SECTION_KEY = "esme_last_active_section";
 const API_POINTS_LEDGER_KEY = "esme_points_ledger_v1";
 const POINTS_GAME_STATS_LEDGER_KEY = "esme_points_game_stats_v1";
 const POINTS_GAME_ACHIEVEMENTS_CONFIG_KEY = "esme_points_game_achievements_config_v1";
@@ -482,11 +519,12 @@ const applyStoredPointsBonus = (basePoints, userLike) => {
   return normalizePointsValue(Math.max(0, base + bonus));
 };
 
-const startHour = 8;
-const visibleHours = daySlots.length;
 const appointmentSlotStartHour = 8;
 const appointmentSlotEndHour = 20;
 const appointmentSlotStepMinutes = 30;
+const startHour = appointmentSlotStartHour;
+const visibleHours = appointmentSlotEndHour - appointmentSlotStartHour;
+const weekDayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const toInputDate = (dateValue) => {
   const date = new Date(dateValue);
@@ -952,6 +990,73 @@ const parseBudgetFromPrompt = (text) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const buildAssistantQuickActions = (rawText) => {
+  const text = String(rawText || "").toLowerCase();
+  const sections = [];
+
+  const pushSection = (section) => {
+    if (!section || sections.includes(section)) return;
+    sections.push(section);
+  };
+
+  if (/cita|agend|reserv/.test(text)) {
+    pushSection("Agendar cita");
+    pushSection("Menu");
+  }
+  if (/precio|costo|cuanto/.test(text)) {
+    pushSection("Precios");
+    pushSection("Menu");
+  }
+  if (/promo|descuento|oferta/.test(text)) {
+    pushSection("Promociones");
+  }
+  if (/contacto|whatsapp|telefono|direccion|ubicacion/.test(text)) {
+    pushSection("Contacto");
+  }
+  if (/producto|servicio|catalogo|menu/.test(text)) {
+    pushSection("Menu");
+  }
+  if (/punto|recompensa|fidelidad/.test(text)) {
+    pushSection("Mis puntos");
+  }
+  if (/historial|orden|compra/.test(text)) {
+    pushSection("Historial");
+  }
+  if (/perfil|cuenta|dato/.test(text)) {
+    pushSection("Mi perfil");
+  }
+
+  if (sections.length === 0) {
+    pushSection("Home");
+  }
+
+  return sections.slice(0, 3).map((section) => ({
+    id: `assistant-go-${section.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+    label: `Ir a ${section}`,
+    section
+  }));
+};
+
+const sanitizeAssistantQuickActions = (rawActions) => {
+  if (!Array.isArray(rawActions)) return [];
+  const seen = new Set();
+  return rawActions
+    .filter((entry) => entry && typeof entry === "object")
+    .map((entry, index) => {
+      const section = String(entry.section || "").trim();
+      const label = String(entry.label || (section ? `Ir a ${section}` : "")).trim();
+      const id = String(entry.id || `assistant-action-${index}`);
+      return { id, label, section };
+    })
+    .filter((entry) => entry.section && entry.label)
+    .filter((entry) => {
+      if (seen.has(entry.section)) return false;
+      seen.add(entry.section);
+      return true;
+    })
+    .slice(0, 3);
+};
+
 const buildLocalAssistantResponse = ({ message, services, products, promotions, ownerContact }) => {
   const text = String(message || "").toLowerCase();
   const budget = parseBudgetFromPrompt(text);
@@ -1026,7 +1131,19 @@ const buildLocalAssistantResponse = ({ message, services, products, promotions, 
   }
 
   if (text.includes("cita") || text.includes("agenda") || text.includes("reserv")) {
-    return { text: "Para agendar: entra a Agendar cita, selecciona servicio, fecha y profesional, y confirma. Si quieres, te sugiero primero un servicio segun tu estilo.", suggestedServiceId: "" };
+    return {
+      text: [
+        "Guia rapida para agendar:",
+        "1) Ve a Agendar cita.",
+        "2) Elige servicio y profesional.",
+        "3) Selecciona fecha y hora.",
+        "4) Confirma tu cita.",
+        "",
+        "Abajo te dejo botones directos para ir con un click."
+      ].join("\n"),
+      suggestedServiceId: "",
+      quickActions: buildAssistantQuickActions(text)
+    };
   }
 
   if (text.includes("producto")) {
@@ -1052,7 +1169,22 @@ const assistantWelcomeMessage = {
   id: "assistant-welcome",
   role: "assistant",
   text: "Hola. Soy tu asistente personal de EsmeNails. Puedo ayudarte con precios, promociones, productos y citas.",
-  suggestedServiceId: ""
+  suggestedServiceId: "",
+  quickActions: [
+    { id: "assistant-go-agendar", label: "Ir a Agendar cita", section: "Agendar cita" },
+    { id: "assistant-go-promos", label: "Ir a Promociones", section: "Promociones" },
+    { id: "assistant-go-precios", label: "Ir a Precios", section: "Precios" }
+  ]
+};
+
+const adminViewHints = {
+  clients: "Gestiona usuarios registrados y revisa sus perfiles.",
+  appointments: "Confirma, edita o reprograma citas del calendario.",
+  payments: "Selecciona citas confirmadas, cobra y envia el recibo PDF por correo.",
+  history: "Consulta historial comercial y actividad por cliente.",
+  contact: "Atiende mensajes recibidos desde el formulario de contacto.",
+  settings: "Configura servicios, productos, promociones, equipo y contacto.",
+  "game-achievements": "Edita objetivos y recompensas del juego de puntos."
 };
 
 function NavIcon({ type }) {
@@ -1123,7 +1255,16 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [themeMode, setThemeMode] = useState(() => localStorage.getItem("esme_theme_mode") || "light");
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState("Agendar cita");
+  const [activeSection, setActiveSection] = useState(() => {
+    const hasSession = Boolean(localStorage.getItem("esme_token") || localStorage.getItem("esme_admin_token"));
+    if (!hasSession) return "Home";
+
+    const saved = String(localStorage.getItem(LAST_ACTIVE_SECTION_KEY) || "").trim();
+    if (!saved) return "Home";
+
+    const validSections = new Set([...posSections, "Panel admin"]);
+    return validSections.has(saved) ? saved : "Home";
+  });
   const [selectedMenuCategory, setSelectedMenuCategory] = useState(null);
   const [selectedMenuServiceId, setSelectedMenuServiceId] = useState("");
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
@@ -1135,6 +1276,8 @@ function App() {
       return [];
     }
   });
+  const [menuPaymentMethod, setMenuPaymentMethod] = useState("cash");
+  const [menuCheckoutBusy, setMenuCheckoutBusy] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [appointments, setAppointments] = useState([]);
   const [catalogServices, setCatalogServices] = useState([]);
@@ -1158,6 +1301,16 @@ function App() {
   const [adminData, setAdminData] = useState(null);
   const [adminSettings, setAdminSettings] = useState(null);
   const [adminDetailView, setAdminDetailView] = useState("settings");
+  const [adminPaymentDraft, setAdminPaymentDraft] = useState({
+    appointmentId: "",
+    paymentMethod: "cash",
+    notes: "",
+    step: "select",
+    signatureName: "",
+    tipOption: "none",
+    customTipAmount: ""
+  });
+  const [adminPaymentBusy, setAdminPaymentBusy] = useState(false);
   const [adminAppointmentFilter, setAdminAppointmentFilter] = useState("all");
   const [selectedClientId, setSelectedClientId] = useState("");
   const [editingAppointmentId, setEditingAppointmentId] = useState("");
@@ -1468,6 +1621,7 @@ function App() {
       return [
         ...prev,
         {
+          kind: "service",
           id: service.id,
           name: service.name,
           price: Number(service.price) || 0,
@@ -1485,6 +1639,55 @@ function App() {
 
   const clearMenuCart = () => {
     setMenuCartItems([]);
+  };
+
+  const submitMenuOrder = async () => {
+    if (menuCartItems.length === 0 || menuCheckoutBusy) return;
+
+    const token = localStorage.getItem("esme_token");
+    if (!token) {
+      setFeedback({ type: "error", text: "Inicia sesion para registrar la compra." });
+      return;
+    }
+
+    if (!["cash", "card", "transfer"].includes(menuPaymentMethod)) {
+      setFeedback({ type: "error", text: "Selecciona un metodo de pago valido." });
+      return;
+    }
+
+    setMenuCheckoutBusy(true);
+    try {
+      if (!API_BASE) {
+        throw new Error("Metodo de pago disponible cuando la API esta configurada.");
+      }
+
+      const payloadItems = menuCartItems.map((item) => ({
+        kind: item.kind === "product" ? "product" : "service",
+        id: item.id,
+        quantity: Math.max(1, Number(item.quantity) || 1)
+      }));
+
+      const response = await apiRequest("/orders", {
+        method: "POST",
+        token,
+        body: {
+          items: payloadItems,
+          paymentMethod: menuPaymentMethod
+        }
+      });
+
+      clearMenuCart();
+      await refreshAgendaData();
+      await loadMyProfile();
+      setFeedback({
+        type: "success",
+        text: response?.message || `Compra registrada con ${paymentMethodLabelByValue[menuPaymentMethod]}.`
+      });
+    } catch (error) {
+      setFeedback({ type: "error", text: error.message || "No se pudo registrar la compra." });
+    } finally {
+      setMenuCheckoutBusy(false);
+    }
   };
 
   const openAppointmentModal = (prefill = {}) => {
@@ -1531,7 +1734,7 @@ function App() {
     setMode("login");
     setAuthForm(defaultAuth);
     setProfileMenuOpen(false);
-    setActiveSection("Agendar cita");
+    setActiveSection("Home");
     setSelectedMenuCategory(null);
     setSelectedMenuServiceId("");
     setAdminToken("");
@@ -1563,7 +1766,7 @@ function App() {
       setAdminToken(localToken);
       setSessionUser({ name: "Administrador", email: LOCAL_ADMIN_EMAIL, role: "admin" });
       setIsAuthenticated(true);
-      setActiveSection("Panel admin");
+      setActiveSection("Home");
       redirectTo("/nails-app");
 
       if (fromMainLogin) {
@@ -1590,7 +1793,7 @@ function App() {
     setAdminToken(response.token);
     setSessionUser({ name: "Administrador", email: response.admin.email });
     setIsAuthenticated(true);
-    setActiveSection("Panel admin");
+    setActiveSection("Home");
     redirectTo("/nails-app");
 
     if (fromMainLogin) {
@@ -2715,6 +2918,51 @@ function App() {
     return allAppointments.filter((appointment) => appointment.status === adminAppointmentFilter);
   }, [adminData, adminAppointmentFilter]);
 
+  const confirmedAdminAppointments = useMemo(
+    () => (adminData?.appointments || []).filter((appointment) => appointment.status === "confirmed"),
+    [adminData]
+  );
+
+  const adminPaymentsHistory = useMemo(
+    () => [...(adminData?.payments || [])].sort((a, b) => new Date(b.paidAt || b.createdAt) - new Date(a.paidAt || a.createdAt)),
+    [adminData]
+  );
+
+  const selectedAdminPaymentAppointment = useMemo(
+    () => confirmedAdminAppointments.find((appointment) => appointment.id === adminPaymentDraft.appointmentId) || null,
+    [confirmedAdminAppointments, adminPaymentDraft.appointmentId]
+  );
+
+  const selectedAdminPaymentService = useMemo(
+    () => catalogServices.find((service) => service.id === selectedAdminPaymentAppointment?.serviceId) || null,
+    [catalogServices, selectedAdminPaymentAppointment]
+  );
+
+  const selectedAdminPaymentBaseAmount = useMemo(
+    () => Number(selectedAdminPaymentService?.price || 0),
+    [selectedAdminPaymentService]
+  );
+
+  const selectedAdminPaymentTipAmount = useMemo(() => {
+    if (!selectedAdminPaymentAppointment) return 0;
+
+    if (adminPaymentDraft.tipOption === "custom") {
+      const custom = Number(adminPaymentDraft.customTipAmount || 0);
+      return Number.isFinite(custom) && custom > 0 ? custom : 0;
+    }
+
+    const option = adminTipOptions.find((entry) => entry.value === adminPaymentDraft.tipOption);
+    const percent = Number(option?.percent || 0);
+    if (!Number.isFinite(percent) || percent <= 0) return 0;
+
+    return Number(((selectedAdminPaymentBaseAmount * percent) / 100).toFixed(2));
+  }, [adminPaymentDraft.tipOption, adminPaymentDraft.customTipAmount, selectedAdminPaymentAppointment, selectedAdminPaymentBaseAmount]);
+
+  const selectedAdminPaymentTotal = useMemo(
+    () => Number((selectedAdminPaymentBaseAmount + selectedAdminPaymentTipAmount).toFixed(2)),
+    [selectedAdminPaymentBaseAmount, selectedAdminPaymentTipAmount]
+  );
+
   const handleContactChange = (event) => {
     setContactForm((prev) => ({
       ...prev,
@@ -2807,6 +3055,13 @@ function App() {
       const suggestedServiceId = catalogServices.some((service) => service.id === apiSuggestedServiceId)
         ? apiSuggestedServiceId
         : fallbackResponse.suggestedServiceId;
+      const responseQuickActions = sanitizeAssistantQuickActions(response?.quickActions);
+      const fallbackQuickActions = sanitizeAssistantQuickActions(fallbackResponse.quickActions);
+      const quickActions = responseQuickActions.length > 0
+        ? responseQuickActions
+        : fallbackQuickActions.length > 0
+          ? fallbackQuickActions
+          : buildAssistantQuickActions(`${message} ${assistantReply}`);
 
       setAssistantMessages((prev) => ([
         ...prev,
@@ -2814,17 +3069,23 @@ function App() {
           id: `assistant-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
           role: "assistant",
           text: assistantReply,
-          suggestedServiceId
+          suggestedServiceId,
+          quickActions
         }
       ]));
     } catch {
+      const fallbackQuickActions = sanitizeAssistantQuickActions(fallbackResponse.quickActions).length > 0
+        ? sanitizeAssistantQuickActions(fallbackResponse.quickActions)
+        : buildAssistantQuickActions(`${message} ${fallbackResponse.text}`);
+
       setAssistantMessages((prev) => ([
         ...prev,
         {
           id: `assistant-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
           role: "assistant",
           text: fallbackResponse.text,
-          suggestedServiceId: fallbackResponse.suggestedServiceId
+          suggestedServiceId: fallbackResponse.suggestedServiceId,
+          quickActions: fallbackQuickActions
         }
       ]));
     } finally {
@@ -2837,6 +3098,14 @@ function App() {
     if (typeof prompt === "string" && prompt.trim()) {
       setAssistantInput(prompt.trim());
     }
+  };
+
+  const handleAssistantQuickAction = (action) => {
+    const section = String(action?.section || "").trim();
+    if (!section) return;
+
+    navigateToSection(section);
+    setFeedback({ type: "info", text: `Puedes ir dando click aqui: ${section}.` });
   };
 
   const updateAdminContactField = (messageId, field, value) => {
@@ -3100,6 +3369,78 @@ function App() {
     await updateAdminAppointment(appointmentId, { status: "completed" }, "Cita marcada como completada.");
   };
 
+  const processSelectedAdminPayment = async () => {
+    if (!adminPaymentDraft.appointmentId) {
+      setFeedback({ type: "error", text: "Selecciona primero una cita confirmada para cobrar." });
+      return;
+    }
+
+    if (!adminPaymentDraft.signatureName.trim()) {
+      setFeedback({ type: "error", text: "Debes capturar la firma del cliente para continuar." });
+      return;
+    }
+
+    setAdminPaymentBusy(true);
+    try {
+      const response = await apiRequest("/admin/payments/process", {
+        method: "POST",
+        token: adminToken,
+        body: {
+          appointmentId: adminPaymentDraft.appointmentId,
+          paymentMethod: adminPaymentDraft.paymentMethod,
+          notes: adminPaymentDraft.notes.trim(),
+          signatureName: adminPaymentDraft.signatureName.trim(),
+          tipAmount: Number(selectedAdminPaymentTipAmount || 0)
+        }
+      });
+
+      if (response.receiptPdfBase64) {
+        const bytes = Uint8Array.from(atob(response.receiptPdfBase64), (char) => char.charCodeAt(0));
+        const blob = new Blob([bytes], { type: "application/pdf" });
+        const pdfUrl = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = pdfUrl;
+        link.download = response.receiptFileName || "recibo-pago.pdf";
+        document.body.append(link);
+        link.click();
+        link.remove();
+
+        const popup = window.open(pdfUrl, "_blank", "noopener,noreferrer");
+        if (popup) {
+          window.setTimeout(() => {
+            popup.focus();
+            popup.print();
+          }, 650);
+        }
+
+        window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 10_000);
+      }
+
+      setAdminPaymentDraft({
+        appointmentId: "",
+        paymentMethod: "cash",
+        notes: "",
+        step: "select",
+        signatureName: "",
+        tipOption: "none",
+        customTipAmount: ""
+      });
+      await refreshAdminPanels();
+      await refreshAgendaData();
+
+      const emailStatus = response?.email?.delivered
+        ? "Recibo enviado al correo del cliente."
+        : "Recibo generado. Configura SMTP para enviar correo automatico.";
+
+      setFeedback({ type: "success", text: `${response.message || "Pago procesado."} ${emailStatus}` });
+    } catch (error) {
+      setFeedback({ type: "error", text: error.message || "No se pudo procesar el pago." });
+    } finally {
+      setAdminPaymentBusy(false);
+    }
+  };
+
   const restoreCompletedAppointment = async (appointmentId) => {
     try {
       await apiRequest(`/admin/appointments/${appointmentId}/restore`, {
@@ -3247,7 +3588,8 @@ function App() {
             id: entry.id || `assistant-history-${index}`,
             role: entry.role,
             text: entry.text,
-            suggestedServiceId: typeof entry.suggestedServiceId === "string" ? entry.suggestedServiceId : ""
+            suggestedServiceId: typeof entry.suggestedServiceId === "string" ? entry.suggestedServiceId : "",
+            quickActions: sanitizeAssistantQuickActions(entry.quickActions)
           }));
 
         if (normalized.length > 0) {
@@ -3280,6 +3622,15 @@ function App() {
       // Ignore storage write failures.
     }
   }, [menuCartItems]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      localStorage.removeItem(LAST_ACTIVE_SECTION_KEY);
+      return;
+    }
+
+    localStorage.setItem(LAST_ACTIVE_SECTION_KEY, activeSection);
+  }, [isAuthenticated, activeSection]);
 
   useEffect(() => {
     const currentPath = getCurrentAppPath();
@@ -3458,12 +3809,67 @@ function App() {
     return ["Esmeralda Guillen"];
   }, [catalogEmployees]);
 
+  const agendaTeam = useMemo(() => {
+    if (catalogEmployees.length > 0) {
+      return catalogEmployees.map((employee) => ({
+        id: employee.id,
+        name: employee.name || "Staff",
+        role: employee.role || "Especialista"
+      }));
+    }
+
+    return [{ id: "staff-default", name: "Esmeralda", role: "Nail Artist" }];
+  }, [catalogEmployees]);
+
+  const agendaRowHeight = 62;
+  const agendaBoardHeight = visibleHours * agendaRowHeight;
+
+  const agendaHourLabels = useMemo(
+    () => Array.from({ length: visibleHours }, (_, index) => `${String(startHour + index).padStart(2, "0")}:00`),
+    []
+  );
+
   const selectedServiceDuration = useMemo(() => {
     if (!appointmentDraft.serviceId) return 60;
 
     const selectedService = catalogServices.find((service) => service.id === appointmentDraft.serviceId);
     return Number(selectedService?.timeMinutes) || serviceMinutesById[appointmentDraft.serviceId] || 60;
   }, [appointmentDraft.serviceId, catalogServices, serviceMinutesById]);
+
+  const selectedAppointmentDate = useMemo(() => {
+    const parsed = new Date(`${appointmentDraft.date}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) {
+      return new Date();
+    }
+    return parsed;
+  }, [appointmentDraft.date]);
+
+  const appointmentMonthLabel = useMemo(
+    () => selectedAppointmentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+    [selectedAppointmentDate]
+  );
+
+  const appointmentDayTitle = useMemo(
+    () => selectedAppointmentDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
+    [selectedAppointmentDate]
+  );
+
+  const appointmentWeekDays = useMemo(() => {
+    const startOfWeek = new Date(selectedAppointmentDate);
+    const currentDay = startOfWeek.getDay();
+    startOfWeek.setDate(startOfWeek.getDate() - currentDay);
+
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + index);
+      return {
+        key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
+        weekLabel: weekDayLabels[date.getDay()],
+        dayNumber: date.getDate(),
+        value: toInputDate(date)
+      };
+    });
+  }, [selectedAppointmentDate]);
 
   const occupiedAppointmentSlots = useMemo(() => {
     if (!appointmentDraft.date || appointmentTimeSlots.length === 0) {
@@ -3498,30 +3904,42 @@ function App() {
 
   const scheduleCards = useMemo(() => {
     const selectedKey = toDayKey(selectedDate);
-    const staffCount = Math.max(1, visibleStaffColumns.length);
+    const staffCount = Math.max(1, agendaTeam.length);
 
     return appointments
-      .filter((appointment) => toDayKey(appointment.scheduledAt) === selectedKey)
+      .filter((appointment) => toDayKey(appointment.scheduledAt) === selectedKey && appointment.status !== "cancelled")
       .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt))
       .map((appointment, index) => {
         const date = new Date(appointment.scheduledAt);
-        const hourPosition = date.getHours() + date.getMinutes() / 60 - startHour;
+        const startMinutes = Math.max(0, (date.getHours() * 60 + date.getMinutes()) - (startHour * 60));
         const durationMinutes = serviceMinutesById[appointment.serviceId] || 60;
-        const employeeName = appointment.employeeName || "Esmeralda Guillen";
-        const employeeIndex = Math.max(0, visibleStaffColumns.indexOf(employeeName));
+        const employeeName = appointment.employeeName || "Esmeralda";
+        const byId = agendaTeam.findIndex((employee) => employee.id === appointment.employeeId);
+        const byName = agendaTeam.findIndex((employee) => employee.name === employeeName);
+        const employeeIndex = byId >= 0 ? byId : byName;
 
         return {
           id: appointment.id,
-          title: appointment.employeeName || "Esmeralda Guillen",
-          service: appointment.serviceName,
+          clientName: appointment.clientName || sessionUser?.name || "Clienta",
+          employeeName,
+          serviceName: appointment.serviceName,
+          time: date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
+          durationMinutes,
+          startMinutes,
           column: employeeIndex >= 0 ? employeeIndex : index % staffCount,
-          start: Math.max(0, hourPosition),
-          span: Math.max(0.8, Math.min(2.2, durationMinutes / 60)),
           color: cardPalette[index % cardPalette.length]
         };
       })
-      .filter((card) => card.start <= visibleHours - 0.1);
-  }, [appointments, selectedDate, serviceMinutesById, visibleStaffColumns]);
+      .filter((card) => card.startMinutes < (visibleHours * 60));
+  }, [agendaTeam, appointments, selectedDate, serviceMinutesById, sessionUser?.name]);
+
+  const shiftAgendaDate = (daysDelta) => {
+    setSelectedDate((previous) => {
+      const nextDate = new Date(previous);
+      nextDate.setDate(nextDate.getDate() + daysDelta);
+      return nextDate;
+    });
+  };
 
   const upcomingAppointments = useMemo(() => {
     const now = Date.now();
@@ -4029,7 +4447,7 @@ function App() {
 
   useEffect(() => {
     if (!adminToken && activeSection === "Panel admin") {
-      setActiveSection("Agendar cita");
+      setActiveSection("Home");
     }
   }, [adminToken, activeSection]);
 
@@ -4068,7 +4486,7 @@ function App() {
   }, [homeShowcaseItems.length]);
 
   useEffect(() => {
-    if (activeSection !== "Home" || homeShowcaseItems.length < 2) {
+    if (homeShowcaseItems.length < 2) {
       return;
     }
 
@@ -4079,7 +4497,7 @@ function App() {
     return () => {
       window.clearInterval(timerId);
     };
-  }, [activeSection, homeShowcaseItems.length]);
+  }, [homeShowcaseItems.length]);
 
   const submitAppointment = async (event) => {
     event.preventDefault();
@@ -4289,7 +4707,7 @@ function App() {
         setAdminToken("");
         setSessionUser(sessionLocalUser);
         setIsAuthenticated(true);
-        setActiveSection("Agendar cita");
+        setActiveSection("Home");
         redirectTo("/nails-app");
         setAuthForm(defaultAuth);
         setFeedback({
@@ -4349,7 +4767,7 @@ function App() {
       setAdminToken("");
       setSessionUser(loginUserWithBonus);
       setIsAuthenticated(true);
-      setActiveSection("Agendar cita");
+      setActiveSection("Home");
       redirectTo("/nails-app");
       setFeedback({
         type: "success",
@@ -4366,61 +4784,54 @@ function App() {
     isAuthenticated ? (
       <main className="pos-layout">
         <header className="pos-topbar">
-          <div className="pos-topbar-left">
-            <div>
-              <p className="dashboard-kicker">EsmeNails</p>
-              <strong>{activeSection}</strong>
+          <div className="pos-topbar-left topbar-home-carousel">
+            <SmartImage
+              key={`topbar-slide-${homeActiveSlide?.id || "fallback"}`}
+              src={homeActiveSlide?.imageUrl}
+              alt={homeActiveSlide?.title || "Imagen Home"}
+              className="topbar-home-carousel-image"
+              fallbackSrc={localMenuImages.artist}
+            />
+            <div className="topbar-home-carousel-overlay" aria-live="polite">
+              <div className="topbar-brand-block">
+              <span className="topbar-brand-pill">EsmeNails</span>
+              <p className="topbar-brand-subtitle">Bienvenida a Cuidar de tu belleza cariño</p>
+              <span className="topbar-section-chip">{activeSection}</span>
+              </div>
             </div>
-          </div>
-
-          <div className="topbar-actions">
-            <button
-              type="button"
-              className={`theme-switch ${themeMode === "dark" ? "dark" : ""}`}
-              onClick={() => setThemeMode((prev) => (prev === "dark" ? "light" : "dark"))}
-              aria-label="Cambiar modo de color"
-              title={themeMode === "dark" ? "Modo noche" : "Modo claro"}
-            >
-              <span className="theme-switch-track">
-                <span className="theme-switch-thumb" />
-              </span>
-              <span className="theme-switch-label">{themeMode === "dark" ? "Noche" : "Claro"}</span>
-            </button>
-            {/* Floating menu button for mobile only, no profile button */}
-            {/* You can add the menu button here if needed for mobile */}
           </div>
         </header>
 
-        <div className="pos-shell">
-          <aside className="quick-rail" aria-label="Acciones rapidas">
-            {quickRailSections.map((item) => (
-              item === "Mi perfil" ? (
-                <button
-                  key={item}
-                  type="button"
-                  className={`profile-access pastel ${activeSection === item ? "active" : ""}`}
-                  onClick={() => navigateToSection(item)}
-                  title={item}
-                  style={{ background: "var(--card-pink)", color: "#23272f", borderRadius: "1.2rem", boxShadow: "0 2px 8px #f9c6e0" }}
-                >
-                  <NavIcon type="profile" />
-                  <span className="quick-rail-label">Mi perfil</span>
-                </button>
-              ) : (
-                <button
-                  key={item}
-                  type="button"
-                  className={activeSection === item ? "active" : ""}
-                  onClick={() => navigateToSection(item)}
-                  title={item}
-                >
-                  <NavIcon type={navIconBySection[item]} />
-                  <span className="quick-rail-label">{quickRailLabelBySection[item] || item}</span>
-                </button>
-              )
-            ))}
-          </aside>
+        <nav className="quick-rail" aria-label="Acciones rapidas">
+          {quickRailSections.map((item) => (
+            item === "Mi perfil" ? (
+              <button
+                key={item}
+                type="button"
+                className={`profile-access pastel ${activeSection === item ? "active" : ""}`}
+                onClick={() => navigateToSection(item)}
+                title={item}
+                style={{ background: "var(--card-pink)", color: "#23272f", borderRadius: "1.2rem", boxShadow: "0 2px 8px #f9c6e0" }}
+              >
+                <NavIcon type="profile" />
+                <span className="quick-rail-label">Mi perfil</span>
+              </button>
+            ) : (
+              <button
+                key={item}
+                type="button"
+                className={activeSection === item ? "active" : ""}
+                onClick={() => navigateToSection(item)}
+                title={item}
+              >
+                <NavIcon type={navIconBySection[item]} />
+                <span className="quick-rail-label">{quickRailLabelBySection[item] || item}</span>
+              </button>
+            )
+          ))}
+        </nav>
 
+        <div className="pos-shell">
           <section
             className="pos-content"
             onClick={() => {
@@ -4428,22 +4839,141 @@ function App() {
             }}
           >
             <h1>{activeSection}</h1>
-            <nav className="mobile-quick-nav" aria-label="Navegacion movil">
-              {quickRailSections.map((item) => (
-                <button
-                  key={`mobile-${item}`}
-                  type="button"
-                  className={activeSection === item ? "active" : ""}
-                  onClick={() => navigateToSection(item)}
-                  title={item}
-                >
-                  <NavIcon type={navIconBySection[item]} />
-                  <span>{quickRailLabelBySection[item] || item}</span>
-                </button>
-              ))}
-            </nav>
+            {activeSection === "Panel admin" && adminToken && adminData && (
+              <section className="admin-pos-payment-strip" aria-label="Panel de pago rapido estilo POS">
+                <div className="admin-pos-payment-column">
+                  <h3>POS Pagos Rapidos</h3>
+                  <p>Selecciona una cita confirmada y confirma metodo de pago.</p>
+                  <label>
+                    Cita confirmada
+                    <select
+                      value={adminPaymentDraft.appointmentId}
+                      onChange={(event) => setAdminPaymentDraft((prev) => ({
+                        ...prev,
+                        appointmentId: event.target.value,
+                        step: "select",
+                        signatureName: "",
+                        tipOption: "none",
+                        customTipAmount: ""
+                      }))}
+                    >
+                      <option value="">Seleccionar cita</option>
+                      {confirmedAdminAppointments.map((appointment) => (
+                        <option key={`quick-payment-${appointment.id}`} value={appointment.id}>
+                          {appointment.clientName} - {appointment.serviceName} - {new Date(appointment.scheduledAt).toLocaleString()}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="admin-payment-methods" role="group" aria-label="Metodo de pago rapido">
+                    {adminPaymentMethodOptions.map((method) => (
+                      <button
+                        key={`top-${method.value}`}
+                        type="button"
+                        className={`appointment-filter-chip ${adminPaymentDraft.paymentMethod === method.value ? "active" : ""}`}
+                        onClick={() => setAdminPaymentDraft((prev) => ({ ...prev, paymentMethod: method.value }))}
+                      >
+                        {method.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => setAdminPaymentDraft((prev) => ({ ...prev, step: "sign" }))}
+                    disabled={!adminPaymentDraft.appointmentId}
+                  >
+                    Firmar y continuar
+                  </button>
+                </div>
+
+                <div className="admin-pos-payment-column">
+                  <h4>Firma + tips</h4>
+                  {selectedAdminPaymentAppointment ? (
+                    <p className="admin-payment-summary">
+                      {selectedAdminPaymentAppointment.clientName} - {selectedAdminPaymentAppointment.serviceName} ({adminPaymentMethodLabelByValue[adminPaymentDraft.paymentMethod] || adminPaymentDraft.paymentMethod})
+                    </p>
+                  ) : (
+                    <p className="admin-payment-summary">No hay cita seleccionada.</p>
+                  )}
+
+                  {adminPaymentDraft.step === "sign" && (
+                    <div className="admin-payment-sign-panel">
+                      <label>
+                        Firma del cliente
+                        <input
+                          type="text"
+                          value={adminPaymentDraft.signatureName}
+                          onChange={(event) => setAdminPaymentDraft((prev) => ({ ...prev, signatureName: event.target.value }))}
+                          placeholder="Nombre y firma digital"
+                          maxLength={120}
+                        />
+                      </label>
+
+                      <label>
+                        Seleccion de tip
+                        <select
+                          value={adminPaymentDraft.tipOption}
+                          onChange={(event) => setAdminPaymentDraft((prev) => ({ ...prev, tipOption: event.target.value }))}
+                        >
+                          {adminTipOptions.map((tip) => (
+                            <option key={`top-tip-${tip.value}`} value={tip.value}>{tip.label}</option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <div className="admin-quick-tip-row" role="group" aria-label="Tips rapidos">
+                        {adminQuickTipAmounts.map((tipAmount) => (
+                          <button
+                            key={`quick-tip-${tipAmount}`}
+                            type="button"
+                            className="secondary"
+                            onClick={() => setAdminPaymentDraft((prev) => ({
+                              ...prev,
+                              tipOption: "custom",
+                              customTipAmount: tipAmount.toFixed(2)
+                            }))}
+                          >
+                            +${tipAmount.toFixed(2)}
+                          </button>
+                        ))}
+                      </div>
+
+                      {adminPaymentDraft.tipOption === "custom" && (
+                        <label>
+                          Tip personalizado (monto)
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={adminPaymentDraft.customTipAmount}
+                            onChange={(event) => setAdminPaymentDraft((prev) => ({ ...prev, customTipAmount: event.target.value }))}
+                            placeholder="Ej: 5.00"
+                          />
+                        </label>
+                      )}
+                    </div>
+                  )}
+
+                  <p className="admin-payment-summary">
+                    Subtotal: <strong>${Number(selectedAdminPaymentBaseAmount || 0).toFixed(2)}</strong> | Tip: <strong>${Number(selectedAdminPaymentTipAmount || 0).toFixed(2)}</strong> | Total: <strong>${Number(selectedAdminPaymentTotal || 0).toFixed(2)}</strong>
+                  </p>
+
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={processSelectedAdminPayment}
+                    disabled={adminPaymentBusy || !adminPaymentDraft.appointmentId || adminPaymentDraft.step !== "sign"}
+                  >
+                    {adminPaymentBusy ? "Procesando pago..." : "Print: generar PDF y enviar correo"}
+                  </button>
+                </div>
+              </section>
+            )}
             {activeSection === "Mi perfil" || activeSection === "Mi cuenta" ? (
-              <section className="profile-panel">
+              <section className="profile-panel meevo-section">
                 <article className="profile-hero">
                   <div className="profile-avatar-wrap">
                     {profileForm.profileImageUrl ? (
@@ -4573,63 +5103,111 @@ function App() {
                 </form>
               </section>
             ) : activeSection === "Agendar cita" ? (
-              <section className="agenda-wrap">
-                <div className="agenda-headbar">
-                  <div className="agenda-headbar-left">
-                    <strong>Agendar cita</strong>
-                    <span>{selectedDateLabel}</span>
+              <section className="agenda-wrap meevo-section agenda-modern">
+                <div className="agenda-toolbar">
+                  <div className="agenda-toolbar-group">
+                    <label className="agenda-toolbar-field">
+                      Servicio
+                      <select
+                        value={appointmentDraft.serviceId}
+                        onChange={(event) => setAppointmentDraft((prev) => ({ ...prev, serviceId: event.target.value }))}
+                      >
+                        {catalogServices.length === 0 && <option value="">No hay servicios</option>}
+                        {catalogServices.map((service) => (
+                          <option key={service.id} value={service.id}>{service.name}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="agenda-toolbar-field">
+                      Staff
+                      <select
+                        value={appointmentDraft.employeeId}
+                        onChange={(event) => setAppointmentDraft((prev) => ({ ...prev, employeeId: event.target.value }))}
+                      >
+                        {agendaTeam.map((employee) => (
+                          <option key={employee.id} value={employee.id}>{employee.name}</option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
-                  <div className="agenda-headbar-right">
-                    <button
-                      type="button"
-                      className="primary-chip"
-                      onClick={() => openAppointmentModal()}
-                    >
-                      Agendar cita
-                    </button>
-                    <button
-                      type="button"
-                      className="ghost-chip"
-                      onClick={openStoreGps}
-                      disabled={!storeMapsDirectionsUrl && !storeMapsSearchUrl}
-                    >
-                      Abrir GPS
-                    </button>
+                  <div className="agenda-toolbar-group right">
+                    <button type="button" className="ghost-chip" onClick={() => shiftAgendaDate(-1)} aria-label="Dia anterior">&lt;</button>
+                    <button type="button" className="agenda-date-pill" onClick={() => setSelectedDate(new Date())}>{selectedDateLabel}</button>
+                    <button type="button" className="ghost-chip" onClick={() => shiftAgendaDate(1)} aria-label="Dia siguiente">&gt;</button>
+                    <button type="button" className="ghost-chip" onClick={openStoreGps} disabled={!storeMapsDirectionsUrl && !storeMapsSearchUrl}>GPS</button>
+                    <button type="button" className="primary-chip" onClick={() => openAppointmentModal()}>Add new</button>
                   </div>
                 </div>
-                <div className="agenda-columns-wrap">
-                  <div className="agenda-columns-head">
-                    <div className="agenda-column-title">Horarios</div>
-                    <div className="agenda-column-title">Citas</div>
-                  </div>
-                  <div className="agenda-columns-body">
-                    <div className="agenda-time-column">
-                      {daySlots.map((slot) => (
-                        <div className="agenda-time-cell" key={slot}>
-                          <button
-                            className="slot-chip"
-                            type="button"
-                            onClick={() => setAppointmentDraft((prev) => ({ ...prev, time: slot }))}
-                          >
-                            {slot}
-                          </button>
-                        </div>
+
+                <div className="agenda-team-strip" role="list" aria-label="Staff disponible">
+                  {agendaTeam.map((employee) => (
+                    <article key={employee.id} className="agenda-team-member" role="listitem">
+                      <div className="agenda-team-avatar" aria-hidden="true">{String(employee.name || "S").slice(0, 1).toUpperCase()}</div>
+                      <strong>{employee.name}</strong>
+                      <small>{employee.role}</small>
+                    </article>
+                  ))}
+                </div>
+
+                <div className="agenda-insight-strip">
+                  <span>Vista tipo scheduler por profesional y horario.</span>
+                  <strong>{selectedServiceDuration > 0 ? `${selectedServiceDuration} min aprox.` : "Duracion segun servicio"}</strong>
+                </div>
+
+                <div className="agenda-board-scroll">
+                  <div className="agenda-board-head">
+                    <div className="agenda-board-head-time">Hora</div>
+                    <div className="agenda-board-head-staff" style={{ gridTemplateColumns: `repeat(${Math.max(1, agendaTeam.length)}, minmax(130px, 1fr))` }}>
+                      {agendaTeam.map((employee) => (
+                        <div key={`head-${employee.id}`} className="agenda-board-head-name">{employee.name}</div>
                       ))}
                     </div>
-                    <div className="agenda-column-bg">
+                  </div>
+
+                  <div className="agenda-board-canvas" style={{ height: `${agendaBoardHeight}px` }}>
+                    <div className="agenda-time-rail" style={{ height: `${agendaBoardHeight}px` }}>
+                      {agendaHourLabels.map((label) => (
+                        <button
+                          key={label}
+                          type="button"
+                          className={`agenda-time-tick ${appointmentDraft.time === label ? "active" : ""}`}
+                          style={{ height: `${agendaRowHeight}px` }}
+                          onClick={() => setAppointmentDraft((prev) => ({ ...prev, time: label }))}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div
+                      className="agenda-lanes"
+                      style={{
+                        height: `${agendaBoardHeight}px`,
+                        "--agenda-cols": Math.max(1, agendaTeam.length),
+                        "--agenda-row-height": `${agendaRowHeight}px`
+                      }}
+                    >
                       {scheduleCards.map((card) => (
-                        <div className={`schedule-card ${card.color}`} key={card.id}>
-                          <strong>{card.serviceName}</strong>
-                          <small>{card.employeeName}</small>
+                        <article
+                          className={`schedule-card ${card.color}`}
+                          key={card.id}
+                          style={{
+                            left: `calc(${(100 / Math.max(1, agendaTeam.length)) * card.column}% + 6px)`,
+                            width: `calc(${100 / Math.max(1, agendaTeam.length)}% - 12px)`,
+                            top: `${(card.startMinutes / 60) * agendaRowHeight + 3}px`,
+                            height: `${Math.max(52, (card.durationMinutes / 60) * agendaRowHeight - 6)}px`
+                          }}
+                        >
                           <small>{card.time}</small>
-                        </div>
+                          <strong>{card.clientName}</strong>
+                          <small>{card.serviceName}</small>
+                          <small>{card.employeeName}</small>
+                        </article>
                       ))}
                     </div>
                   </div>
                 </div>
-              </section>
-            ) : activeSection === "Agendar cita" ? (
-              <>
+
                 {(!agendaLoading && scheduleCards.length === 0) && (
                   <div className="agenda-empty">
                     <strong>No hay citas para este dia</strong>
@@ -4648,9 +5226,9 @@ function App() {
                     <strong>Cargando agenda...</strong>
                   </div>
                 )}
-              </>
+              </section>
             ) : activeSection === "Contacto" ? (
-              <section className="contact-wrap">
+              <section className="contact-wrap meevo-section">
                 <article className="contact-hero">
                   <h2>Contacto EsmeNails</h2>
                   <p>Escribe tu mensaje y el equipo lo revisa desde el panel admin.</p>
@@ -4733,7 +5311,7 @@ function App() {
                 </form>
               </section>
             ) : activeSection === "Asistente IA" ? (
-              <section className="assistant-wrap">
+              <section className="assistant-wrap meevo-section">
                 <article className="assistant-hero">
                   <h2>Asistente personal con IA</h2>
                   <p>Preguntame por precios, promociones, productos, recomendaciones y como agendar cita.</p>
@@ -4767,6 +5345,20 @@ function App() {
                             Agendar esta recomendacion
                           </button>
                         )}
+                        {entry.role === "assistant" && Array.isArray(entry.quickActions) && entry.quickActions.length > 0 && (
+                          <div className="assistant-route-actions">
+                            {entry.quickActions.map((action) => (
+                              <button
+                                key={`${entry.id}-${action.id}`}
+                                type="button"
+                                className="secondary assistant-route-action"
+                                onClick={() => handleAssistantQuickAction(action)}
+                              >
+                                {action.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                     {assistantBusy && (
@@ -4792,7 +5384,7 @@ function App() {
                 </article>
               </section>
             ) : activeSection === "Mis puntos" ? (
-              <section className="points-wrap">
+              <section className="points-wrap meevo-section">
                 <article className="points-hero">
                   <div>
                     <p className="menu-detail-kicker">Programa de fidelidad</p>
@@ -5040,7 +5632,7 @@ function App() {
                 </div>
               </section>
             ) : activeSection === "Historial" ? (
-              <section className="history-wrap-client">
+              <section className="history-wrap-client meevo-section">
                 <article className="history-hero-client">
                   <div>
                     <p className="menu-detail-kicker">Tu actividad</p>
@@ -5115,6 +5707,7 @@ function App() {
                               </header>
                               <p><strong>Fecha:</strong> {new Date(order.createdAt).toLocaleString()}</p>
                               <p><strong>Total:</strong> ${Number(order.total || 0).toFixed(2)}</p>
+                              <p><strong>Metodo de pago:</strong> {paymentMethodLabelByValue[order.paymentMethod] || "No especificado"}</p>
                               {order.discount > 0 ? <p><strong>Descuento:</strong> ${Number(order.discount || 0).toFixed(2)}</p> : null}
                               {order.items?.length ? (
                                 <ul className="history-order-items">
@@ -5134,7 +5727,7 @@ function App() {
                 )}
               </section>
             ) : activeSection === "Panel admin" ? (
-              <section className="admin-wrap">
+              <section className="admin-wrap meevo-section">
                 {!adminToken && (
                   <form className="admin-login" onSubmit={submitAdminLogin}>
                     <h2>Acceso Administrador</h2>
@@ -5178,28 +5771,110 @@ function App() {
 
                     {adminData && (
                       <>
+                        <section className="admin-block admin-panel-sections">
+                          <h3>Secciones del panel</h3>
+                          <div className="admin-detail-tabs">
+                            <button
+                              type="button"
+                              className={adminDetailView === "clients" ? "active" : ""}
+                              onClick={() => setAdminDetailView("clients")}
+                            >
+                              <span className="nav-icon" aria-hidden="true"><NavIcon type="contact" /></span>
+                              Clientes
+                            </button>
+                            <button
+                              type="button"
+                              className={adminDetailView === "appointments" ? "active" : ""}
+                              onClick={() => setAdminDetailView("appointments")}
+                            >
+                              <span className="nav-icon" aria-hidden="true"><NavIcon type="calendar" /></span>
+                              Citas
+                            </button>
+                            <button
+                              type="button"
+                              className={adminDetailView === "payments" ? "active" : ""}
+                              onClick={() => setAdminDetailView("payments")}
+                            >
+                              <span className="nav-icon" aria-hidden="true"><NavIcon type="points" /></span>
+                              Pagos
+                            </button>
+                            <button
+                              type="button"
+                              className={adminDetailView === "history" ? "active" : ""}
+                              onClick={() => setAdminDetailView("history")}
+                            >
+                              <span className="nav-icon" aria-hidden="true"><NavIcon type="history" /></span>
+                              Historial
+                            </button>
+                            <button
+                              type="button"
+                              className={adminDetailView === "contact" ? "active" : ""}
+                              onClick={() => setAdminDetailView("contact")}
+                            >
+                              <span className="nav-icon" aria-hidden="true"><NavIcon type="contact" /></span>
+                              Mensajes
+                            </button>
+                            <button
+                              type="button"
+                              className={adminDetailView === "settings" ? "active" : ""}
+                              onClick={() => setAdminDetailView("settings")}
+                            >
+                              <span className="nav-icon" aria-hidden="true"><NavIcon type="settings" /></span>
+                              Configuracion
+                            </button>
+                            <button
+                              type="button"
+                              className={adminDetailView === "game-achievements" ? "active" : ""}
+                              onClick={openAdminGameAchievementsPanel}
+                            >
+                              <span className="nav-icon" aria-hidden="true"><NavIcon type="points" /></span>
+                              Logros
+                            </button>
+                          </div>
+                          <p className="admin-view-hint">{adminViewHints[adminDetailView] || "Selecciona una seccion para continuar."}</p>
+                        </section>
+
                         <section className="admin-quick-links" aria-label="Accesos rapidos de administracion">
                           <button
                             type="button"
-                            className={`primary ${adminDetailView === "game-achievements" ? "is-active" : ""}`}
-                            onClick={openAdminGameAchievementsPanel}
-                          >
-                            Ir a logros de juego
-                          </button>
-                          <button
-                            type="button"
-                            className={`secondary ${adminDetailView === "settings" ? "is-active" : ""}`}
+                            className={`primary ${adminDetailView === "settings" ? "is-active" : ""}`}
                             onClick={() => setAdminDetailView("settings")}
                           >
-                            Ir a configuracion
+                            Paso 1: Configuracion
                           </button>
                           <button
                             type="button"
                             className={`secondary ${adminDetailView === "appointments" ? "is-active" : ""}`}
                             onClick={() => setAdminDetailView("appointments")}
                           >
-                            Ir a citas
+                            Paso 2: Citas
                           </button>
+                          <button
+                            type="button"
+                            className={`secondary ${adminDetailView === "payments" ? "is-active" : ""}`}
+                            onClick={() => setAdminDetailView("payments")}
+                          >
+                            Paso 3: Pagos
+                          </button>
+                          <button
+                            type="button"
+                            className={`secondary ${adminDetailView === "game-achievements" ? "is-active" : ""}`}
+                            onClick={openAdminGameAchievementsPanel}
+                          >
+                            Paso 4: Logros
+                          </button>
+                        </section>
+
+                        <section className="admin-block admin-guide" aria-label="Guia rapida del panel">
+                          <h3>Guia rapida</h3>
+                          <p>Si es tu primera vez en Admin, sigue este orden para no perderte.</p>
+                          <div className="admin-guide-grid">
+                            <button type="button" className="secondary" onClick={() => setAdminDetailView("settings")}>1) Configurar catalogo y equipo</button>
+                            <button type="button" className="secondary" onClick={() => setAdminDetailView("appointments")}>2) Revisar y confirmar citas</button>
+                            <button type="button" className="secondary" onClick={() => setAdminDetailView("payments")}>3) Cobrar y enviar recibos PDF</button>
+                            <button type="button" className="secondary" onClick={() => setAdminDetailView("contact")}>4) Responder mensajes</button>
+                            <button type="button" className="secondary" onClick={() => setAdminDetailView("clients")}>5) Ver clientes y perfiles</button>
+                          </div>
                         </section>
 
                         <div className="admin-overview-grid">
@@ -5246,60 +5921,6 @@ function App() {
                             <button type="button" className="secondary" onClick={() => exportCsv("week")}>CSV Semana</button>
                             <button type="button" className="secondary" onClick={() => exportCsv("month")}>CSV Mes</button>
                             <button type="button" className="secondary" onClick={() => exportCsv("year")}>CSV Ano</button>
-                          </div>
-                        </section>
-
-                        <section className="admin-block">
-                          <h3>Detalles</h3>
-                          <div className="admin-detail-tabs">
-                            <button
-                              type="button"
-                              className={adminDetailView === "clients" ? "active" : ""}
-                              onClick={() => setAdminDetailView("clients")}
-                            >
-                              <span className="nav-icon" aria-hidden="true"><NavIcon type="contact" /></span>
-                              Registros de clientes
-                            </button>
-                            <button
-                              type="button"
-                              className={adminDetailView === "appointments" ? "active" : ""}
-                              onClick={() => setAdminDetailView("appointments")}
-                            >
-                              <span className="nav-icon" aria-hidden="true"><NavIcon type="calendar" /></span>
-                              Citas agendadas
-                            </button>
-                            <button
-                              type="button"
-                              className={adminDetailView === "history" ? "active" : ""}
-                              onClick={() => setAdminDetailView("history")}
-                            >
-                              <span className="nav-icon" aria-hidden="true"><NavIcon type="history" /></span>
-                              Historial de clientes
-                            </button>
-                            <button
-                              type="button"
-                              className={adminDetailView === "contact" ? "active" : ""}
-                              onClick={() => setAdminDetailView("contact")}
-                            >
-                              <span className="nav-icon" aria-hidden="true"><NavIcon type="contact" /></span>
-                              Contacto
-                            </button>
-                            <button
-                              type="button"
-                              className={adminDetailView === "settings" ? "active" : ""}
-                              onClick={() => setAdminDetailView("settings")}
-                            >
-                              <span className="nav-icon" aria-hidden="true"><NavIcon type="settings" /></span>
-                              Menus de configuracion
-                            </button>
-                            <button
-                              type="button"
-                              className={adminDetailView === "game-achievements" ? "active" : ""}
-                              onClick={openAdminGameAchievementsPanel}
-                            >
-                              <span className="nav-icon" aria-hidden="true"><NavIcon type="points" /></span>
-                              Logros juego
-                            </button>
                           </div>
                         </section>
 
@@ -5513,6 +6134,77 @@ function App() {
                               </div>
                             </form>
                           )}
+                        </section>
+                        )}
+
+                        {adminDetailView === "payments" && (
+                        <section className="admin-block">
+                          <h3>Panel de pagos</h3>
+                          <p>El flujo de cobro rapido esta en la franja horizontal superior, junto al carrusel estilo POS.</p>
+
+                          <div className="admin-table-wrap">
+                            <table className="admin-table">
+                              <thead>
+                                <tr>
+                                  <th>Cliente</th>
+                                  <th>Correo</th>
+                                  <th>Servicio</th>
+                                  <th>Profesional</th>
+                                  <th>Fecha</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {confirmedAdminAppointments.map((appointment) => (
+                                  <tr key={`payment-candidate-${appointment.id}`}>
+                                    <td>{appointment.clientName}</td>
+                                    <td>{appointment.clientEmail || "Sin correo"}</td>
+                                    <td>{appointment.serviceName}</td>
+                                    <td>{appointment.employeeName || "Sin asignar"}</td>
+                                    <td>{new Date(appointment.scheduledAt).toLocaleString()}</td>
+                                  </tr>
+                                ))}
+                                {confirmedAdminAppointments.length === 0 && (
+                                  <tr>
+                                    <td colSpan={5}>No hay citas confirmadas pendientes de cobro.</td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          <article className="admin-recent-completed">
+                            <h4>Pagos recientes</h4>
+                            {adminPaymentsHistory.length === 0 ? (
+                              <p>Todavia no hay pagos registrados.</p>
+                            ) : (
+                              <div className="admin-table-wrap">
+                                <table className="admin-table">
+                                  <thead>
+                                    <tr>
+                                      <th>Cliente</th>
+                                      <th>Servicio</th>
+                                      <th>Monto</th>
+                                      <th>Metodo</th>
+                                      <th>Tip</th>
+                                      <th>Fecha</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {adminPaymentsHistory.slice(0, 20).map((payment) => (
+                                      <tr key={payment.id}>
+                                        <td>{payment.clientName}</td>
+                                        <td>{payment.serviceName}</td>
+                                        <td>${Number(payment.amount || 0).toFixed(2)}</td>
+                                        <td>{adminPaymentMethodLabelByValue[payment.paymentMethod] || payment.paymentMethod}</td>
+                                        <td>${Number(payment.tipAmount || 0).toFixed(2)}</td>
+                                        <td>{new Date(payment.paidAt || payment.createdAt).toLocaleString()}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </article>
                         </section>
                         )}
 
@@ -6756,7 +7448,7 @@ function App() {
                   const hasSelectedServicePrice = Number.isFinite(selectedServicePrice) && selectedServicePrice > 0;
 
                   return (
-                    <section className="menu-screen-wrap">
+                    <section className="menu-screen-wrap meevo-section">
                       {menuSearchBar}
                       <div className="menu-detail-with-list">
                         <div className="menu-detail">
@@ -6822,6 +7514,26 @@ function App() {
                         </div>
                         <footer>
                           <strong>Total estimado: ${menuListTotal.toFixed(2)}</strong>
+                          <label>
+                            Metodo de pago
+                            <select
+                              value={menuPaymentMethod}
+                              onChange={(event) => setMenuPaymentMethod(event.target.value)}
+                              disabled={menuCheckoutBusy}
+                            >
+                              {paymentMethodOptions.map((method) => (
+                                <option key={method.value} value={method.value}>{method.label}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <button
+                            type="button"
+                            className="primary"
+                            onClick={submitMenuOrder}
+                            disabled={menuCartItems.length === 0 || menuCheckoutBusy}
+                          >
+                            {menuCheckoutBusy ? "Registrando compra..." : "Pagar y registrar"}
+                          </button>
                           <button type="button" className="secondary" onClick={clearMenuCart} disabled={menuCartItems.length === 0}>
                             Vaciar lista
                           </button>
@@ -6839,7 +7551,7 @@ function App() {
                   const hasSelectedServicePrice = Number.isFinite(selectedServicePrice) && selectedServicePrice > 0;
 
                   return (
-                    <section className="menu-detail">
+                    <section className="menu-detail meevo-section">
                       <SmartImage
                         src={selectedMenuCategory.image}
                         alt={selectedMenuCategory.title}
@@ -6887,7 +7599,7 @@ function App() {
                 }
 
                 return (
-                  <>
+                  <section className="menu-screen-wrap meevo-section">
                     {menuSearchBar}
                     {catalogServices.length > 0 ? (
                       <>
@@ -6966,11 +7678,11 @@ function App() {
                         </div>
                       </>
                     )}
-                  </>
+                  </section>
                 );
               })()
             ) : activeSection === "Precios" ? (
-              <section className="prices-wrap">
+              <section className="prices-wrap meevo-section">
                 <article className="prices-hero">
                   <h2>Precios y catalogo</h2>
                   <p>Consulta servicios, productos y promociones vigentes de EsmeNails.</p>
@@ -7102,7 +7814,7 @@ function App() {
                 )}
               </section>
             ) : activeSection === "Promociones" ? (
-              <section className="promo-wrap">
+              <section className="promo-wrap meevo-section">
                 <article className="promo-hero">
                   <h2>Promociones activas</h2>
                   <p>Este listado se actualiza automaticamente desde Panel admin &gt; Menus de configuracion &gt; Promociones.</p>
@@ -7174,7 +7886,7 @@ function App() {
                 </div>
               </section>
             ) : activeSection === "Ajustes" ? (
-              <section className="settings-wrap-client">
+              <section className="settings-wrap-client meevo-section">
                 <article className="settings-hero-client">
                   <h2>Ajustes de cuenta</h2>
                   <p>Personaliza como quieres recibir avisos y como prefieres usar la app.</p>
@@ -7223,10 +7935,15 @@ function App() {
                     <div className="settings-actions-row">
                       <button
                         type="button"
-                        className="secondary"
+                        className={`theme-switch ${themeMode === "dark" ? "dark" : ""}`}
                         onClick={() => setThemeMode((prev) => (prev === "dark" ? "light" : "dark"))}
+                        aria-label="Cambiar modo de color"
+                        title={themeMode === "dark" ? "Modo noche" : "Modo claro"}
                       >
-                        Cambiar modo
+                        <span className="theme-switch-track">
+                          <span className="theme-switch-thumb" />
+                        </span>
+                        <span className="theme-switch-label">{themeMode === "dark" ? "Noche" : "Claro"}</span>
                       </button>
                     </div>
                   </article>
@@ -7243,7 +7960,7 @@ function App() {
                 </div>
               </section>
             ) : activeSection === "Privacidad y seguridad" ? (
-              <section className="privacy-wrap-client">
+              <section className="privacy-wrap-client meevo-section">
                 <article className="privacy-hero-client">
                   <h2>Privacidad y seguridad</h2>
                   <p>Gestiona el uso de datos, estado de verificacion y acciones de seguridad de tu cuenta.</p>
@@ -7322,104 +8039,85 @@ function App() {
                 </div>
               </section>
             ) : activeSection === "Home" ? (
-              <section className="home-wrap">
-                <article className="home-cinema-card">
-                  <div className="home-cinema-main">
+              <section className="home-wrap meevo-home">
+                <div className="meevo-headline">
+                  <p className="menu-detail-kicker">Front Desk</p>
+                  <h2>{homeActiveSlide?.title || `Hola, ${profileForm.name || sessionUser?.name || "cliente"}`}</h2>
+                  <p>{homeActiveSlide?.subtitle || "Panel rapido de control para citas, menu y seguimiento de cuenta."}</p>
+                </div>
+
+                <div className="meevo-grid" role="list" aria-label="Resumen principal">
+                  <button type="button" className="meevo-tile tone-sand" onClick={() => navigateToSection("Mi perfil")}>
+                    <small>Membership Manager</small>
+                    <strong>Perfil</strong>
+                  </button>
+
+                  <button type="button" className="meevo-tile tone-sand" onClick={() => navigateToSection("Agendar cita")}>
+                    <small>Register</small>
+                    <strong>Agendar</strong>
+                  </button>
+
+                  <article className="meevo-tile tone-purple wide" aria-live="polite">
+                    <small>Rating This Week</small>
+                    <div className="meevo-stars" aria-label="Calificacion">★★★★★</div>
+                    <strong>{Math.min(30, Math.max(0, upcomingAppointments.length * 3))} / 30</strong>
+                  </article>
+
+                  <article className="meevo-tile tone-lilac wide">
+                    <small>Completion Profile</small>
+                    <strong>{profileCompletion}%</strong>
+                  </article>
+
+                  <article className="meevo-tile tone-sand compact">
+                    <small>Wait List Today</small>
+                    <strong>{Math.max(0, upcomingAppointments.length - 1)}</strong>
+                  </article>
+
+                  <article className="meevo-tile tone-teal compact">
+                    <small>Clients Rebooked</small>
+                    <strong>{upcomingAppointments.length}</strong>
+                  </article>
+
+                  <article className="meevo-tile image-tile tall">
                     <SmartImage
                       key={homeActiveSlide?.id || "home-fallback"}
                       src={homeActiveSlide?.imageUrl}
-                      alt={homeActiveSlide?.title || "EsmeNails"}
-                      className="home-cinema-image"
-                      fallbackSrc={localMenuImages.gelx}
+                      alt={homeActiveSlide?.title || "Imagen destacada"}
+                      className="meevo-image"
+                      fallbackSrc={localMenuImages.artist}
                     />
-                    <div className="home-cinema-overlay">
-                      <p className="menu-detail-kicker">{homeActiveSlide?.kicker || "Inicio"}</p>
-                      <h2>{homeActiveSlide?.title || `Hola, ${profileForm.name || sessionUser?.name || "cliente"}`}</h2>
-                      <p>{homeActiveSlide?.subtitle || "Tu panel rapido para revisar agenda, perfil y accesos principales."}</p>
-                    </div>
-                  </div>
-
-                  <aside className="home-cinema-sidebar" aria-label="Promociones en movimiento">
-                    <div
-                      className="home-cinema-track"
-                      style={{ transform: `translateX(-${homePromoIndex * 178}px)` }}
-                    >
-                      {homeFilmStripItems.map((item, index) => {
-                        const baseIndex = index % Math.max(1, homeShowcaseItems.length);
-                        const isActive = baseIndex === homePromoIndex % Math.max(1, homeShowcaseItems.length);
-                        return (
-                          <button
-                            key={`${item.id}-${index}`}
-                            type="button"
-                            className={`home-film-item ${isActive ? "active" : ""}`}
-                            onClick={() => setHomePromoIndex(baseIndex)}
-                          >
-                            <SmartImage src={item.imageUrl} alt={item.title} fallbackSrc={localMenuImages.gelx} />
-                            <span>{item.title}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </aside>
-                </article>
-
-                <article className="home-hero-card">
-                  <div>
-                    <p className="menu-detail-kicker">Inicio</p>
-                    <h2>Hola, {profileForm.name || sessionUser?.name || "cliente"}</h2>
-                    <p>Tu panel rapido para revisar agenda, perfil y accesos principales.</p>
-                  </div>
-                  <div className="home-hero-actions">
-                    <button type="button" className="primary" onClick={() => navigateToSection("Agendar cita")}>Agendar ahora</button>
-                    <button type="button" className="secondary" onClick={() => navigateToSection("Menu")}>Ver menu</button>
-                    <button type="button" className="secondary" onClick={() => navigateToSection("Contacto")}>Contacto</button>
-                  </div>
-                </article>
-
-                <div className="home-kpi-grid">
-                  <article>
-                    <small>Citas proximas</small>
-                    <strong>{upcomingAppointments.length}</strong>
                   </article>
-                  <article>
-                    <small>Perfil completado</small>
-                    <strong>{profileCompletion}%</strong>
-                  </article>
-                  <article>
+
+                  <article className="meevo-tile tone-lilac compact">
                     <small>Correo</small>
-                    <strong>{profileForm.emailVerified ? "Verificado" : "Pendiente"}</strong>
-                  </article>
-                  <article>
-                    <small>Telefono</small>
-                    <strong>{profileForm.phoneVerified ? "Verificado" : "Pendiente"}</strong>
-                  </article>
-                </div>
-
-                <div className="home-panels">
-                  <article className="home-panel-card">
-                    <h3>Proxima cita</h3>
-                    {nextAppointment ? (
-                      <>
-                        <p><strong>Servicio:</strong> {nextAppointment.serviceName}</p>
-                        <p><strong>Profesional:</strong> {nextAppointment.employeeName || "Sin asignar"}</p>
-                        <p><strong>Fecha:</strong> {new Date(nextAppointment.scheduledAt).toLocaleString()}</p>
-                        <p><strong>Estado:</strong> {appointmentStatusLabel[nextAppointment.status] || nextAppointment.status}</p>
-                      </>
-                    ) : (
-                      <p>No tienes citas proximas. Agenda una para reservar tu lugar.</p>
-                    )}
+                    <strong>{profileForm.emailVerified ? "OK" : "Pendiente"}</strong>
                   </article>
 
-                  <article className="home-panel-card">
-                    <h3>Tu cuenta</h3>
-                    <p><strong>Nombre:</strong> {profileForm.name || sessionUser?.name || "Sin nombre"}</p>
-                    <p><strong>Email:</strong> {profileForm.email || sessionUser?.email || "Sin correo"}</p>
-                    <p><strong>Telefono:</strong> {profileForm.phone || "Sin telefono"}</p>
-                    <div className="home-panel-actions">
-                      <button type="button" className="secondary" onClick={() => navigateToSection("Mi perfil")}>Completar perfil</button>
-                      <button type="button" className="secondary" onClick={() => navigateToSection("Agendar cita")}>Ir a agenda</button>
-                    </div>
+                  <article className="meevo-tile tone-plum compact">
+                    <small>Proxima cita</small>
+                    <strong>{nextAppointment ? "Activa" : "Sin cita"}</strong>
+                    <span>{nextAppointment ? (appointmentStatusLabel[nextAppointment.status] || nextAppointment.status) : "Agenda ahora"}</span>
                   </article>
+
+                  <button type="button" className="meevo-tile tone-teal" onClick={() => navigateToSection("Historial")}>
+                    <small>Reports</small>
+                    <strong>Historial</strong>
+                  </button>
+
+                  <button type="button" className="meevo-tile tone-teal" onClick={() => navigateToSection("Menu")}>
+                    <small>Confirmation Manager</small>
+                    <strong>Servicios</strong>
+                  </button>
+
+                  <button type="button" className="meevo-tile tone-plum" onClick={() => navigateToSection("Agendar cita")}>
+                    <small>Appointment Book</small>
+                    <strong>Reservar</strong>
+                  </button>
+
+                  <button type="button" className="meevo-tile tone-plum" onClick={() => navigateToSection("Contacto")}>
+                    <small>Time Clock</small>
+                    <strong>Contacto</strong>
+                  </button>
                 </div>
               </section>
             ) : (
@@ -7454,14 +8152,20 @@ function App() {
                   onClick={(event) => event.stopPropagation()}
                 >
                   <header className="appointment-modal-head">
-                    <h2>Nueva cita</h2>
+                    <h2>Disena tu cita ideal</h2>
                     <button type="button" className="ghost-chip" onClick={closeAppointmentModal}>Cerrar</button>
                   </header>
 
+                  <div className="appointment-modal-hero">
+                    <p>Selecciona servicio, profesional y hora para confirmar tu espacio.</p>
+                    <strong>{appointmentDraft.time ? `Hora elegida: ${appointmentDraft.time}` : "Aun sin hora seleccionada"}</strong>
+                  </div>
+
                   <form className="appointment-form" onSubmit={submitAppointment}>
-                    <label>
+                    <label className="appointment-field">
                       Servicio
                       <select
+                        className="appointment-control"
                         name="serviceId"
                         value={appointmentDraft.serviceId}
                         onChange={handleAppointmentDraftChange}
@@ -7476,9 +8180,10 @@ function App() {
                       </select>
                     </label>
 
-                    <label>
+                    <label className="appointment-field">
                       Con quien deseas agendar
                       <select
+                        className="appointment-control"
                         name="employeeId"
                         value={appointmentDraft.employeeId}
                         onChange={handleAppointmentDraftChange}
@@ -7493,45 +8198,80 @@ function App() {
                       </select>
                     </label>
 
-                    <div className="appointment-inline-grid">
-                      <label>
-                        Fecha
-                        <input
-                          name="date"
-                          type="date"
-                          value={appointmentDraft.date}
-                          onChange={handleAppointmentDraftChange}
-                          required
-                        />
-                      </label>
-                      <label>
-                        Duracion estimada
-                        <input
-                          type="text"
-                          value={`${selectedServiceDuration} min`}
-                          readOnly
-                        />
-                      </label>
-                    </div>
+                    <div className="appointment-picker-dark">
+                      <aside className="appointment-picker-profile">
+                        <div className="appointment-picker-avatar" aria-hidden="true">
+                          {String(sessionUser?.name || "E").slice(0, 1).toUpperCase()}
+                        </div>
+                        <h3>{sessionUser?.name || "EsmeClient"}</h3>
+                        <p>{selectedServiceDuration} mins</p>
+                        <span>{catalogServices.find((service) => service.id === appointmentDraft.serviceId)?.name || "Consultation"}</span>
 
-                    <div className="appointment-slot-picker" role="group" aria-label="Seleccion de hora por bloques">
-                      {appointmentTimeSlots.map((slot) => {
-                        const isBlocked = occupiedAppointmentSlots.has(slot);
-                        const isActive = appointmentDraft.time === slot;
+                        <label className="appointment-picker-date-input">
+                          Fecha manual
+                          <input
+                            className="appointment-control"
+                            name="date"
+                            type="date"
+                            value={appointmentDraft.date}
+                            onChange={handleAppointmentDraftChange}
+                            required
+                          />
+                        </label>
+                      </aside>
 
-                        return (
+                      <section className="appointment-picker-main">
+                        <div className="appointment-picker-month-row">
                           <button
-                            key={slot}
                             type="button"
-                            className={`slot-chip ${isActive ? "active" : ""}`}
-                            onClick={() => setAppointmentDraft((prev) => ({ ...prev, time: slot }))}
-                            disabled={isBlocked}
-                            aria-pressed={isActive}
+                            className="appointment-picker-today"
+                            onClick={() => setAppointmentDraft((prev) => ({ ...prev, date: toInputDate(new Date()) }))}
                           >
-                            {slot}
+                            Today
                           </button>
-                        );
-                      })}
+                          <strong>{appointmentMonthLabel}</strong>
+                        </div>
+
+                        <div className="appointment-picker-week" role="list" aria-label="Dias de la semana">
+                          {appointmentWeekDays.map((day) => {
+                            const isActive = appointmentDraft.date === day.value;
+                            return (
+                              <button
+                                key={day.key}
+                                type="button"
+                                className={`appointment-picker-day ${isActive ? "active" : ""}`}
+                                onClick={() => setAppointmentDraft((prev) => ({ ...prev, date: day.value }))}
+                                aria-pressed={isActive}
+                              >
+                                <small>{day.weekLabel}</small>
+                                <strong>{day.dayNumber}</strong>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <p className="appointment-picker-day-title">{appointmentDayTitle}</p>
+
+                        <div className="appointment-picker-times" role="group" aria-label="Seleccion de hora por bloques">
+                          {appointmentTimeSlots.map((slot) => {
+                            const isBlocked = occupiedAppointmentSlots.has(slot);
+                            const isActive = appointmentDraft.time === slot;
+
+                            return (
+                              <button
+                                key={slot}
+                                type="button"
+                                className={`appointment-picker-time ${isActive ? "active" : ""}`}
+                                onClick={() => setAppointmentDraft((prev) => ({ ...prev, time: slot }))}
+                                disabled={isBlocked}
+                                aria-pressed={isActive}
+                              >
+                                {slot}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </section>
                     </div>
 
                     <p className={`feedback ${appointmentDraft.time ? "success" : "info"}`}>
@@ -7540,9 +8280,10 @@ function App() {
                         : "Selecciona una hora disponible para habilitar Confirmar cita."}
                     </p>
 
-                    <label>
+                    <label className="appointment-field">
                       Notas
                       <textarea
+                        className="appointment-control"
                         name="notes"
                         value={appointmentDraft.notes}
                         onChange={handleAppointmentDraftChange}
@@ -7552,10 +8293,10 @@ function App() {
                     </label>
 
                     <div className="appointment-modal-actions">
-                      <button type="button" className="secondary" onClick={closeAppointmentModal}>Cancelar</button>
+                      <button type="button" className="secondary appointment-cancel-btn" onClick={closeAppointmentModal}>Cancelar</button>
                       <button
                         type="submit"
-                        className="primary"
+                        className="primary appointment-confirm-btn"
                         disabled={appointmentBusy || catalogServices.length === 0 || catalogEmployees.length === 0 || !appointmentDraft.time}
                       >
                         {appointmentBusy ? "Agendando..." : "Confirmar cita"}
@@ -7617,6 +8358,20 @@ function App() {
                         >
                           Agendar esta recomendacion
                         </button>
+                      )}
+                      {entry.role === "assistant" && Array.isArray(entry.quickActions) && entry.quickActions.length > 0 && (
+                        <div className="assistant-route-actions">
+                          {entry.quickActions.map((action) => (
+                            <button
+                              key={`floating-action-${entry.id}-${action.id}`}
+                              type="button"
+                              className="secondary assistant-route-action"
+                              onClick={() => handleAssistantQuickAction(action)}
+                            >
+                              {action.label}
+                            </button>
+                          ))}
+                        </div>
                       )}
                     </div>
                   ))}

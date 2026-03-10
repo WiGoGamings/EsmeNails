@@ -1,13 +1,15 @@
 import path from "node:path";
-import { copyFile, access } from "node:fs/promises";
+import { copyFile, access, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { JSONFilePreset } from "lowdb/node";
 import { defaultData } from "./defaultData.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const dbPath = path.join(__dirname, "database.json");
-const seedPath = path.join(__dirname, "database.seed.json");
+const localDbPath = path.join(__dirname, "database.json");
+const localSeedPath = path.join(__dirname, "database.seed.json");
+const dbPath = String(process.env.DB_FILE_PATH || localDbPath).trim() || localDbPath;
+const seedPath = String(process.env.DB_SEED_PATH || localSeedPath).trim() || localSeedPath;
 
 const fileExists = async (targetPath) => {
   try {
@@ -19,6 +21,8 @@ const fileExists = async (targetPath) => {
 };
 
 // First boot: copy clean seed into runtime DB file if it does not exist.
+await mkdir(path.dirname(dbPath), { recursive: true });
+
 if (!(await fileExists(dbPath)) && (await fileExists(seedPath))) {
   await copyFile(seedPath, dbPath);
 }
@@ -37,6 +41,11 @@ if (!Array.isArray(db.data.completedAppointments)) {
 
 if (!Array.isArray(db.data.contactMessages)) {
   db.data.contactMessages = [];
+  await db.write();
+}
+
+if (!Array.isArray(db.data.payments)) {
+  db.data.payments = [];
   await db.write();
 }
 

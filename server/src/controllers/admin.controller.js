@@ -1,15 +1,18 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { randomUUID } from "node:crypto";
+import PDFDocument from "pdfkit";
 import { env } from "../config/env.js";
 import { db, persist } from "../db/storage.js";
 import { decryptText } from "../lib.crypto.js";
+import { sendPaymentReceiptEmail } from "../lib.mailer.js";
 import {
   adminAppointmentUpdateSchema,
   adminContactMessageUpdateSchema,
   adminEmployeeSchema,
   adminLoginSchema,
   adminOwnerContactSchema,
+  adminPaymentProcessSchema,
   adminPointsGameAchievementsSchema,
   adminPointsProgramSchema,
   adminProductSchema,
@@ -139,6 +142,17 @@ const toAdminData = () => {
   });
 
   const donations = db.data.donations || [];
+  const payments = (db.data.payments || [])
+    .map((payment) => {
+      const client = userMap.get(payment.userId);
+      return {
+        ...payment,
+        clientName: payment.clientName || client?.name || "Cliente",
+        clientEmail: payment.clientEmail || client?.email || "Sin email"
+      };
+    })
+    .sort((a, b) => new Date(b.paidAt || b.createdAt) - new Date(a.paidAt || a.createdAt));
+
   const contactMessages = (db.data.contactMessages || [])
     .map((entry) => {
       const client = userMap.get(entry.userId);
@@ -214,6 +228,7 @@ const toAdminData = () => {
     recentCompletedAppointments: completedAppointments
       .sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt))
       .slice(0, 20),
+    payments,
     clientHistory
   };
 };
@@ -232,6 +247,56 @@ const toCsv = (headers, rows) => {
 };
 
 const overlaps = (startA, endA, startB, endB) => startA < endB && startB < endA;
+
+const paymentMethodLabel = {
+  cash: "Efectivo",
+  card: "Tarjeta",
+  paypal: "PayPal",
+  transfer: "Transferencia"
+};
+
+const buildPaymentReceiptPdf = (payment) => new Promise((resolve, reject) => {
+  const document = new PDFDocument({ size: "A4", margin: 48 });
+  const chunks = [];
+
+  document.on("data", (chunk) => chunks.push(chunk));
+  document.on("error", reject);
+  document.on("end", () => resolve(Buffer.concat(chunks)));
+
+  document.fontSize(20).text("EsmeNails - Recibo de pago", { align: "left" });
+  document.moveDown(0.5);
+  document.fontSize(10).fillColor("#666").text(`Recibo: ${payment.id}`);
+  document.text(`Fecha: ${new Date(payment.paidAt).toLocaleString("es-ES")}`);
+  document.moveDown();
+
+  document.fillColor("#222").fontSize(12).text("Datos del cliente");
+  document.fontSize(11).text(`Nombre: ${payment.clientName || "Cliente"}`);
+  document.text(`Correo: ${payment.clientEmail || "Sin correo"}`);
+  document.text(`Telefono: ${payment.clientPhone || "Sin telefono"}`);
+  document.moveDown();
+
+  document.fontSize(12).text("Detalle del servicio");
+  document.fontSize(11).text(`Servicio: ${payment.serviceName || "Servicio"}`);
+  document.text(`Profesional: ${payment.employeeName || "Sin asignar"}`);
+  document.text(`Cita: ${new Date(payment.scheduledAt).toLocaleString("es-ES")}`);
+  document.moveDown();
+
+  document.fontSize(12).text("Pago");
+  document.fontSize(11).text(`Metodo: ${payment.paymentMethodLabel || payment.paymentMethod}`);
+  document.text(`Subtotal: $${Number(payment.baseAmount || 0).toFixed(2)}`);
+  document.text(`Tip: $${Number(payment.tipAmount || 0).toFixed(2)}`);
+  document.text(`Total: $${Number(payment.amount || 0).toFixed(2)}`);
+  if (payment.signatureName) {
+    document.text(`Firma cliente: ${payment.signatureName}`);
+  }
+  if (payment.notes) {
+    document.text(`Notas: ${payment.notes}`);
+  }
+
+  document.moveDown(1.2);
+  document.fontSize(10).fillColor("#666").text("Gracias por confiar en EsmeNails.");
+  document.end();
+});
 
 export const adminLogin = async (req, res) => {
   const parsed = adminLoginSchema.safeParse(req.body);
@@ -576,6 +641,98 @@ export const updateAdminContactMessage = async (req, res) => {
   await persist();
 
   return res.status(200).json({ message: "Mensaje de contacto actualizado", contactMessage: message });
+};
+
+export const processAdminPayment = async (req, res) => {
+  const parsed = adminPaymentProcessSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json(parseValidationError(parsed.error));
+  }
+
+  const { appointmentId, paymentMethod, notes, signatureName, tipAmount } = parsed.data;
+  const appointment = db.data.appointments.find((item) => item.id === appointmentId);
+
+  if (!appointment) {
+    return res.status(404).json({ error: "Cita no encontrada" });
+  }
+
+  if ((appointment.status || "scheduled") !== "confirmed") {
+    return res.status(409).json({ error: "Solo puedes cobrar citas confirmadas" });
+  }
+
+  const service = db.data.services.find((item) => item.id === appointment.serviceId);
+  const amount = Number(service?.price || 0);
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({ error: "No hay precio valido para procesar el pago" });
+  }
+
+  const normalizedTip = Number.isFinite(Number(tipAmount)) ? Number(Number(tipAmount).toFixed(2)) : 0;
+  const totalAmount = Number((amount + normalizedTip).toFixed(2));
+  const paidAt = new Date().toISOString();
+  const paymentId = `pay-${randomUUID().slice(0, 8)}`;
+  const paymentRecord = {
+    id: paymentId,
+    appointmentId: appointment.id,
+    userId: appointment.userId,
+    clientName: appointment.clientSnapshot?.name || "Cliente",
+    clientEmail: appointment.clientSnapshot?.email || "",
+    clientPhone: appointment.clientSnapshot?.phone || "",
+    serviceName: appointment.serviceName || service?.name || "Servicio",
+    employeeName: appointment.employeeName || "Sin asignar",
+    scheduledAt: appointment.scheduledAt,
+    paymentMethod,
+    paymentMethodLabel: paymentMethodLabel[paymentMethod] || paymentMethod,
+    baseAmount: Number(amount.toFixed(2)),
+    tipAmount: normalizedTip,
+    amount: totalAmount,
+    signatureName: signatureName || "",
+    notes: notes || "",
+    paidAt,
+    createdAt: paidAt
+  };
+
+  if (!Array.isArray(db.data.payments)) {
+    db.data.payments = [];
+  }
+  db.data.payments.unshift(paymentRecord);
+
+  const completedRecord = {
+    ...appointment,
+    status: "completed",
+    completedAt: paidAt,
+    paymentId,
+    paymentMethod,
+    paymentAmount: paymentRecord.amount,
+    paymentBaseAmount: paymentRecord.baseAmount,
+    paymentTipAmount: paymentRecord.tipAmount,
+    paymentSignatureName: paymentRecord.signatureName,
+    paymentNotes: notes || "",
+    paidAt
+  };
+
+  db.data.completedAppointments.push(completedRecord);
+  db.data.appointments = db.data.appointments.filter((item) => item.id !== appointment.id);
+
+  const pdfBuffer = await buildPaymentReceiptPdf(paymentRecord);
+  const receiptFileName = `${paymentId}.pdf`;
+  const emailResult = await sendPaymentReceiptEmail({
+    email: paymentRecord.clientEmail,
+    name: paymentRecord.clientName,
+    payment: paymentRecord,
+    pdfBuffer,
+    fileName: receiptFileName
+  });
+
+  await persist();
+
+  return res.status(200).json({
+    message: "Pago procesado, recibo PDF generado y cita archivada.",
+    payment: paymentRecord,
+    email: emailResult,
+    receiptFileName,
+    receiptPdfBase64: pdfBuffer.toString("base64")
+  });
 };
 
 export const createAdminService = async (req, res) => {

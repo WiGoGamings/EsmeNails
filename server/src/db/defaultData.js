@@ -206,5 +206,6 @@
   completedAppointments: [],
   contactMessages: [],
   orders: [],
-  donations: []
+  donations: [],
+  payments: []
 };

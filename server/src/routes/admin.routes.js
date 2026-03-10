@@ -13,6 +13,7 @@ import {
   exportAdminCsv,
   getAdminDashboard,
   getAdminSettings,
+  processAdminPayment,
   restoreCompletedAdminAppointment,
   updateAdminAppointment,
   updateAdminContactMessage,
@@ -48,6 +49,7 @@ router.put("/settings/owner-contact", requireAdmin, updateAdminOwnerContact);
 router.put("/settings/points-program", requireAdmin, updateAdminPointsProgram);
 router.put("/settings/points-game-achievements", requireAdmin, updateAdminPointsGameAchievements);
 router.put("/appointments/:id", requireAdmin, updateAdminAppointment);
+router.post("/payments/process", requireAdmin, processAdminPayment);
 router.post("/appointments/:id/restore", requireAdmin, restoreCompletedAdminAppointment);
 router.delete("/appointments/:id", requireAdmin, deleteAdminAppointment);
 router.put("/contact-messages/:id", requireAdmin, updateAdminContactMessage);

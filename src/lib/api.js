@@ -9,7 +9,13 @@ const productionApiFallback = "https://esmenails-api.onrender.com/api";
 
 export const API_BASE = explicitApiBase || (isLocalFrontend ? "http://localhost:4000/api" : productionApiFallback);
 
+const isOfflineNow = () => typeof navigator !== "undefined" && navigator.onLine === false;
+
 const getApiConnectionErrorMessage = () => {
+  if (isOfflineNow()) {
+    return "No hay internet en este momento. La app seguira en modo local hasta recuperar conexion.";
+  }
+
   if (isLocalFrontend) {
     return "No hay conexion con la API local. Ejecuta npm run dev y verifica que el puerto 4000 este activo.";
   }
@@ -20,6 +26,10 @@ const getApiConnectionErrorMessage = () => {
 export async function apiRequest(path, { method = "GET", body, token } = {}) {
   if (!API_BASE) {
     throw new Error("API no configurada para esta version web. Define VITE_API_URL para conectar el backend.");
+  }
+
+  if (isOfflineNow()) {
+    throw new Error(getApiConnectionErrorMessage());
   }
 
   let response;

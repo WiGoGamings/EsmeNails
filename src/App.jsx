@@ -1803,7 +1803,9 @@ function App() {
   };
 
   const loginAsAdminWithCredentials = async ({ email, password, fromMainLogin = false }) => {
-    if (!API_BASE) {
+    const useLocalMode = !API_BASE || (typeof navigator !== "undefined" && navigator.onLine === false);
+
+    if (useLocalMode) {
       if (!await isLocalAdminCredentials(email, password)) {
         throw new Error("Credenciales admin locales invalidas.");
       }
@@ -4900,7 +4902,9 @@ function App() {
     setFeedback({ type: "info", text: "Procesando solicitud..." });
 
     try {
-      if (!API_BASE) {
+      const useLocalMode = !API_BASE || (typeof navigator !== "undefined" && navigator.onLine === false);
+
+      if (useLocalMode) {
         const normalizedEmail = normalizeAuthEmail(authForm.email);
         if (!normalizedEmail || !authForm.password.trim()) {
           throw new Error("Ingresa correo y contrasena para continuar.");

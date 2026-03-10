@@ -22,10 +22,22 @@ const allowedOrigins = [
   "https://esmenails.com"
 ];
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+
+  try {
+    const { hostname } = new URL(origin);
+    return hostname.endsWith(".netlify.app") || hostname.endsWith(".netlify.live");
+  } catch {
+    return false;
+  }
+};
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Permitir requests sin origin (como Postman) o si está en la lista
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Permitir requests sin origin (Postman), dominios conocidos y previews de Netlify.
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
       callback(new Error("No permitido por CORS"));

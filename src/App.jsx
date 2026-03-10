@@ -107,6 +107,9 @@ const API_POINTS_LEDGER_KEY = "esme_points_ledger_v1";
 const POINTS_GAME_STATS_LEDGER_KEY = "esme_points_game_stats_v1";
 const POINTS_GAME_ACHIEVEMENTS_CONFIG_KEY = "esme_points_game_achievements_config_v1";
 const LOCAL_APPOINTMENTS_LEDGER_KEY = "esme_local_appointments_ledger_v1";
+const BIOMETRIC_CREDENTIAL_ID_KEY = "esme_biometric_credential_id_v1";
+const BIOMETRIC_SESSION_KEY = "esme_biometric_session_v1";
+const BIOMETRIC_EMAIL_KEY = "esme_biometric_email_v1";
 
 const getAssistantHistoryStorageKey = (isAuthenticated, sessionUser) => {
   const identity = isAuthenticated ? (sessionUser?.email || "authenticated-user") : "guest";
@@ -116,6 +119,34 @@ const getAssistantHistoryStorageKey = (isAuthenticated, sessionUser) => {
 const createLocalEntityId = (prefix) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 const normalizeAuthEmail = (value) => String(value || "").trim().toLowerCase();
+
+const canUseBiometricAuth = () => (
+  typeof window !== "undefined"
+  && window.isSecureContext
+  && typeof window.PublicKeyCredential !== "undefined"
+  && typeof navigator !== "undefined"
+  && !!navigator.credentials
+);
+
+const uint8ArrayToBase64Url = (value) => {
+  const bytes = value instanceof Uint8Array ? value : new Uint8Array(value || []);
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += 1) {
+    binary += String.fromCharCode(bytes[index]);
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+};
+
+const base64UrlToUint8Array = (base64Url) => {
+  const normalized = String(base64Url || "").replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized + "=".repeat((4 - normalized.length % 4) % 4);
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
+};
 
 const createLocalPasswordHash = async (rawPassword) => {
   const normalized = `${LOCAL_AUTH_PASSWORD_SALT}:${String(rawPassword || "")}`;
@@ -1258,6 +1289,15 @@ function App() {
   const [mode, setMode] = useState("login");
   const [authForm, setAuthForm] = useState(defaultAuth);
   const [busy, setBusy] = useState(false);
+  const [biometricBusy, setBiometricBusy] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(() => canUseBiometricAuth());
+  const [biometricReady, setBiometricReady] = useState(() => {
+    try {
+      return Boolean(localStorage.getItem(BIOMETRIC_CREDENTIAL_ID_KEY) && localStorage.getItem(BIOMETRIC_SESSION_KEY));
+    } catch {
+      return false;
+    }
+  });
   const [themeMode, setThemeMode] = useState(() => localStorage.getItem("esme_theme_mode") || "light");
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(() => {
@@ -1296,6 +1336,7 @@ function App() {
   const [pricesFocus, setPricesFocus] = useState("all");
   const [serviceMinutesById, setServiceMinutesById] = useState({});
   const [agendaLoading, setAgendaLoading] = useState(false);
+  const [agendaEmptyDismissed, setAgendaEmptyDismissed] = useState(false);
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
   const [appointmentBusy, setAppointmentBusy] = useState(false);
   const [appointmentDraft, setAppointmentDraft] = useState(() => createAppointmentDraft(new Date()));
@@ -1443,11 +1484,15 @@ function App() {
   });
   const profilePhotoInputRef = useRef(null);
   const assistantMessagesEndRef = useRef(null);
+  const posContentRef = useRef(null);
+  const adminSignatureCanvasRef = useRef(null);
+  const adminSignatureDrawingRef = useRef(false);
   const ownerCarouselFileInputsRef = useRef({});
   const ownerContactBootstrappedRef = useRef(false);
   const pointsGameResolveTimeoutRef = useRef(null);
   const pointsGameNextQuestionTimeoutRef = useRef(null);
   const [homePromoIndex, setHomePromoIndex] = useState(0);
+  const [adminSignatureCaptured, setAdminSignatureCaptured] = useState(false);
   const [adminSavedMap, setAdminSavedMap] = useState({});
   const [feedback, setFeedback] = useState({ type: "info", text: "Bienvenida a EsmeNails. Inicia sesion o crea tu cuenta para continuar." });
   const appointmentTimeSlots = useMemo(
@@ -3374,13 +3419,74 @@ function App() {
     await updateAdminAppointment(appointmentId, { status: "completed" }, "Cita marcada como completada.");
   };
 
+  const drawAdminSignature = useCallback((clientX, clientY, shouldStart) => {
+    const canvas = adminSignatureCanvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
+
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#1f1f1f";
+    ctx.lineWidth = 2.6;
+
+    if (shouldStart) {
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      return;
+    }
+
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }, []);
+
+  const startAdminSignatureDrawing = useCallback((event) => {
+    adminSignatureDrawingRef.current = true;
+    if (typeof event.currentTarget?.setPointerCapture === "function") {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+    drawAdminSignature(event.clientX, event.clientY, true);
+    setAdminSignatureCaptured(true);
+  }, [drawAdminSignature]);
+
+  const moveAdminSignatureDrawing = useCallback((event) => {
+    if (!adminSignatureDrawingRef.current) return;
+    drawAdminSignature(event.clientX, event.clientY, false);
+    setAdminSignatureCaptured(true);
+  }, [drawAdminSignature]);
+
+  const endAdminSignatureDrawing = useCallback((event) => {
+    adminSignatureDrawingRef.current = false;
+    if (typeof event.currentTarget?.releasePointerCapture === "function") {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }, []);
+
+  const clearAdminSignature = useCallback(() => {
+    const canvas = adminSignatureCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setAdminSignatureCaptured(false);
+  }, []);
+
   const processSelectedAdminPayment = async () => {
     if (!adminPaymentDraft.appointmentId) {
       setFeedback({ type: "error", text: "Selecciona primero una cita confirmada para cobrar." });
       return;
     }
 
-    if (!adminPaymentDraft.signatureName.trim()) {
+    if (!adminSignatureCaptured) {
       setFeedback({ type: "error", text: "Debes capturar la firma del cliente para continuar." });
       return;
     }
@@ -3394,7 +3500,7 @@ function App() {
           appointmentId: adminPaymentDraft.appointmentId,
           paymentMethod: adminPaymentDraft.paymentMethod,
           notes: adminPaymentDraft.notes.trim(),
-          signatureName: adminPaymentDraft.signatureName.trim(),
+          signatureName: "Firma digital capturada",
           tipAmount: Number(selectedAdminPaymentTipAmount || 0)
         }
       });
@@ -3431,6 +3537,7 @@ function App() {
         tipOption: "none",
         customTipAmount: ""
       });
+      clearAdminSignature();
       await refreshAdminPanels();
       await refreshAgendaData();
 
@@ -3445,6 +3552,12 @@ function App() {
       setAdminPaymentBusy(false);
     }
   };
+
+  useEffect(() => {
+    if (adminPaymentDraft.step !== "sign") {
+      clearAdminSignature();
+    }
+  }, [adminPaymentDraft.step, adminPaymentDraft.appointmentId, clearAdminSignature]);
 
   const restoreCompletedAppointment = async (appointmentId) => {
     try {
@@ -3784,6 +3897,145 @@ function App() {
 
   const isPasswordStrong = passwordRules.minLength && passwordRules.hasUppercase && passwordRules.hasSpecial;
 
+  const syncBiometricState = useCallback(() => {
+    setBiometricAvailable(canUseBiometricAuth());
+    try {
+      setBiometricReady(Boolean(localStorage.getItem(BIOMETRIC_CREDENTIAL_ID_KEY) && localStorage.getItem(BIOMETRIC_SESSION_KEY)));
+    } catch {
+      setBiometricReady(false);
+    }
+  }, []);
+
+  const persistBiometricSession = useCallback(async (token, userLike) => {
+    if (!token || !userLike?.email) return;
+
+    try {
+      localStorage.setItem(BIOMETRIC_SESSION_KEY, JSON.stringify({
+        token,
+        user: userLike
+      }));
+      localStorage.setItem(BIOMETRIC_EMAIL_KEY, normalizeAuthEmail(userLike.email));
+    } catch {
+      return;
+    }
+
+    if (!canUseBiometricAuth()) {
+      syncBiometricState();
+      return;
+    }
+
+    const existingCredentialId = localStorage.getItem(BIOMETRIC_CREDENTIAL_ID_KEY);
+    if (existingCredentialId) {
+      setBiometricReady(true);
+      return;
+    }
+
+    const shouldEnroll = typeof window !== "undefined" && typeof window.confirm === "function"
+      ? window.confirm("Deseas activar ingreso con huella digital en este dispositivo?")
+      : false;
+
+    if (!shouldEnroll) {
+      syncBiometricState();
+      return;
+    }
+
+    try {
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+      const userId = new TextEncoder().encode(String(userLike.email).slice(0, 64));
+
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          challenge,
+          rp: { name: "EsmeNails" },
+          user: {
+            id: userId,
+            name: String(userLike.email),
+            displayName: String(userLike.name || userLike.email)
+          },
+          pubKeyCredParams: [
+            { type: "public-key", alg: -7 },
+            { type: "public-key", alg: -257 }
+          ],
+          authenticatorSelection: {
+            residentKey: "preferred",
+            userVerification: "required"
+          },
+          timeout: 60000,
+          attestation: "none"
+        }
+      });
+
+      if (!credential?.rawId) return;
+      const encodedCredentialId = uint8ArrayToBase64Url(new Uint8Array(credential.rawId));
+      localStorage.setItem(BIOMETRIC_CREDENTIAL_ID_KEY, encodedCredentialId);
+      setBiometricReady(true);
+      setFeedback({ type: "success", text: "Huella digital activada para futuros ingresos en este dispositivo." });
+    } catch {
+      syncBiometricState();
+    }
+  }, [syncBiometricState]);
+
+  const submitBiometricLogin = useCallback(async () => {
+    if (!canUseBiometricAuth()) {
+      setFeedback({ type: "error", text: "Tu dispositivo o navegador no soporta ingreso biometrico aqui." });
+      return;
+    }
+
+    const credentialId = localStorage.getItem(BIOMETRIC_CREDENTIAL_ID_KEY);
+    const rawSession = localStorage.getItem(BIOMETRIC_SESSION_KEY);
+
+    if (!credentialId || !rawSession) {
+      setFeedback({ type: "info", text: "Inicia sesion normal una vez para activar la huella digital." });
+      syncBiometricState();
+      return;
+    }
+
+    setBiometricBusy(true);
+    setFeedback({ type: "info", text: "Verificando huella digital..." });
+
+    try {
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge,
+          timeout: 60000,
+          userVerification: "required",
+          allowCredentials: [{
+            id: base64UrlToUint8Array(credentialId),
+            type: "public-key"
+          }]
+        }
+      });
+
+      if (!assertion) {
+        throw new Error("No se pudo completar la verificacion biometrica.");
+      }
+
+      const savedSession = JSON.parse(rawSession);
+      if (!savedSession?.token || !savedSession?.user) {
+        throw new Error("No hay una sesion biometrica valida guardada.");
+      }
+
+      localStorage.setItem("esme_token", savedSession.token);
+      localStorage.setItem("esme_user", JSON.stringify(savedSession.user));
+      localStorage.removeItem("esme_admin_token");
+      setAdminToken("");
+      setSessionUser(savedSession.user);
+      setIsAuthenticated(true);
+      setActiveSection("Home");
+      redirectTo("/nails-app");
+      setFeedback({ type: "success", text: `Bienvenida ${savedSession.user.name || "cliente"}. Ingreso con huella exitoso.` });
+    } catch (error) {
+      setFeedback({ type: "error", text: error?.message || "No fue posible ingresar con huella digital." });
+    } finally {
+      setBiometricBusy(false);
+      syncBiometricState();
+    }
+  }, [syncBiometricState]);
+
   const visiblePosSections = useMemo(() => {
     if (adminToken) {
       return [...posSections, "Panel admin"];
@@ -3793,19 +4045,46 @@ function App() {
 
   const quickRailSections = useMemo(() => visiblePosSections, [visiblePosSections]);
 
+  const scrollToTopAfterNavigation = useCallback(() => {
+    const runScroll = () => {
+      if (posContentRef.current && typeof posContentRef.current.scrollTo === "function") {
+        posContentRef.current.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+      }
+      if (typeof window !== "undefined" && typeof window.scrollTo === "function") {
+        window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+      }
+    };
+
+    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(runScroll);
+      return;
+    }
+
+    runScroll();
+  }, []);
+
   const navigateToSection = (section) => {
     setActiveSection(section);
     if (section !== "Menu") {
       setSelectedMenuCategory(null);
       redirectTo("/nails-app");
     }
+    scrollToTopAfterNavigation();
     setFeedback({ type: "success", text: `Seccion actual: ${section}.` });
   };
+
+  useEffect(() => {
+    scrollToTopAfterNavigation();
+  }, [activeSection, scrollToTopAfterNavigation]);
 
   const selectedDateLabel = useMemo(
     () => selectedDate.toLocaleDateString("es-ES", { weekday: "short", month: "short", day: "numeric", year: "numeric" }),
     [selectedDate]
   );
+
+  useEffect(() => {
+    setAgendaEmptyDismissed(false);
+  }, [selectedDate]);
 
   const visibleStaffColumns = useMemo(() => {
     if (catalogEmployees.length > 0) {
@@ -4487,6 +4766,10 @@ function App() {
   }, [privacySettings]);
 
   useEffect(() => {
+    syncBiometricState();
+  }, [syncBiometricState]);
+
+  useEffect(() => {
     setHomePromoIndex(0);
   }, [homeShowcaseItems.length]);
 
@@ -4706,7 +4989,8 @@ function App() {
           points: Number(localUser.points) || 0
         };
 
-        localStorage.setItem("esme_token", `local-${Date.now().toString(36)}`);
+        const localClientToken = `local-${Date.now().toString(36)}`;
+        localStorage.setItem("esme_token", localClientToken);
         localStorage.setItem("esme_user", JSON.stringify(sessionLocalUser));
         localStorage.removeItem("esme_admin_token");
         setAdminToken("");
@@ -4714,6 +4998,7 @@ function App() {
         setIsAuthenticated(true);
         setActiveSection("Home");
         redirectTo("/nails-app");
+        await persistBiometricSession(localClientToken, sessionLocalUser);
         setAuthForm(defaultAuth);
         setFeedback({
           type: "success",
@@ -4774,6 +5059,7 @@ function App() {
       setIsAuthenticated(true);
       setActiveSection("Home");
       redirectTo("/nails-app");
+      await persistBiometricSession(loginResponse.token, loginUserWithBonus);
       setFeedback({
         type: "success",
         text: `Bienvenida ${loginUserWithBonus.name}. Inicio de sesion exitoso.`
@@ -4801,8 +5087,6 @@ function App() {
               <div className="topbar-brand-block">
               <span className="topbar-brand-pill">EsmeNails</span>
               <p className="topbar-brand-subtitle">Bienvenida a Cuidar de tu belleza cariño</p>
-              <span className="topbar-section-chip">{activeSection}</span>
-              <button type="button" className="topbar-pos-btn" onClick={() => navigateToSection("Pago")}>Pago</button>
               </div>
             </div>
           </div>
@@ -4839,17 +5123,27 @@ function App() {
 
         <div className="pos-shell">
           <section
+            ref={posContentRef}
             className="pos-content"
             onClick={() => {
               if (profileMenuOpen) setProfileMenuOpen(false);
             }}
           >
-            <h1>{activeSection}</h1>
+            {activeSection !== "Home" ? (
+              <p className="menu-detail-kicker brand-posv-comic">BeautySystemPosV</p>
+            ) : (
+              null
+            )}
             {activeSection === "Pago" && (
               <section className="admin-pos-payment-strip" aria-label="Panel de pago rapido estilo POS">
-                <div className="admin-pos-payment-column">
-                  <h3>Pago Rapido</h3>
-                  <p>Selecciona la forma de pago al instante.</p>
+                <div className="admin-pos-payment-column pos-column-terminal">
+                  <div className="pos-terminal-header">
+                    <span className="pos-led" aria-hidden="true" />
+                    <div>
+                      <h3>Terminal de Pago</h3>
+                      <p>Selecciona la forma de pago al instante.</p>
+                    </div>
+                  </div>
 
                   {adminToken && adminData ? (
                     <label>
@@ -4877,12 +5171,12 @@ function App() {
                     <p className="admin-payment-summary">Para cobrar citas confirmadas inicia sesion en Panel admin.</p>
                   )}
 
-                  <div className="admin-payment-methods" role="group" aria-label="Metodo de pago rapido">
+                  <div className="admin-payment-methods pos-method-grid" role="group" aria-label="Metodo de pago rapido">
                     {adminPaymentMethodOptions.map((method) => (
                       <button
                         key={`top-${method.value}`}
                         type="button"
-                        className={`appointment-filter-chip ${adminPaymentDraft.paymentMethod === method.value ? "active" : ""}`}
+                        className={`appointment-filter-chip pos-method-btn ${adminPaymentDraft.paymentMethod === method.value ? "active" : ""}`}
                         onClick={() => setAdminPaymentDraft((prev) => ({ ...prev, paymentMethod: method.value }))}
                       >
                         {method.label}
@@ -4896,91 +5190,128 @@ function App() {
                     onClick={() => setAdminPaymentDraft((prev) => ({ ...prev, step: "sign" }))}
                     disabled={!adminToken || !adminData || !adminPaymentDraft.appointmentId}
                   >
-                    Firmar y continuar
+                    Continuar
                   </button>
+
+                  <div className="pos-keypad-decor" aria-hidden="true">
+                    <span>1</span>
+                    <span>2</span>
+                    <span>3</span>
+                    <span>4</span>
+                    <span>5</span>
+                    <span>6</span>
+                    <span>7</span>
+                    <span>8</span>
+                    <span>9</span>
+                    <span>*</span>
+                    <span>0</span>
+                    <span>#</span>
+                  </div>
                 </div>
 
-                <div className="admin-pos-payment-column">
-                  <h4>Firma + tips</h4>
-                  {adminToken && adminData && selectedAdminPaymentAppointment ? (
-                    <p className="admin-payment-summary">
-                      {selectedAdminPaymentAppointment.clientName} - {selectedAdminPaymentAppointment.serviceName} ({adminPaymentMethodLabelByValue[adminPaymentDraft.paymentMethod] || adminPaymentDraft.paymentMethod})
-                    </p>
-                  ) : (
-                    <p className="admin-payment-summary">Opciones activas. Inicia admin para confirmar cobro y generar PDF.</p>
-                  )}
+                <div className="admin-pos-payment-column pos-column-receipt">
+                  <div className="pos-receipt-paper">
+                    <h4>Firma + tips</h4>
+                    {adminToken && adminData && selectedAdminPaymentAppointment ? (
+                      <p className="admin-payment-summary">
+                        {selectedAdminPaymentAppointment.clientName} - {selectedAdminPaymentAppointment.serviceName} ({adminPaymentMethodLabelByValue[adminPaymentDraft.paymentMethod] || adminPaymentDraft.paymentMethod})
+                      </p>
+                    ) : (
+                      <p className="admin-payment-summary">Opciones activas. Inicia admin para confirmar cobro y generar PDF.</p>
+                    )}
 
-                  {adminPaymentDraft.step === "sign" && (
-                    <div className="admin-payment-sign-panel">
-                      <label>
-                        Firma del cliente
-                        <input
-                          type="text"
-                          value={adminPaymentDraft.signatureName}
-                          onChange={(event) => setAdminPaymentDraft((prev) => ({ ...prev, signatureName: event.target.value }))}
-                          placeholder="Nombre y firma digital"
-                          maxLength={120}
+                    {adminPaymentDraft.step === "sign" && (
+                      <div className="admin-payment-sign-panel">
+                        <p className="admin-payment-summary">Firma digital del cliente</p>
+                        <canvas
+                          ref={adminSignatureCanvasRef}
+                          className="admin-signature-canvas"
+                          width={560}
+                          height={180}
+                          onPointerDown={startAdminSignatureDrawing}
+                          onPointerMove={moveAdminSignatureDrawing}
+                          onPointerUp={endAdminSignatureDrawing}
+                          onPointerLeave={endAdminSignatureDrawing}
+                          aria-label="Panel para firmar"
                         />
-                      </label>
 
-                      <label>
-                        Seleccion de tip
-                        <select
-                          value={adminPaymentDraft.tipOption}
-                          onChange={(event) => setAdminPaymentDraft((prev) => ({ ...prev, tipOption: event.target.value }))}
+                        <button
+                          type="button"
+                          className="secondary admin-signature-clear"
+                          onClick={clearAdminSignature}
                         >
-                          {adminTipOptions.map((tip) => (
-                            <option key={`top-tip-${tip.value}`} value={tip.value}>{tip.label}</option>
-                          ))}
-                        </select>
-                      </label>
+                          Limpiar firma
+                        </button>
 
-                      <div className="admin-quick-tip-row" role="group" aria-label="Tips rapidos">
-                        {adminQuickTipAmounts.map((tipAmount) => (
-                          <button
-                            key={`quick-tip-${tipAmount}`}
-                            type="button"
-                            className="secondary"
-                            onClick={() => setAdminPaymentDraft((prev) => ({
-                              ...prev,
-                              tipOption: "custom",
-                              customTipAmount: tipAmount.toFixed(2)
-                            }))}
-                          >
-                            +${tipAmount.toFixed(2)}
-                          </button>
-                        ))}
-                      </div>
-
-                      {adminPaymentDraft.tipOption === "custom" && (
                         <label>
-                          Tip personalizado (monto)
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={adminPaymentDraft.customTipAmount}
-                            onChange={(event) => setAdminPaymentDraft((prev) => ({ ...prev, customTipAmount: event.target.value }))}
-                            placeholder="Ej: 5.00"
-                          />
+                          Tip (%)
+                          <select
+                            value={adminPaymentDraft.tipOption}
+                            onChange={(event) => setAdminPaymentDraft((prev) => ({ ...prev, tipOption: event.target.value }))}
+                          >
+                            {adminTipOptions.map((tip) => (
+                              <option key={`top-tip-${tip.value}`} value={tip.value}>{tip.label}</option>
+                            ))}
+                          </select>
                         </label>
-                      )}
-                    </div>
-                  )}
 
-                  <p className="admin-payment-summary">
-                    Subtotal: <strong>${Number(selectedAdminPaymentBaseAmount || 0).toFixed(2)}</strong> | Tip: <strong>${Number(selectedAdminPaymentTipAmount || 0).toFixed(2)}</strong> | Total: <strong>${Number(selectedAdminPaymentTotal || 0).toFixed(2)}</strong>
-                  </p>
+                        <div className="admin-quick-tip-row" role="group" aria-label="Tips rapidos">
+                          {adminQuickTipAmounts.map((tipAmount) => (
+                            <button
+                              key={`quick-tip-${tipAmount}`}
+                              type="button"
+                              className="secondary"
+                              onClick={() => setAdminPaymentDraft((prev) => ({
+                                ...prev,
+                                tipOption: "custom",
+                                customTipAmount: tipAmount.toFixed(2)
+                              }))}
+                            >
+                              +${tipAmount.toFixed(2)}
+                            </button>
+                          ))}
+                        </div>
 
-                  <button
-                    type="button"
-                    className="primary"
-                    onClick={processSelectedAdminPayment}
-                    disabled={!adminToken || !adminData || adminPaymentBusy || !adminPaymentDraft.appointmentId || adminPaymentDraft.step !== "sign"}
-                  >
-                    {adminPaymentBusy ? "Procesando pago..." : "Print: generar PDF y enviar correo"}
-                  </button>
+                        {adminPaymentDraft.tipOption === "custom" && (
+                          <label>
+                            Tip personalizado (monto)
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={adminPaymentDraft.customTipAmount}
+                              onChange={(event) => setAdminPaymentDraft((prev) => ({ ...prev, customTipAmount: event.target.value }))}
+                              placeholder="Ej: 5.00"
+                            />
+                          </label>
+                        )}
+
+                          <button
+                            type="button"
+                            className="primary pos-print-btn"
+                            onClick={processSelectedAdminPayment}
+                            disabled={!adminToken || !adminData || adminPaymentBusy || !adminPaymentDraft.appointmentId || !adminSignatureCaptured}
+                          >
+                            {adminPaymentBusy ? "Procesando pago..." : "Aceptar y enviar"}
+                          </button>
+                      </div>
+                    )}
+
+                    <p className="admin-payment-summary pos-amount-line">
+                      Subtotal: <strong>${Number(selectedAdminPaymentBaseAmount || 0).toFixed(2)}</strong> | Tip: <strong>${Number(selectedAdminPaymentTipAmount || 0).toFixed(2)}</strong> | Total: <strong>${Number(selectedAdminPaymentTotal || 0).toFixed(2)}</strong>
+                    </p>
+
+                  </div>
                 </div>
+              </section>
+            )}
+
+            {activeSection === "Pago" && (
+              <section className="pos-center-panel">
+                <article className="pos-center-hero">
+                  <h2>Modo POS activo</h2>
+                  <p>Pantalla optimizada para cobrar rapido, registrar firma y emitir recibo.</p>
+                </article>
               </section>
             )}
             {activeSection === "Mi perfil" || activeSection === "Mi cuenta" ? (
@@ -5219,8 +5550,16 @@ function App() {
                   </div>
                 </div>
 
-                {(!agendaLoading && scheduleCards.length === 0) && (
+                {(!agendaLoading && scheduleCards.length === 0 && !agendaEmptyDismissed) && (
                   <div className="agenda-empty">
+                    <button
+                      type="button"
+                      className="agenda-empty-close"
+                      aria-label="Cerrar aviso sin citas"
+                      onClick={() => setAgendaEmptyDismissed(true)}
+                    >
+                      x
+                    </button>
                     <strong>No hay citas para este dia</strong>
                     <p>Agenda una cita y aparecera aqui automaticamente.</p>
                     <button
@@ -8078,40 +8417,38 @@ function App() {
             ) : activeSection === "Home" ? (
               <section className="home-wrap meevo-home">
                 <div className="meevo-headline">
-                  <p className="menu-detail-kicker">Front Desk</p>
-                  <h2>{homeActiveSlide?.title || `Hola, ${profileForm.name || sessionUser?.name || "cliente"}`}</h2>
-                  <p>{homeActiveSlide?.subtitle || "Panel rapido de control para citas, menu y seguimiento de cuenta."}</p>
+                  <p className="menu-detail-kicker brand-posv-comic">BeautySystemPosV</p>
                 </div>
 
                 <div className="meevo-grid" role="list" aria-label="Resumen principal">
                   <button type="button" className="meevo-tile tone-sand" onClick={() => navigateToSection("Mi perfil")}>
-                    <small>Membership Manager</small>
+                    <small>Gestor de membresia</small>
                     <strong>Perfil</strong>
                   </button>
 
-                  <button type="button" className="meevo-tile tone-sand" onClick={() => navigateToSection("Agendar cita")}>
-                    <small>Register</small>
-                    <strong>Agendar</strong>
+                  <button type="button" className="meevo-tile tone-sand" onClick={() => navigateToSection("Pago")}>
+                    <small>Terminal POS</small>
+                    <strong>Pago</strong>
                   </button>
 
                   <article className="meevo-tile tone-purple wide" aria-live="polite">
-                    <small>Rating This Week</small>
+                    <small>Calificacion semanal</small>
                     <div className="meevo-stars" aria-label="Calificacion">★★★★★</div>
                     <strong>{Math.min(30, Math.max(0, upcomingAppointments.length * 3))} / 30</strong>
                   </article>
 
                   <article className="meevo-tile tone-lilac wide">
-                    <small>Completion Profile</small>
+                    <small>Perfil completado</small>
                     <strong>{profileCompletion}%</strong>
                   </article>
 
                   <article className="meevo-tile tone-sand compact">
-                    <small>Wait List Today</small>
+                    <small>Lista de espera hoy</small>
                     <strong>{Math.max(0, upcomingAppointments.length - 1)}</strong>
                   </article>
 
                   <article className="meevo-tile tone-teal compact">
-                    <small>Clients Rebooked</small>
+                    <small>Clientes reagendados</small>
                     <strong>{upcomingAppointments.length}</strong>
                   </article>
 
@@ -8137,22 +8474,22 @@ function App() {
                   </article>
 
                   <button type="button" className="meevo-tile tone-teal" onClick={() => navigateToSection("Historial")}>
-                    <small>Reports</small>
+                    <small>Reportes</small>
                     <strong>Historial</strong>
                   </button>
 
                   <button type="button" className="meevo-tile tone-teal" onClick={() => navigateToSection("Menu")}>
-                    <small>Confirmation Manager</small>
+                    <small>Gestor de servicios</small>
                     <strong>Servicios</strong>
                   </button>
 
                   <button type="button" className="meevo-tile tone-plum" onClick={() => navigateToSection("Agendar cita")}>
-                    <small>Appointment Book</small>
+                    <small>Agenda de citas</small>
                     <strong>Reservar</strong>
                   </button>
 
                   <button type="button" className="meevo-tile tone-plum" onClick={() => navigateToSection("Contacto")}>
-                    <small>Time Clock</small>
+                    <small>Centro de contacto</small>
                     <strong>Contacto</strong>
                   </button>
                 </div>
@@ -8520,7 +8857,22 @@ function App() {
           >
             {busy ? "Procesando..." : mode === "register" ? "Crear cuenta" : "Entrar"}
           </button>
+
+          {mode === "login" && (
+            <button
+              type="button"
+              className="secondary full-width biometric-login-btn"
+              onClick={submitBiometricLogin}
+              disabled={busy || biometricBusy || !biometricAvailable}
+            >
+              {biometricBusy ? "Validando huella..." : "Ingresar con huella digital"}
+            </button>
+          )}
         </form>
+
+        {mode === "login" && biometricAvailable && !biometricReady && (
+          <p className="auth-biometric-hint">Primero inicia sesion con email y contrasena para activar tu huella en este dispositivo.</p>
+        )}
 
         <p className={`feedback ${feedback.type}`}>{feedback.text}</p>
       </section>

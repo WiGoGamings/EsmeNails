@@ -32,8 +32,34 @@ API: `http://localhost:4000/api`
 - `npm run desktop:build`: genera instalador Windows (`nsis`) y portable
 - `npm run desktop:build:portable`: genera solo version portable
 - `npm run desktop:build:installer`: genera solo instalador
+- `npm run android:sync`: compila web y sincroniza cambios al proyecto Android
+- `npm run android:open`: abre el proyecto Android en Android Studio
+- `npm run android:build`: alias de sincronizacion para preparar build Android
 
 Los ejecutables de escritorio se generan en `release/`.
+
+## Generar app Android (APK/AAB)
+
+1. Instala dependencias y sincroniza:
+
+```bash
+npm install
+npm run android:sync
+```
+
+2. Abre Android Studio:
+
+```bash
+npm run android:open
+```
+
+3. Dentro de Android Studio:
+- Para prueba local: **Build > Build APK(s)**
+- Para Play Store: **Build > Generate Signed Bundle / APK** (elige **Android App Bundle**) 
+
+Salida esperada:
+- APK de pruebas en la carpeta `android/app/build/outputs/apk/`
+- AAB firmado para publicacion en Play Console
 
 ## Publicar en GitHub (gratis)
 

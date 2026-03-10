@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">EsmeNails</string>
+    <string name="title_activity_main">EsmeNails</string>
+    <string name="package_name">com.esmenails.app</string>
+    <string name="custom_url_scheme">com.esmenails.app</string>
+</resources>

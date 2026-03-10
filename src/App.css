@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Great+Vibes&family=Outfit:wght@400;600;700;800&family=Syne:wght@600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bangers&family=Great+Vibes&family=Outfit:wght@400;600;700;800&family=Space+Mono:wght@400;700&family=Syne:wght@600;700;800&display=swap");
 
 /* Estilos para login y registro */
 .auth-page {
@@ -77,6 +77,20 @@ body {
 	color: #23272f;
 	font-family: var(--main-font);
 	margin: 0;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+img,
+video,
+canvas,
+svg {
+	max-width: 100%;
+	height: auto;
 }
 
 .sidebar {
@@ -486,12 +500,24 @@ select {
 	width: 100%;
 }
 
+.biometric-login-btn {
+	margin-top: 0.35rem;
+}
+
+.auth-biometric-hint {
+	margin: 0.2rem 0 0;
+	font-size: 0.8rem;
+	color: var(--text-soft);
+}
+
 .pos-layout {
 	min-height: 100vh;
 	display: grid;
 	grid-template-rows: auto 1fr;
 	gap: 0.32rem;
 	padding: 0.32rem;
+	width: min(100%, 1800px);
+	margin-inline: auto;
 }
 
 .pos-topbar {
@@ -2393,6 +2419,45 @@ button.meevo-tile:focus-visible {
 	font-weight: 700;
 }
 
+.menu-detail-kicker.brand-posv-comic {
+	font-family: "Great Vibes", "Syne", cursive;
+	font-size: clamp(1.35rem, 3.2vw, 2.6rem);
+	line-height: 0.9;
+	letter-spacing: 0.01em;
+	text-transform: none;
+	font-weight: 700;
+	background: linear-gradient(180deg, #ffd2f5 0%, #ff75dd 38%, #ff2fbf 65%, #d40a94 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	-webkit-text-fill-color: transparent;
+	-webkit-text-stroke: 1px #8f0056;
+	text-shadow:
+		0 1px 0 rgba(255, 220, 246, 0.95),
+		1px 2px 0 #95005c,
+		2px 4px 0 rgba(104, 0, 61, 0.9),
+		0 0 16px rgba(255, 120, 226, 0.45);
+	margin-bottom: 0.2rem;
+	filter: drop-shadow(0 4px 6px rgba(115, 0, 68, 0.2));
+	word-break: break-word;
+	text-wrap: balance;
+}
+
+body.theme-dark .menu-detail-kicker.brand-posv-comic,
+body.theme-dark .pos-content .menu-detail-kicker.brand-posv-comic {
+	background: linear-gradient(180deg, #ffe2fb 0%, #ff96e8 35%, #ff4fcb 62%, #d70090 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent !important;
+	-webkit-text-fill-color: transparent;
+	-webkit-text-stroke: 1px #69003f;
+	text-shadow:
+		0 1px 0 rgba(255, 220, 246, 0.88),
+		1px 2px 0 #7b004a,
+		2px 4px 0 rgba(81, 0, 48, 0.95),
+		0 0 18px rgba(255, 109, 222, 0.55);
+}
+
 .menu-detail-price {
 	margin: 0;
 	font-size: 0.92rem;
@@ -3333,6 +3398,28 @@ body.modal-open {
 	font-size: 0.78rem;
 }
 
+.agenda-empty-close {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	width: 22px;
+	height: 22px;
+	border-radius: 999px;
+	border: 1px solid #e4b8a3;
+	background: #fff2ea;
+	color: #7a2e1a;
+	font-weight: 800;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.agenda-empty-close:hover,
+.agenda-empty-close:focus-visible {
+	background: #ffe7db;
+	border-color: #d48a68;
+	outline: none;
+}
+
 .agenda-empty strong,
 .agenda-empty p {
 	margin: 0;
@@ -4123,25 +4210,187 @@ body.modal-open {
 	background: #fffdfb;
 }
 
+.admin-signature-canvas {
+	width: 100%;
+	height: 160px;
+	border-radius: 10px;
+	border: 1px solid #d9b39f;
+	background:
+		repeating-linear-gradient(180deg, rgba(238, 222, 209, 0.35) 0 24px, rgba(238, 222, 209, 0.5) 24px 25px),
+		#fff;
+	touch-action: none;
+	cursor: crosshair;
+}
+
+.admin-signature-clear {
+	width: fit-content;
+	min-height: 34px;
+	padding: 0.2rem 0.7rem;
+}
+
 .admin-payment-sign-panel h4 {
 	margin: 0;
 }
 
 .admin-pos-payment-strip {
 	display: grid;
-	grid-template-columns: 1.2fr 1fr;
-	gap: 0.6rem;
-	padding: 0.7rem;
-	border: 1px solid #efcec0;
-	border-radius: 14px;
-	background: linear-gradient(160deg, #fff6f0 0%, #ffece3 100%);
-	box-shadow: 0 10px 20px rgba(83, 31, 15, 0.12);
+	grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+	gap: 0.72rem;
+	padding: 0.75rem;
+	border: 1px solid #e7c5a9;
+	border-radius: 18px;
+	background:
+		radial-gradient(circle at 8% 10%, rgba(254, 237, 209, 0.7) 0%, rgba(254, 237, 209, 0) 28%),
+		linear-gradient(150deg, #fdf7f0 0%, #f9ecd9 40%, #f5e7d2 100%);
+	box-shadow: 0 14px 32px rgba(83, 31, 15, 0.16);
 	margin-bottom: 0.7rem;
+	position: relative;
+	overflow: hidden;
+}
+
+.admin-pos-payment-strip::after {
+	content: "POS";
+	position: absolute;
+	top: -12px;
+	right: 12px;
+	font-family: "Syne", sans-serif;
+	font-size: 0.92rem;
+	letter-spacing: 0.2em;
+	color: rgba(90, 33, 18, 0.16);
 }
 
 .admin-pos-payment-column {
 	display: grid;
 	gap: 0.45rem;
+}
+
+.pos-column-terminal {
+	align-content: start;
+	padding: 0.2rem;
+	background: linear-gradient(170deg, rgba(54, 39, 32, 0.96) 0%, rgba(35, 24, 20, 0.94) 100%);
+	border-radius: 14px;
+	border: 1px solid rgba(255, 215, 170, 0.25);
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.pos-terminal-header {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	align-items: center;
+	gap: 0.55rem;
+	padding: 0.5rem 0.55rem;
+	border-radius: 10px;
+	background: linear-gradient(165deg, rgba(20, 16, 14, 0.95) 0%, rgba(34, 25, 21, 0.95) 100%);
+	border: 1px solid rgba(255, 210, 161, 0.28);
+}
+
+.pos-led {
+	width: 10px;
+	height: 10px;
+	border-radius: 999px;
+	background: #57f287;
+	box-shadow: 0 0 0 3px rgba(87, 242, 135, 0.16), 0 0 10px rgba(87, 242, 135, 0.85);
+}
+
+.pos-terminal-header h3,
+.pos-terminal-header p,
+.pos-column-terminal label,
+.pos-column-terminal .admin-payment-summary {
+	color: #ffeede;
+}
+
+.pos-terminal-header p {
+	opacity: 0.86;
+}
+
+.pos-method-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.4rem;
+}
+
+.pos-method-btn {
+	background: linear-gradient(180deg, #3b2a22 0%, #2a1c16 100%);
+	border-color: #6e4a38;
+	color: #ffe7d6;
+}
+
+.pos-method-btn.active {
+	background: linear-gradient(180deg, #f48d5c 0%, #e16d3d 100%);
+	border-color: #f49e75;
+	color: #fff8f3;
+}
+
+.pos-column-terminal .secondary {
+	background: linear-gradient(180deg, #ffe6b8 0%, #ffd28e 100%);
+	color: #5b2d11;
+	border: 1px solid #f0bb74;
+}
+
+.pos-column-terminal .secondary:disabled {
+	opacity: 0.42;
+}
+
+.pos-keypad-decor {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.32rem;
+	margin-top: 0.1rem;
+}
+
+.pos-keypad-decor span {
+	text-align: center;
+	padding: 0.28rem 0;
+	border-radius: 8px;
+	font-family: "Space Mono", monospace;
+	font-size: 0.79rem;
+	color: #ffe5d6;
+	background: linear-gradient(180deg, rgba(62, 45, 36, 0.92) 0%, rgba(36, 24, 20, 0.92) 100%);
+	border: 1px solid rgba(255, 206, 162, 0.3);
+}
+
+.pos-column-receipt {
+	background: linear-gradient(160deg, #fefcf9 0%, #faf3e8 100%);
+	border-radius: 14px;
+	border: 1px solid #e8d7c4;
+	padding: 0.35rem;
+}
+
+.pos-receipt-paper {
+	display: grid;
+	gap: 0.48rem;
+	padding: 0.52rem;
+	border-radius: 10px;
+	background:
+		repeating-linear-gradient(180deg, #fffefc 0 20px, #fcf7f1 20px 21px),
+		linear-gradient(180deg, #fffefc 0%, #f8f0e6 100%);
+	border: 1px dashed #cfb79b;
+}
+
+.pos-receipt-paper h4 {
+	font-family: "Space Mono", monospace;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	font-size: 0.84rem;
+	color: #6d3f1f;
+}
+
+.pos-amount-line {
+	padding-top: 0.38rem;
+	border-top: 1px dashed #d6b899;
+	font-family: "Space Mono", monospace;
+	font-size: 0.82rem;
+	line-height: 1.45;
+}
+
+.pos-print-btn {
+	background: linear-gradient(180deg, #1d8a68 0%, #14664c 100%);
+	border: 1px solid rgba(18, 100, 74, 0.6);
+	color: #f6fff9;
+}
+
+.pos-print-btn:hover {
+	filter: brightness(1.04);
 }
 
 .admin-pos-payment-column h3,
@@ -4154,6 +4403,14 @@ body.modal-open {
 .admin-pos-payment-column input,
 .admin-pos-payment-column textarea {
 	width: 100%;
+}
+
+.pos-column-terminal select,
+.pos-column-terminal input,
+.pos-column-terminal textarea {
+	background: rgba(255, 247, 236, 0.98);
+	border-color: #c28d6a;
+	color: #4f2510;
 }
 
 .pos-center-panel {
@@ -4513,7 +4770,6 @@ body.theme-dark .admin-edit-appointment,
 body.theme-dark .admin-quick-reschedule,
 body.theme-dark .admin-payment-box,
 body.theme-dark .admin-payment-sign-panel,
-body.theme-dark .admin-pos-payment-strip,
 body.theme-dark .pos-center-hero,
 body.theme-dark .admin-recent-completed,
 body.theme-dark .admin-editor-card,
@@ -4521,6 +4777,51 @@ body.theme-dark .admin-table-wrap,
 body.theme-dark .contact-link-marquee {
 	background: var(--surface-1);
 	border-color: var(--border-main);
+}
+
+body.theme-dark .admin-pos-payment-strip {
+	background:
+		radial-gradient(circle at 8% 10%, rgba(214, 177, 131, 0.2) 0%, rgba(214, 177, 131, 0) 28%),
+		linear-gradient(150deg, #2d241e 0%, #31261f 40%, #372a22 100%);
+	border-color: #6e5648;
+}
+
+body.theme-dark .admin-pos-payment-strip::after {
+	color: rgba(255, 212, 169, 0.22);
+}
+
+body.theme-dark .pos-column-terminal {
+	background: linear-gradient(170deg, rgba(31, 25, 21, 0.95) 0%, rgba(19, 14, 12, 0.95) 100%);
+	border-color: rgba(244, 198, 151, 0.3);
+}
+
+body.theme-dark .pos-column-receipt {
+	background: linear-gradient(160deg, #201914 0%, #2c221b 100%);
+	border-color: #5a4739;
+}
+
+body.theme-dark .admin-signature-canvas {
+	border-color: #7d6657;
+	background:
+		repeating-linear-gradient(180deg, rgba(78, 61, 50, 0.35) 0 24px, rgba(78, 61, 50, 0.52) 24px 25px),
+		#2f251e;
+}
+
+body.theme-dark .pos-receipt-paper {
+	background:
+		repeating-linear-gradient(180deg, #32261f 0 20px, #2c211b 20px 21px),
+		linear-gradient(180deg, #32261f 0%, #2b211a 100%);
+	border-color: #6d5543;
+}
+
+body.theme-dark .pos-receipt-paper h4,
+body.theme-dark .pos-amount-line,
+body.theme-dark .pos-column-receipt .admin-payment-summary {
+	color: #ffd7b7;
+}
+
+body.theme-dark .pos-amount-line {
+	border-color: #7a5b47;
 }
 
 body.theme-dark .admin-quick-links {
@@ -5773,6 +6074,11 @@ body.theme-dark .settings-wrap-client .verify-pill {
 	@media (max-width: 480px) {
 		body {
 			font-size: 14px;
+		}
+
+		.menu-detail-kicker.brand-posv-comic {
+			font-size: min(1.95rem, 11vw);
+			line-height: 0.95;
 		}
 
 		.auth-page {

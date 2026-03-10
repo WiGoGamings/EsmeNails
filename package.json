@@ -14,12 +14,16 @@
     "desktop:build": "npm run build && electron-builder --win nsis portable",
     "desktop:build:portable": "npm run build && electron-builder --win portable",
     "desktop:build:installer": "npm run build && electron-builder --win nsis",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:build": "npm run android:sync",
     "start:server": "npm --prefix server run start",
     "backup:db": "node scripts/backup/backup-db.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/core": "^7.4.3",
     "@tailwindcss/vite": "^4.2.1",
     "autoprefixer": "^10.4.27",
     "postcss": "^8.5.8",
@@ -29,6 +33,8 @@
     "tailwindcss": "^4.2.1"
   },
   "devDependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/cli": "^7.4.3",
     "@eslint/js": "^9.39.0",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",

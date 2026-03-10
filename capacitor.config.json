@@ -1,0 +1,9 @@
+{
+  "appId": "com.esmenails.app",
+  "appName": "EsmeNails",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}

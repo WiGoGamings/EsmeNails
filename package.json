@@ -11,9 +11,10 @@
     "desktop:dev": "concurrently \"npm run dev:client\" \"npm run dev:server\" \"wait-on tcp:5173 tcp:4000 && electron .\"",
     "build": "vite build",
     "build:client": "vite build",
-    "desktop:build": "set VITE_APP_BASE=./&& npm run build && electron-builder --win nsis portable",
-    "desktop:build:portable": "set VITE_APP_BASE=./&& npm run build && electron-builder --win portable",
-    "desktop:build:installer": "set VITE_APP_BASE=./&& npm run build && electron-builder --win nsis",
+    "desktop:icon": "node -e \"const fs=require('fs'); const pngToIco=require('png-to-ico').default; (async()=>{fs.mkdirSync('build',{recursive:true}); const buf=await pngToIco('public/pwa-512x512.png'); fs.writeFileSync('build/icon.ico',buf);})();\"",
+    "desktop:build": "set VITE_APP_BASE=./&& npm run build && npm run desktop:icon && electron-builder --win nsis portable",
+    "desktop:build:portable": "set VITE_APP_BASE=./&& npm run build && npm run desktop:icon && electron-builder --win portable",
+    "desktop:build:installer": "set VITE_APP_BASE=./&& npm run build && npm run desktop:icon && electron-builder --win nsis",
     "android:sync": "npm run build && npx cap sync android",
     "android:open": "npx cap open android",
     "android:build": "npm run android:sync",
@@ -46,6 +47,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "png-to-ico": "^3.0.1",
     "vite": "^7.3.1",
     "wait-on": "^9.0.4"
   },
@@ -66,10 +68,15 @@
     ],
     "win": {
       "signAndEditExecutable": false,
+      "icon": "build/icon.ico",
       "target": [
         "nsis",
         "portable"
       ]
+    },
+    "nsis": {
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
     }
   }
 }

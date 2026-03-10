@@ -143,6 +143,34 @@ git tag -a v1.0.1 -m "Release v1.0.1"
 git push origin v1.0.1
 ```
 
+Nota importante:
+- El workflow de release toma la version directamente del tag (`v1.0.1` -> `1.0.1`) antes de compilar Electron.
+- Si quieres un `.exe` realmente nuevo, crea siempre un tag nuevo (`v1.0.2`, `v1.0.3`, etc.).
+
+Seguridad de descarga:
+- En cada release se adjuntan hashes SHA-256 (`*.sha256` y `SHA256SUMS.txt`) para validar integridad.
+- Si configuras firma de codigo en GitHub Secrets (`CSC_LINK` y `CSC_KEY_PASSWORD`), Electron Builder firma automaticamente el ejecutable.
+
+### Si descargaste un `.exe` y se abre una version anterior
+
+1. Verifica que descargaste el asset del release mas reciente (no uno viejo).
+2. Cierra la app completamente antes de abrir el nuevo `.exe`.
+3. Si usas acceso directo anclado, borralo y crea uno nuevo desde el `.exe` descargado.
+4. Si instalaste con instalador, desinstala primero la version anterior y luego instala la nueva.
+5. Compara fecha/tamano del archivo para confirmar que es distinto al anterior.
+
+### Verificar integridad del .exe en Windows
+
+1. Descarga el `.exe` y su archivo `.sha256` del mismo release.
+2. En PowerShell, ejecuta:
+
+```powershell
+Get-FileHash .\EsmeNails.exe -Algorithm SHA256
+```
+
+3. Compara el valor `Hash` con el contenido del archivo `.sha256`.
+4. Si ambos coinciden, el archivo no fue alterado.
+
 ## Variables de entorno
 
 Puedes copiar `.env.example` y ajustar valores en `server/.env` segun necesites (correo SMTP, credenciales admin, etc.).

@@ -29,20 +29,47 @@ jobs:
       - name: Install server dependencies
         run: npm --prefix server ci --legacy-peer-deps
 
+      - name: Set app version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          APP_VERSION="${GITHUB_REF_NAME#v}"
+          npm version "$APP_VERSION" --no-git-tag-version --allow-same-version
+          echo "Building desktop app version $APP_VERSION"
+
       - name: Build portable app
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
         run: npm run desktop:build:portable
+
+      - name: Generate SHA-256 checksums
+        shell: pwsh
+        run: |
+          $exeFiles = Get-ChildItem -Path release -Filter *.exe
+          foreach ($file in $exeFiles) {
+            $hash = (Get-FileHash -Path $file.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash *$($file.Name)" | Out-File -FilePath (Join-Path $file.DirectoryName ($file.Name + '.sha256')) -Encoding ascii
+          }
+          Get-ChildItem -Path release -Filter *.sha256 | Get-Content | Out-File -FilePath release/SHA256SUMS.txt -Encoding ascii
 
       - name: Upload desktop artifact
         uses: actions/upload-artifact@v4
         with:
           name: EsmeNails-windows-portable
-          path: release/*.exe
+          path: |
+            release/*.exe
+            release/*.sha256
+            release/SHA256SUMS.txt
 
       - name: Publish GitHub release assets
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*.exe
+          files: |
+            release/*.exe
+            release/*.sha256
+            release/SHA256SUMS.txt
           generate_release_notes: true
 
   build-android:

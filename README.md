@@ -132,7 +132,7 @@ Notas:
 Este repo ya incluye:
 
 - `.github/workflows/desktop-release.yml`
-	- Al subir un tag `v*` (ejemplo `v1.0.1`), compila Windows y adjunta `.exe` automaticamente al Release.
+	- Al subir un tag `v*` (ejemplo `v1.0.1`), compila Windows y Android, y adjunta `.exe` + `.apk` automaticamente al Release.
 - `.github/workflows/pages.yml`
 	- Al hacer push a `main`, compila y publica la web en GitHub Pages.
 

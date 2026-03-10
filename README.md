@@ -29,7 +29,7 @@ API: `http://localhost:4000/api`
 - `npm run lint`: validacion de codigo
 - `npm run build`: build web (Vite)
 - `npm run desktop:dev`: ejecuta cliente + servidor + Electron en local
-- `npm run desktop:build`: genera instalador Windows (`nsis`) y portable
+- `npm run desktop:build`: genera instalador Windows (`nsis`) y portable (ajustado para Electron sin pantalla blanca)
 - `npm run desktop:build:portable`: genera solo version portable
 - `npm run desktop:build:installer`: genera solo instalador
 - `npm run android:sync`: compila web y sincroniza cambios al proyecto Android
@@ -150,6 +150,10 @@ Nota importante:
 Seguridad de descarga:
 - En cada release se adjuntan hashes SHA-256 (`*.sha256` y `SHA256SUMS.txt`) para validar integridad.
 - Si configuras firma de codigo en GitHub Secrets (`CSC_LINK` y `CSC_KEY_PASSWORD`), Electron Builder firma automaticamente el ejecutable.
+
+Instalador vs portable:
+- `EsmeNails Setup x.y.z.exe` instala la app en Windows (asistente de instalacion).
+- `EsmeNails.x.y.z.exe` (portable) solo se ejecuta, no instala.
 
 ### Si descargaste un `.exe` y se abre una version anterior
 

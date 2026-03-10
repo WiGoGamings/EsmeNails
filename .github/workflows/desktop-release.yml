@@ -37,11 +37,11 @@ jobs:
           npm version "$APP_VERSION" --no-git-tag-version --allow-same-version
           echo "Building desktop app version $APP_VERSION"
 
-      - name: Build portable app
+      - name: Build installer and portable app
         env:
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-        run: npm run desktop:build:portable
+        run: npm run desktop:build
 
       - name: Generate SHA-256 checksums
         shell: pwsh
